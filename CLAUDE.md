@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 03/04/2026 | Versão: 4.2
+> Última atualização: 03/04/2026 | Versão: 4.3
 
 ---
 
@@ -323,10 +323,12 @@ npm run build      # gerar dist/ para deploy
 
 ### Fase 4 — Sistema de Reposições 🔄 EM ANDAMENTO
 - [x] Model CreditoReposicao criado
-- [ ] Signals de geração automática de crédito
+- [x] Signal `gerar_credito_reposicao` — cria crédito ao registrar falta justificada/atestado (limite 3, sem duplicata)
+- [x] Signal `marcar_credito_usado` — marca crédito como usado ao registrar aula de reposição
 - [ ] Endpoints de créditos e solicitações
 - [ ] Telas frontend (professor aprova, admin visualiza)
-- [ ] Pendência: reunião para definir 2 regras em aberto
+- [ ] Pendência: reunião — aviso +48h (cenario3) gera crédito ou não?
+- [ ] Pendência: reunião — mistura de níveis na aula de reposição
 
 ### Fase 5 — Telas Restantes ⏳ PLANEJADA
 - Funcionários, Folha de Pagamento, Planos, Fichas de Treino, Relatórios completos, Configurações

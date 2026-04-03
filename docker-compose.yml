@@ -6,12 +6,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: studio_fluir
+      POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d studio_fluir"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,12 +25,14 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - DEBUG=${DEBUG:-False}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
-      - DB_NAME=studio_fluir
+      - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=db
       - DB_PORT=5432
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://nostudiofluir.com.br}
+      - JWT_ACCESS_TOKEN_LIFETIME_MINUTES=${JWT_ACCESS_TOKEN_LIFETIME_MINUTES:-60}
+      - JWT_REFRESH_TOKEN_LIFETIME_DAYS=${JWT_REFRESH_TOKEN_LIFETIME_DAYS:-7}
     depends_on:
       db:
         condition: service_healthy
@@ -46,7 +48,7 @@ services:
       - media_volume:/app/media
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - ./site-institucional:/var/www/site-institucional:ro
-      - frontend_dist:/var/www/frontend:ro
+      - ./frontend/dist:/var/www/frontend:ro
     depends_on:
       - backend
     restart: unless-stopped
@@ -55,4 +57,3 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
-  frontend_dist:

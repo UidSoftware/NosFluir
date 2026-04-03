@@ -1,0 +1,51 @@
+# Ambiente
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+venv/
+.venv/
+env/
+.env/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+.cache/
+*.tsbuildinfo
+
+# Certificados e chaves
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# Logs de deploy
+deploy_*.log
+deploy_history.log
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

@@ -10,7 +10,7 @@
 **Cliente:** Studio Fluir — Giulia Fagionato e Tássia Magnaboso
 **Localização:** Uberlândia - MG
 **Domínio:** nostudiofluir.com.br
-**Repositório:** https://github.com/UidSoftware/NosFluirSis
+**Repositório:** https://github.com/UidSoftware/NosFluir
 **Desenvolvido por:** Uid Software
 
 **O sistema é OFICIAL e está em uso pelas clientes.**
@@ -213,7 +213,8 @@ Campos: aluno (FK), aula_origem (FK), aula_reposicao (FK nullable),
 ## 📝 Regras de Negócio Críticas
 
 ### Financeiro:
-- `valor_total = (qtd × valor_unitario) - desconto`
+- `ContasPagar: valor_total = qtd × valor_unitario` (sem desconto)
+- `ContasReceber: valor_total = (qtd × valor_unitario) - desconto`
 - `valor_liquido = salario_base - descontos`
 - LivroCaixa: **NUNCA** editar/deletar — criar estorno se necessário
 - ContasPagar pago → signal cria lançamento **saída** automático
@@ -289,8 +290,15 @@ npm run build      # gerar dist/ para deploy
 
 ## ✅ Status das Fases
 
-### Fase 1 — Backend ✅ COMPLETO
-- [x] 29 models, API REST, JWT, signals, admin, Docker, Nginx, SSL, VPS
+### Fase 1 — Backend ✅ COMPLETO (implementado em 03/04/2026)
+- [x] 29 models em 4 apps (usuarios, financeiro, operacional, tecnico)
+- [x] API REST completa — serializers, viewsets, filtros, paginação PAGE_SIZE=20
+- [x] JWT — autenticação por email, blacklist, refresh rotation
+- [x] Signals — ContasPagar/ContasReceber → LivroCaixa automático
+- [x] Django Admin — todos os models registrados
+- [x] Docker — Dockerfile, entrypoint.sh, docker-compose.yml
+- [x] Nginx configurado (SSL Let's Encrypt, proxy reverso)
+- [x] BaseModel, AuditMixin, ReadCreateViewSet (LivroCaixa imutável)
 
 ### Fase 2 — Frontend React ✅ COMPLETO (em produção)
 - [x] Login, Dashboard, Alunos, Turmas, Ministrar Aula, Financeiro, Livro Caixa, PWA

@@ -1,6 +1,6 @@
 #!/bin/bash
 # deploy.sh — Nos Studio Fluir
-# Uid Software — gerado automaticamente
+# Uid Software
 # Uso: ./deploy.sh [ambiente: prod|staging]
 # Exemplo: ./deploy.sh prod
 
@@ -36,39 +36,39 @@ git pull origin main
 echo "✅ Código atualizado"
 echo ""
 
+# Build do frontend (Fase 2 — executa somente se o diretório existir)
+if [ -d "frontend" ]; then
+  echo "🔨 Buildando frontend React..."
+  cd frontend
+  npm ci
+  npm run build
+  cd ..
+  echo "✅ Frontend buildado"
+  echo ""
+fi
+
 echo "🛑 Parando containers..."
-docker-compose down
+docker compose down
 echo "✅ Containers parados"
 echo ""
 
 echo "🔨 Rebuilding imagens (sem cache)..."
-docker-compose build --no-cache
+docker compose build --no-cache
 echo "✅ Imagens reconstruídas"
 echo ""
 
 echo "▶️  Subindo containers..."
-docker-compose up -d
+docker compose up -d
 echo "✅ Containers no ar"
 echo ""
 
-# Aguardar banco de dados subir
-echo "⏳ Aguardando banco de dados..."
-sleep 8
-
-echo "🗄️  Executando migrations..."
-docker-compose exec -T backend python manage.py migrate --noinput
-echo "✅ Migrations aplicadas"
-echo ""
-
-echo "📦 Coletando arquivos estáticos..."
-docker-compose exec -T backend python manage.py collectstatic --noinput
-echo "✅ Estáticos coletados"
-echo ""
+# Aguardar banco de dados subir (entrypoint.sh já executa migrations + collectstatic)
+echo "⏳ Aguardando inicialização do backend..."
+sleep 15
 
 # Verificar saúde dos containers
 echo "🩺 Verificando saúde dos containers..."
-sleep 5
-docker-compose ps
+docker compose ps
 echo ""
 
 # Verificar se backend responde
@@ -79,7 +79,7 @@ if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "401" ] || [ "$HTTP_STATUS" 
   echo "✅ API respondendo (HTTP $HTTP_STATUS)"
 else
   echo "⚠️  API retornou HTTP $HTTP_STATUS — verifique os logs"
-  echo "   Logs: docker-compose logs -f backend"
+  echo "   Logs: docker compose logs -f backend"
 fi
 
 echo ""
@@ -91,7 +91,6 @@ echo "   Admin:    https://$DOMINIO/admin/"
 echo "=================================="
 echo ""
 
-# Log de deploy
-DEPLOY_LOG="deploy_$(date +%Y%m%d_%H%M%S).log"
+# Registrar histórico de deploy
 echo "Deploy realizado em $(date '+%d/%m/%Y %H:%M:%S') - Ambiente: $AMBIENTE" >> deploy_history.log
 echo "📋 Histórico salvo em deploy_history.log"

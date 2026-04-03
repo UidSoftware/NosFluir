@@ -226,19 +226,24 @@ Sempre que implementar uma nova feature, seguir esta ordem:
 ## Variáveis de Ambiente (.env)
 
 ```bash
-# Banco de dados
-DATABASE_URL=postgres://user:pass@db:5432/fluir_db
+# Banco de dados (variáveis separadas — NÃO usar DATABASE_URL)
+DB_NAME=studio_fluir
+DB_USER=studio_fluir_user
+DB_PASSWORD=sua_senha_aqui
 
 # Django
 SECRET_KEY=gerar-chave-aleatoria-segura
 DEBUG=False
 ALLOWED_HOSTS=nostudiofluir.com.br,www.nostudiofluir.com.br
 
+# CORS
+CORS_ALLOWED_ORIGINS=https://nostudiofluir.com.br,https://www.nostudiofluir.com.br
+
 # JWT
 JWT_ACCESS_TOKEN_LIFETIME_MINUTES=60
 JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
 
-# Frontend
+# Frontend (usado no build do React — Fase 2)
 VITE_API_URL=https://nostudiofluir.com.br/api
 ```
 

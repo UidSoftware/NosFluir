@@ -26,7 +26,10 @@ done
 echo "🗄️  Criando migrations..."
 python manage.py makemigrations --noinput
 
-echo "🗄️  Executando migrations..."
+echo "🗄️  Migrando usuarios primeiro (users table deve existir antes das FKs de auditoria)..."
+python manage.py migrate usuarios --noinput
+
+echo "🗄️  Executando demais migrations..."
 python manage.py migrate --noinput
 
 echo "📦 Coletando arquivos estáticos..."

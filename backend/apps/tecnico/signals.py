@@ -1,14 +1,84 @@
 """
-Signals do módulo técnico.
+Signals do módulo técnico — Fase 4: Sistema de Reposições.
 
-Fase 4 — Sistema de Reposições (EM ANDAMENTO).
-Os signals de geração automática de CreditoReposicao serão implementados aqui.
+Regras implementadas:
+- 'justificada' (aviso 1h–48h antes)  → gera crédito ✅
+- 'atestado' (médico, qualquer prazo) → gera crédito ✅
+- 'cenario3' (aviso +48h antes)       → PENDENTE decisão com clientes ⚠️ (não gera)
+- 'sem_aviso'                         → não gera crédito ❌
 
-Pendências (aguardando reunião com clientes):
-- Aviso com mais de 48h antes (cenario3) → gera crédito ou não?
-- Mistura de níveis na aula de reposição → fluxo de aprovação
+Restrições:
+- Máximo 3 créditos simultâneos por aluno (status='disponivel')
+- Sem duplicata: cada aula_origem gera no máximo 1 crédito
 """
 
-# TODO Fase 4: implementar signal post_save em Aula
-# Gatilho: aul_tipo_presenca = 'falta' e aul_tipo_falta IN ('justificada', 'atestado')
-# Ação: criar CreditoReposicao (validar máximo 3 simultâneos, evitar duplicata)
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+# Import lazy para evitar circular import
+def _get_models():
+    from apps.tecnico.models import Aula, CreditoReposicao
+    return Aula, CreditoReposicao
+
+
+TIPOS_FALTA_QUE_GERAM_CREDITO = {'justificada', 'atestado'}
+LIMITE_CREDITOS_SIMULTANEOS = 3
+
+
+@receiver(post_save, sender='tecnico.Aula')
+def marcar_credito_usado(sender, instance, **kwargs):
+    """
+    Quando uma aula de reposição é registrada com um crédito vinculado,
+    marca o crédito como usado.
+    """
+    _, CreditoReposicao = _get_models()
+
+    if instance.aul_tipo_presenca != 'reposicao':
+        return
+    if not instance.cred_id:
+        return
+
+    credito = instance.cred
+    if credito.cred_status != 'usado':
+        credito.cred_status = 'usado'
+        credito.cred_usado = True
+        credito.aula_reposicao = instance
+        credito.save()
+
+
+@receiver(post_save, sender='tecnico.Aula')
+def gerar_credito_reposicao(sender, instance, **kwargs):
+    """
+    Cria um CreditoReposicao quando uma falta justificada ou atestado é registrada.
+    Dispara tanto na criação quanto na atualização da Aula.
+    """
+    _, CreditoReposicao = _get_models()
+
+    # Só processa se for falta com tipo que gera crédito
+    if instance.aul_tipo_presenca != 'falta':
+        return
+    if instance.aul_tipo_falta not in TIPOS_FALTA_QUE_GERAM_CREDITO:
+        return
+
+    # Evita duplicata: já existe crédito para esta aula de origem?
+    if CreditoReposicao.objects.filter(aula_origem=instance).exists():
+        return
+
+    # Verifica limite de créditos simultâneos por aluno
+    creditos_ativos = CreditoReposicao.objects.filter(
+        alu=instance.alu,
+        cred_status='disponivel',
+        deleted_at__isnull=True,
+    ).count()
+
+    if creditos_ativos >= LIMITE_CREDITOS_SIMULTANEOS:
+        return
+
+    # Cria o crédito
+    # cred_data_geracao usa default=timezone.now
+    # cred_data_expiracao calculado automaticamente em CreditoReposicao.save() (+30 dias)
+    CreditoReposicao.objects.create(
+        alu=instance.alu,
+        aula_origem=instance,
+    )

@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 02/04/2026 | Versão: 4.1
+> Última atualização: 03/04/2026 | Versão: 4.2
 
 ---
 
@@ -47,9 +47,10 @@ Sistema web de gestão completo para studio de Pilates e treinamento funcional, 
 - Roda na raiz: `nostudiofluir.com.br/`
 
 **Infra:**
-- VPS Ubuntu 24.04 | Docker + Docker Compose
+- VPS Ubuntu 24.04 | Docker Compose v2 (`docker compose`, sem hífen)
 - Nginx 1.25 (SSL Let's Encrypt) | Gunicorn (3 workers)
-- `entrypoint.sh` executa migrations + collectstatic + gunicorn automaticamente
+- `entrypoint.sh` executa makemigrations → migrate usuarios → migrate → collectstatic → gunicorn
+- Repo na VPS aponta para `UidSoftware/NosFluir` (substituiu o antigo `UidSoftware/NosFluirSis`)
 
 ---
 
@@ -69,7 +70,7 @@ nostudiofluir.com.br/api/redoc/ → ReDoc
 ## 📂 Estrutura de Diretórios
 
 ```
-NosFluirSis/
+NosFluir/
 ├── CLAUDE.md                          ← este arquivo — raiz do projeto
 ├── backend/
 │   ├── manage.py
@@ -245,11 +246,14 @@ python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
 
-# Docker (produção)
-docker-compose build
-docker-compose up -d
-docker-compose logs -f backend
-docker-compose down
+# Docker (produção) — usar docker compose v2 (sem hífen)
+docker compose build
+docker compose up -d
+docker compose logs -f backend
+docker compose down
+
+# Para aplicar mudanças de código (rebuild obrigatório — código é copiado na imagem):
+docker compose build backend && docker compose up -d backend
 
 # Frontend
 cd frontend
@@ -285,20 +289,28 @@ npm run build      # gerar dist/ para deploy
 | 403 no update/delete LivroCaixa | ReadCreateMixin por design | Criar estorno |
 | Frontend 404 em /sistema/ | base não configurado | Verificar `base: '/sistema/'` no vite |
 | Login não funciona | Tentando auth por username | Verificar `USERNAME_FIELD = 'email'` no model User |
+| Django admin "credenciais incorretas" | EmailBackend não aceitava kwarg `username` | EmailBackend aceita `email or username` — já corrigido |
+| 403 CSRF no admin | Sistema atrás de Nginx sem proxy headers | `CSRF_TRUSTED_ORIGINS`, `SECURE_PROXY_SSL_HEADER`, `USE_X_FORWARDED_HOST` — já configurados |
+| `restart` não aplica mudanças de código | Código está na imagem Docker, não em volume | Sempre usar `docker compose build backend && docker compose up -d backend` |
+| `App does not have migrations` | Diretório `migrations/` não existia | Criar `migrations/__init__.py` em cada app e commitar |
 
 ---
 
 ## ✅ Status das Fases
 
-### Fase 1 — Backend ✅ COMPLETO (implementado em 03/04/2026)
+### Fase 1 — Backend ✅ COMPLETO E EM PRODUÇÃO (03/04/2026)
 - [x] 29 models em 4 apps (usuarios, financeiro, operacional, tecnico)
 - [x] API REST completa — serializers, viewsets, filtros, paginação PAGE_SIZE=20
 - [x] JWT — autenticação por email, blacklist, refresh rotation
 - [x] Signals — ContasPagar/ContasReceber → LivroCaixa automático
-- [x] Django Admin — todos os models registrados
+- [x] Django Admin — todos os models registrados e funcional
 - [x] Docker — Dockerfile, entrypoint.sh, docker-compose.yml
 - [x] Nginx configurado (SSL Let's Encrypt, proxy reverso)
 - [x] BaseModel, AuditMixin, ReadCreateViewSet (LivroCaixa imutável)
+- [x] EmailBackend corrigido (aceita `email` e `username` kwargs)
+- [x] CSRF + proxy SSL configurados para admin atrás de Nginx
+- [x] Deploy realizado na VPS — banco recriado do zero (22 tabelas), sistema rodando
+- [x] VPS aponta para repo `UidSoftware/NosFluir` (removido o antigo `NosFluirSis`)
 
 ### Fase 2 — Frontend React ✅ COMPLETO (em produção)
 - [x] Login, Dashboard, Alunos, Turmas, Ministrar Aula, Financeiro, Livro Caixa, PWA

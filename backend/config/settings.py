@@ -137,6 +137,15 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://nostudiofluir.com.br,https://www.nostudiofluir.com.br'
+).split(',')
+
+# Necessário quando atrás de proxy reverso (Nginx)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Nos Studio Fluir API',
     'DESCRIPTION': 'API do sistema de gestão Studio Fluir — Uid Software',

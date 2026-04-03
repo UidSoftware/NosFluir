@@ -23,10 +23,14 @@ except Exception as e:
   sleep 2
 done
 
-echo "🗄️  Criando migrations..."
-python manage.py makemigrations --noinput
+echo "🔍 Verificando configuração Django..."
+python manage.py check
 
-echo "🗄️  Migrando usuarios primeiro (users table deve existir antes das FKs de auditoria)..."
+echo "🗄️  Criando migrations por app..."
+python manage.py makemigrations usuarios --noinput
+python manage.py makemigrations financeiro operacional tecnico --noinput
+
+echo "🗄️  Migrando usuarios primeiro..."
 python manage.py migrate usuarios --noinput
 
 echo "🗄️  Executando demais migrations..."

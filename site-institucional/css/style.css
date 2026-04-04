@@ -862,7 +862,25 @@ ul { list-style: none; }
 
 .footer__bottom a:hover { color: var(--cyan); }
 
-/* ─── BOTÃO FLUTUANTE ────────────────────────────────────────────────────── */
+/* ─── BOTÕES FLUTUANTES ──────────────────────────────────────────────────── */
+.entrar-float {
+  position: fixed;
+  bottom: 1.75rem; right: 5.5rem;
+  z-index: 99;
+  height: 56px;
+  padding: 0 1.1rem;
+  border-radius: 28px;
+  background: var(--purple);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center; gap: .45rem;
+  font-size: .82rem; font-weight: 700; letter-spacing: .02em;
+  box-shadow: 0 4px 20px rgba(93,92,224,.4);
+  transition: var(--transition);
+  text-decoration: none;
+}
+
+.entrar-float:hover { transform: scale(1.06); box-shadow: 0 6px 28px rgba(93,92,224,.55); }
+
 .wpp-float {
   position: fixed;
   bottom: 1.75rem; right: 1.75rem;

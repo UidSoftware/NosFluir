@@ -23,7 +23,7 @@ export const authService = {
   },
 
   async getUser() {
-    const { data } = await api.get('/usuarios/me/')
+    const { data } = await api.get('/me/')
     return data
   },
 }

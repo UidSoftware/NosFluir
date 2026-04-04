@@ -93,5 +93,5 @@ export function Toaster() {
   )
 }
 
-// Re-export para uso sem hook
-export { useToast } from '@radix-ui/react-toast'
+// Re-export do hook local
+export { toast as useToast } from '@/hooks/useToast'

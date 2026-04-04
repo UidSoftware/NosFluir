@@ -1,7 +1,7 @@
 # Instruções Claude Code — Nos Studio Fluir
-> Versão: 1.1
-> Etapa atual: Fase 4 — Sistema de Reposições
-> Última atualização: 02/04/2026
+> Versão: 2.0
+> Etapa atual: Fase 2 — Frontend React (em execução)
+> Última atualização: 03/04/2026
 
 ---
 
@@ -18,249 +18,401 @@
 ## Status Atual do Projeto
 
 ```
-Fase 1 — Backend base          ✅ COMPLETO
-Fase 2 — Frontend React        ✅ COMPLETO (em produção)
+Fase 1 — Backend base          ✅ COMPLETO E EM PRODUÇÃO
+Fase 2 — Frontend React        🔄 EM ANDAMENTO (base criada, módulos em desenvolvimento)
 Fase 3 — Site Institucional    ✅ COMPLETO (em produção)
-Fase 4 — Sistema de Reposições 🔄 EM ANDAMENTO
+Fase 4 — Sistema de Reposições ⏳ AGUARDANDO Fase 2
 Fase 5 — Telas Restantes       ⏳ PLANEJADA
 ```
 
 ---
 
-## Fase 4 — Sistema de Reposições (Prioridade atual)
+## Stack Frontend (definida — NÃO alterar)
 
-### O que já existe:
-- [x] Model `CreditoReposicao` criado em `apps/tecnico/models.py`
-
-### O que falta implementar:
-
-#### Backend:
-
-- [ ] **Signal de geração de crédito**
-  - Arquivo: `apps/tecnico/signals.py`
-  - Gatilho: `post_save` na model `Aula`
-  - Condição: `aul_tipo_presenca = 'falta'` e `aul_tipo_falta IN ('justificada', 'atestado')`
-  - Ação: criar `CreditoReposicao` com `cred_data_expiracao = hoje + 30 dias`
-  - Validar: máximo 3 créditos `disponivel` por aluno antes de criar
-  - Validar: não criar crédito duplicado para a mesma aula
-
-- [ ] **Signal de expiração de crédito**
-  - Verificar créditos com `cred_data_expiracao < hoje` e status `disponivel` → marcar `expirado`
-  - Pode ser feito via management command + cron, ou no signal de listagem
-
-- [ ] **Endpoints de CreditoReposicao**
-  - `GET /api/creditos/` — listar créditos (filtros: aluno, status, expirados)
-  - `GET /api/creditos/{id}/` — detalhe de um crédito
-  - `POST /api/creditos/usar/` — usar um crédito (valida regras de cruzamento)
-  - `GET /api/alunos/{id}/creditos/` — créditos disponíveis de um aluno
-
-- [ ] **Validações na API ao usar crédito**
-  - Verificar se crédito está `disponivel`
-  - Verificar se não expirou
-  - Verificar regra de uso cruzado (máximo 1x por mês)
-  - Selecionar crédito mais próximo de expirar (FIFO por validade)
-
-#### Frontend:
-
-- [ ] **Tela de Créditos do Aluno (perfil Professor/Admin)**
-  - Listagem de créditos por aluno
-  - Status visual: disponível (verde), usado (cinza), expirado (vermelho)
-  - Data de expiração com alerta quando < 7 dias
-
-- [ ] **Fluxo de Reposição ao Ministrar Aula**
-  - Ao lançar presença tipo `reposicao`, buscar créditos disponíveis do aluno
-  - Exibir crédito que será consumido (o mais próximo de expirar)
-  - Confirmar uso do crédito
-
-- [ ] **Tela Admin — Visão geral de créditos**
-  - Créditos prestes a expirar (próximos 7 dias)
-  - Estatísticas de reposições por mês
-
----
-
-## Fase 5 — Telas Restantes (Planejada)
-
-### Telas a criar no Frontend:
-
-- [ ] Funcionários (CRUD completo)
-- [ ] Folha de Pagamento (com fluxo de pagamento manual para LivroCaixa)
-- [ ] Planos de Pagamento
-- [ ] Fichas de Treino + Exercícios (montagem de ficha com drag-and-drop na ordem)
-- [ ] Relatórios:
-  - Frequência de Alunos
-  - Pressão Arterial Aferida
-  - Contas a Pagar
-  - Contas a Receber
-  - Livro Caixa
-- [ ] Configurações (usuários, grupos, perfis de acesso)
-
----
-
-## Regras de Código
-
-### Backend (Django):
-
-```python
-# Dinheiro: SEMPRE Decimal, NUNCA float
-from decimal import Decimal
-valor = Decimal('150.00')  # ✅
-valor = 150.00             # ❌
-
-# Soft delete: NUNCA objeto.delete()
-objeto.deleted_at = timezone.now()
-objeto.deleted_by = request.user
-objeto.save()              # ✅
-
-objeto.delete()            # ❌
-
-# LivroCaixa: NUNCA editar ou deletar
-# Correção = criar lançamento de estorno
-
-# Signals LivroCaixa: verificar existência antes de criar
-if not LivroCaixa.objects.filter(
-    lica_origem_tipo='contas_pagar',
-    lica_origem_id=instance.pag_id
-).exists():
-    LivroCaixa.objects.create(...)
-
-# CPF/CNPJ: sempre string
-alu_documento = models.CharField(max_length=14)  # ✅
-alu_documento = models.IntegerField()             # ❌
+```
+React 18 + Vite
+React Router v6          → rotas com basename '/sistema'
+TanStack Query v5        → cache e requisições
+Zustand                  → estado global (auth)
+Axios                    → HTTP client com interceptors JWT
+Tailwind CSS             → estilização
+Radix UI + shadcn/ui     → componentes acessíveis
+Recharts                 → gráficos
+react-hook-form + zod    → formulários e validação
+lucide-react             → ícones
 ```
 
-### Frontend (React):
+**Fontes:** Sora (sans) + JetBrains Mono — carregadas via Google Fonts no `index.html`
+**Tema:** dark — fundo `#151329` predominante, cor principal `#5D5CE0` (purple), accent `#01E2CD` (cyan)
+
+---
+
+## Estrutura de Pastas do Frontend
+
+```
+frontend/
+├── index.html                         ← carrega fontes Sora + JetBrains Mono
+├── vite.config.js                     ← base: '/sistema/' + PWA — NÃO ALTERAR
+├── tailwind.config.js                 ← cores fluir, fontes, animações
+├── postcss.config.js
+├── .env.example
+└── src/
+    ├── main.jsx                       ← entry point, QueryClient, RouterProvider
+    ├── index.css                      ← tema dark, CSS vars, scrollbar, utilitários
+    ├── lib/utils.js                   ← cn(), formatCurrency(), formatDate(), formatCPF(),
+    │                                     onlyNumbers(), getInitials(), STATUS_COLORS, STATUS_LABELS
+    ├── services/
+    │   ├── api.js                     ← Axios + interceptors JWT (refresh automático)
+    │   └── auth.service.js            ← login(), logout(), getUser()
+    ├── store/useAuthStore.js          ← Zustand: user, login, logout, canAccess*(), isAdmin()
+    ├── hooks/
+    │   ├── useApi.js                  ← useList(), useDetail(), useCreate(), useUpdate(), useDelete()
+    │   └── useToast.js                ← toast() global
+    ├── routes/
+    │   ├── index.jsx                  ← todas as rotas (basename: '/sistema')
+    │   └── ProtectedRoute.jsx
+    ├── components/
+    │   ├── layout/
+    │   │   ├── AppLayout.jsx          ← Sidebar + Topbar + Outlet + Toaster
+    │   │   ├── Sidebar.jsx            ← colapsável, permissões, NavLink ativo
+    │   │   └── Topbar.jsx             ← avatar, dropdown logout
+    │   ├── ui/
+    │   │   ├── button.jsx             ← variantes: default, gradient, outline, ghost, destructive
+    │   │   ├── card.jsx               ← Card, CardHeader, CardTitle, CardContent, CardFooter
+    │   │   ├── dialog.jsx             ← Dialog, DialogContent, DialogHeader, DialogFooter
+    │   │   ├── table.jsx              ← DataTable (loading + empty state)
+    │   │   ├── select.jsx             ← Select Radix estilizado
+    │   │   ├── primitives.jsx         ← Input, Textarea, Label, FormField, Badge, Skeleton, Spinner, EmptyState
+    │   │   ├── pagination.jsx         ← Pagination com elipses
+    │   │   ├── toast.jsx              ← Toaster
+    │   │   └── confirm-dialog.jsx     ← ConfirmDialog genérico
+    │   └── shared/
+    │       ├── PageHeader.jsx         ← título + descrição + actions
+    │       ├── SearchFilter.jsx       ← busca com clear
+    │       └── StatusBadge.jsx        ← StatusBadge, BooleanBadge
+    └── pages/
+        ├── auth/LoginPage.jsx         ✅ COMPLETO
+        ├── Dashboard.jsx              ✅ COMPLETO
+        ├── operacional/
+        │   ├── AlunosPage.jsx         ✅ COMPLETO — USE COMO REFERÊNCIA
+        │   ├── FuncionariosPage.jsx   🔄 stub
+        │   ├── TurmasPage.jsx         🔄 stub
+        │   └── AgendamentosPage.jsx   🔄 stub
+        ├── financas/
+        │   ├── ContasPagarPage.jsx    🔄 stub
+        │   ├── ContasReceberPage.jsx  🔄 stub
+        │   ├── LivroCaixaPage.jsx     🔄 stub (somente leitura!)
+        │   ├── PlanosPage.jsx         🔄 stub
+        │   ├── FolhaPagamentoPage.jsx 🔄 stub (regra especial LivroCaixa)
+        │   ├── FornecedoresPage.jsx   🔄 stub
+        │   └── ServicosPage.jsx       🔄 stub
+        ├── tecnico/
+        │   ├── MinistrarAulaPage.jsx  🔄 stub (fluxo complexo — ler instruções)
+        │   ├── FichasTreinoPage.jsx   🔄 stub
+        │   ├── ExerciciosPage.jsx     🔄 stub
+        │   └── ReposicoesPage.jsx     🔄 stub
+        ├── relatorios/                🔄 5 stubs
+        ├── graficos/                  🔄 3 stubs (Recharts)
+        └── configuracao/              🔄 2 stubs
+```
+
+---
+
+## Menu do Sistema (Sidebar)
+
+```
+Dashboard
+Finanças         → Livro Caixa · Contas a Pagar · Contas a Receber
+                   Planos · Folha de Pagamento · Fornecedores · Serviços/Produtos
+Operacional      → Alunos · Funcionários · Turmas · Agendamentos
+Técnico          → Ministrar Aula · Fichas de Treino · Exercícios · Reposições
+Relatórios       → Frequência · Pressão Arterial · Contas a Pagar
+                   Contas a Receber · Livro Caixa
+Gráficos         → Financeiro · Alunos · Frequência
+Configuração     → Usuários · Profissões
+```
+
+---
+
+## Perfis de Acesso
+
+| Perfil | Financeiro | Técnico | Operacional | Configuração |
+|---|---|---|---|---|
+| Administrador | ✅ | ✅ | ✅ | ✅ |
+| Professor | ❌ | ✅ | ✅ leitura | ❌ |
+| Financeiro | ✅ | ❌ | ❌ | ❌ |
+| Recepcionista | ❌ | ❌ | ✅ | ❌ |
 
 ```javascript
-// Paginação: SEMPRE .results, nunca .data direto
-const dados = response.data.results   // ✅
-const dados = response.data           // ❌
-
-// base do Vite: NÃO ALTERAR
-// vite.config.js: base: '/sistema/'
-
-// Axios com interceptor de token JWT (já configurado)
-// Não criar nova instância de axios — usar a existente em src/services/api.js
-```
-
-### Geral:
-- Comentários em **português**
-- Commits em **português**
-- Nunca hardcode credenciais — usar variáveis de ambiente via `.env`
-- Sempre tratar erros nas chamadas de API
-- Nomenclatura: `snake_case` no backend, `camelCase` no frontend
-
----
-
-## Padrão de Resposta da API
-
-### Sucesso único:
-```json
-{
-  "id": 1,
-  "campo": "valor"
-}
-```
-
-### Listagem paginada (SEMPRE este formato):
-```json
-{
-  "count": 100,
-  "next": "http://api/.../api/recurso/?page=2",
-  "previous": null,
-  "results": [
-    { "id": 1, "campo": "valor" }
-  ]
-}
-```
-
-### Erro de validação:
-```json
-{
-  "campo": ["Mensagem de erro detalhada."]
-}
+const { isAdmin, canAccessFinanceiro, canAccessTecnico, canAccessOperacional } = useAuthStore()
 ```
 
 ---
 
-## Estrutura de Apps Django
+## Regras de Código — Frontend
 
+### Hooks de API — SEMPRE usar `useApi.js`
+
+```javascript
+import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
+
+const { data, isLoading, page, setPage, totalPages, count, setFilters } =
+  useList('chave', '/endpoint/')
+
+const create = useCreate('chave', '/endpoint/', { onSuccess: () => fecharModal() })
+const update = useUpdate('chave', '/endpoint/')
+const del    = useDelete('chave', '/endpoint/')
 ```
-apps/
-├── core/
-│   └── mixins.py          ← AuditMixin (auditoria automática)
-│                            ReadCreateMixin (impede edit/delete — usado no LivroCaixa)
-├── usuarios/
-│   ├── models.py          ← User (AbstractUser, auth por email)
-│   └── views.py           ← Login, logout, refresh token
-├── financeiro/
-│   ├── models.py          ← Fornecedor, ServicoProduto, ContasPagar,
-│   │                         ContasReceber, PlanosPagamentos, LivroCaixa, FolhaPagamento
-│   └── signals.py         ← auto-lançamento LivroCaixa ao pagar/receber
-├── operacional/
-│   └── models.py          ← Aluno, Profissao, Funcionario, Turma, TurmaAlunos,
-│                             AgendamentoHorario, AgendamentoTurmas
-└── tecnico/
-    ├── models.py          ← Exercicio, FichaTreino, FichaTreinoExercicios,
-    │                         Aula, CreditoReposicao
-    └── signals.py         ← ⚠️ A CRIAR: auto-geração de CreditoReposicao
+
+### Paginação — SEMPRE `.results`
+
+```javascript
+const { data } = useList(...)   // data já é .results internamente ✅
+// Se usar useQuery manual:
+const items = query.data?.results ?? []  // ✅
+```
+
+### Axios — NUNCA criar nova instância
+
+```javascript
+import api from '@/services/api'   // ✅
+import axios from 'axios'           // ❌
+```
+
+### Toast
+
+```javascript
+import { toast } from '@/hooks/useToast'
+toast({ title: 'Salvo!', variant: 'success' })
+toast({ title: 'Erro', description: '...', variant: 'destructive' })
+```
+
+### Formulários
+
+```javascript
+const { register, handleSubmit, formState: { errors }, setValue, watch, reset } =
+  useForm({ defaultValues: { ... } })
+
+// Campos vazios → null antes de enviar
+const cleaned = Object.fromEntries(
+  Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
+)
+
+// CPF/CNPJ → somente números
+data.alu_documento = onlyNumbers(data.alu_documento)
+```
+
+### Alias — sempre `@/`
+
+```javascript
+import { Button } from '@/components/ui/button'  // ✅
+import { Button } from '../../...'               // ❌
 ```
 
 ---
 
-## Ordem de Execução — Nova Feature
+## Padrão visual — Página CRUD
 
-Sempre que implementar uma nova feature, seguir esta ordem:
+Seguir exatamente este padrão. Ver `AlunosPage.jsx` como referência:
 
-1. **Model** — definir campos, tipos, constraints, choices
-2. **Migration** — `python manage.py makemigrations` e `migrate`
-3. **Serializer** — validações, campos aninhados, campos calculados
-4. **View/ViewSet** — permissões, filtros, paginação
-5. **URL** — registrar no `urls.py` do app
-6. **Signal** (se necessário) — registrar no `apps.py` via `ready()`
-7. **Testes** — ao menos um teste por endpoint
-8. **Frontend** — page, componentes, integração com API
-9. **Atualizar CLAUDE.md** — marcar o item como concluído
+```
+PageHeader (título + botão "Novo")
+Card > CardContent
+  SearchFilter (busca + filtros)
+  DataTable (colunas + ações)
+  Pagination
+
+Dialog criar/editar
+  DialogHeader > DialogTitle
+  form > FormField + Input
+  DialogFooter > Cancelar + Salvar
+
+Dialog detalhe (somente leitura)
+ConfirmDialog (exclusão)
+```
+
+Coluna de ações padrão:
+```jsx
+render: (r) => (
+  <div className="flex items-center gap-1 justify-end">
+    <Button variant="ghost" size="icon-sm" onClick={() => openDetail(r)}>
+      <Eye className="w-3.5 h-3.5" />
+    </Button>
+    <Button variant="ghost" size="icon-sm" onClick={() => openEdit(r)}>
+      <Pencil className="w-3.5 h-3.5" />
+    </Button>
+    <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)}
+      className="text-red-400 hover:text-red-300">
+      <Trash2 className="w-3.5 h-3.5" />
+    </Button>
+  </div>
+)
+```
 
 ---
 
-## Variáveis de Ambiente (.env)
+## Endpoints da API
+
+```
+# Auth
+POST /api/token/              → login
+POST /api/token/refresh/      → refresh
+POST /api/token/blacklist/    → logout
+GET  /api/usuarios/me/        → usuário logado
+
+# Operacional
+/api/operacional/alunos/
+/api/operacional/funcionarios/
+/api/operacional/turmas/
+/api/operacional/turma-alunos/
+/api/operacional/profissoes/
+/api/operacional/agendamentos-horario/
+/api/operacional/agendamentos-turmas/
+
+# Financeiro
+/api/financeiro/contas-pagar/
+/api/financeiro/contas-receber/
+/api/financeiro/livro-caixa/        ← GET e POST apenas (ReadCreateMixin)
+/api/financeiro/planos-pagamentos/
+/api/financeiro/folha-pagamento/
+/api/financeiro/fornecedores/
+/api/financeiro/servicos-produtos/
+
+# Técnico
+/api/tecnico/aulas/
+/api/tecnico/exercicios/
+/api/tecnico/fichas-treino/
+/api/tecnico/ficha-treino-exercicios/
+/api/tecnico/creditos-reposicao/
+POST /api/tecnico/creditos-reposicao/usar/
+```
+
+> Confirmar nomes exatos no Swagger: https://nostudiofluir.com.br/api/docs/
+
+---
+
+## Instruções por módulo
+
+### FuncionariosPage
+CRUD igual Alunos. Campos: `func_nome`, `func_documento` (CPF), `func_telefone`, `func_endereco`, `func_formacao`, `func_salario` (Decimal), `prof_id` (Select → GET /api/operacional/profissoes/).
+
+### TurmasPage
+CRUD padrão. Campos: `tur_nome`, `tur_horario`, `func_id` (Select de funcionários).
+Ação extra: "Gerenciar Alunos" → modal com lista de matriculados + adicionar/remover. Validar máximo 15 alunos.
+
+### AgendamentosPage
+Duas abas: Horários e Turmas. Somente leitura + exclusão (cadastro vem do site).
+
+### FornecedoresPage / ServicosPage
+CRUD simples. CNPJ com máscara. `serv_ativo` com Switch/Checkbox.
+
+### ContasPagarPage
+CRUD + filtro de status. Ao marcar `pago`: `pag_data_pagamento` obrigatório. Badge de status. Alerta para vencidas.
+
+### ContasReceberPage
+Igual ContasPagar. Calcular `rec_valor_total` em tempo real: `(qtd × unit) - desconto`.
+
+### LivroCaixaPage ⚠️
+**NUNCA** botão editar/excluir. Filtros de data e tipo. Saldo no topo. Entradas verde, saídas vermelho. Pode criar lançamento manual (POST).
+
+### FolhaPagamentoPage ⚠️
+`fopa_valor_liquido` calculado automaticamente. Ao marcar `pago`, exibir alerta:
+> "Lembre-se de criar o lançamento manual no Livro Caixa após confirmar."
+Botão "Registrar no Caixa" abre modal com `lica_origem_tipo='folha_pagamento'` e `lica_origem_id` preenchido.
+
+### PlanosPage
+CRUD. Select de aluno (busca) e serviço. `plan_dia_vencimento` (1-31).
+
+### ExerciciosPage
+CRUD simples. Select `exe_aparelho`: solo / reformer / cadillac / chair / barrel.
+
+### FichasTreinoPage
+Lista de fichas + exercícios da ficha selecionada. Adicionar exercício: Select + ordem + séries + reps + observações. Botões reordenar.
+
+### MinistrarAulaPage ⚠️ (mais complexo)
+Seguir este fluxo:
+```
+1. Selecionar Turma → carrega alunos automaticamente
+2. Selecionar Ficha de Treino (opcional) + Data (padrão: hoje)
+3. Para cada aluno:
+   - Presença: regular / falta / reposição
+   - Se falta: tipo (sem_aviso / justificada / atestado / cenario3)
+   - Se reposição: buscar crédito disponível → mostrar qual será consumido
+   - Pressão inicial: regex ^\d{2,3}/\d{2}$
+4. Botão "Iniciar Aula" → salva hora_inicio
+5. Ao finalizar:
+   - Pressão final por aluno
+   - Intensidade (0-10) por aluno
+6. Botão "Finalizar Aula" → salva hora_final
+```
+
+### ReposicoesPage
+Lista créditos com filtros. StatusBadge: disponível (roxo) / usado (cinza) / expirado (vermelho). Alerta se expiração < 7 dias.
+
+### Relatórios
+Todos: filtros de período no topo + tabela + totalizadores no rodapé.
+
+### Gráficos (Recharts)
+```javascript
+const CHART_COLORS = ['#5D5CE0', '#01E2CD', '#f59e0b', '#ef4444', '#10b981']
+```
+- Financeiro: LineChart entradas vs saídas / BarChart top fornecedores
+- Alunos: BarChart por turma / PieChart por faixa etária
+- Frequência: BarChart presença vs falta / LineChart evolução mensal
+
+### ProfissoesPage
+CRUD simples. Apenas `prof_nome`.
+
+### UsuariosPage
+CRUD. Campos: nome, email, grupos (checkboxes), is_active. Senha obrigatória no cadastro, opcional na edição.
+
+---
+
+## Variáveis de Ambiente
 
 ```bash
-# Banco de dados (variáveis separadas — NÃO usar DATABASE_URL)
-DB_NAME=studio_fluir
-DB_USER=studio_fluir_user
-DB_PASSWORD=sua_senha_aqui
-
-# Django
-SECRET_KEY=gerar-chave-aleatoria-segura
-DEBUG=False
-ALLOWED_HOSTS=nostudiofluir.com.br,www.nostudiofluir.com.br
-
-# CORS
-CORS_ALLOWED_ORIGINS=https://nostudiofluir.com.br,https://www.nostudiofluir.com.br
-
-# JWT
-JWT_ACCESS_TOKEN_LIFETIME_MINUTES=60
-JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
-
-# Frontend (usado no build do React — Fase 2)
-VITE_API_URL=https://nostudiofluir.com.br/api
+VITE_API_URL=https://nostudiofluir.com.br/api   # produção
+VITE_API_URL=http://localhost:8000/api           # dev local
 ```
+
+---
+
+## Comandos
+
+```bash
+npm install
+npm run dev       # http://localhost:5173/sistema/
+npm run build     # gera dist/ para deploy
+```
+
+---
+
+## Checklist antes de marcar ✅
+
+- [ ] CRUD funcional
+- [ ] Busca e filtros com `setFilters`
+- [ ] Paginação via `useList` (`.results`)
+- [ ] Validação com `react-hook-form`
+- [ ] `ConfirmDialog` antes de excluir
+- [ ] Toast em todas as ações
+- [ ] Loading (Skeleton/Spinner)
+- [ ] `EmptyState` quando vazio
+- [ ] Responsivo em mobile
+- [ ] `formatCurrency`, `formatDate`, `formatCPF` aplicados
+- [ ] `StatusBadge` nas colunas de status
+- [ ] Campos vazios → `null` antes de enviar
 
 ---
 
 ## Se Travar
 
-1. Releia o arquivo relevante (`CLAUDE.md`, `Dicionario_Dados.md`, `Regras_Negocio.md`)
-2. Verifique o Troubleshooting no `CLAUDE.md`
-3. Se ainda travar, pare e avise o usuário com contexto claro:
-   - O que estava tentando fazer
-   - Qual erro encontrou
-   - O que já tentou
-4. **NUNCA invente comportamento não documentado**
-5. **NUNCA altere regras de negócio sem confirmação explícita**
+1. `AlunosPage.jsx` é a referência para CRUDs
+2. Swagger: https://nostudiofluir.com.br/api/docs/
+3. Releia CLAUDE.md / Dicionario_Dados.md / Regras_Negocio.md
+4. Pare e avise com contexto (o que tentou, o que deu erro)
+5. Nunca invente comportamento. Nunca altere regras de negócio sem confirmação.
 
 ---
 
 *Uid Software — Sistema Nos Studio Fluir — Produção*
-*Instruções Claude Code v1.1 — 02/04/2026*
+*Instruções Claude Code v2.0 — 03/04/2026*

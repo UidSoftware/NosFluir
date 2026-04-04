@@ -1,0 +1,73 @@
+version: '3.8'
+
+# ─── DESENVOLVIMENTO LOCAL ─────────────────────────────────────────────────
+# Uso: docker compose -f docker-compose.dev.yml up -d
+# API:     http://localhost:8000/api/
+# Admin:   http://localhost:8000/admin/
+# Site:    http://localhost:8080
+# Sistema: http://localhost:5173/sistema/   (npm run dev no frontend/)
+
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: studio_fluir
+      POSTGRES_USER: studio_fluir_user
+      POSTGRES_PASSWORD: dev_password_123
+    volumes:
+      - dev_postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studio_fluir_user -d studio_fluir"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app           # hot reload — código montado como volume
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=dev-secret-key-nao-usar-em-producao-abc123
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - DB_NAME=studio_fluir
+      - DB_USER=studio_fluir_user
+      - DB_PASSWORD=dev_password_123
+      - DB_HOST=db
+      - DB_PORT=5432
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:8080
+      - JWT_ACCESS_TOKEN_LIFETIME_MINUTES=60
+      - JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
+    depends_on:
+      db:
+        condition: service_healthy
+    # Usa Django dev server em vez do Gunicorn (auto-reload)
+    command: >
+      sh -c "
+        python manage.py makemigrations usuarios --noinput &&
+        python manage.py makemigrations financeiro operacional tecnico --noinput &&
+        python manage.py migrate usuarios --noinput &&
+        python manage.py migrate --noinput &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+    restart: unless-stopped
+
+  # Nginx dev — serve site institucional em HTTP (sem SSL)
+  nginx-dev:
+    image: nginx:1.25-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./site-institucional:/var/www/site-institucional:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  dev_postgres:

@@ -7,8 +7,8 @@
 set -e
 
 AMBIENTE=${1:-prod}
-PROJETO="NosFluirSis"
-REPO="https://github.com/UidSoftware/NosFluirSis"
+PROJETO="NosFluir"
+REPO="https://github.com/UidSoftware/NosFluir"
 DOMINIO="nostudiofluir.com.br"
 
 echo ""
@@ -36,14 +36,15 @@ git pull origin main
 echo "✅ Código atualizado"
 echo ""
 
-# Build do frontend (Fase 2 — executa somente se o diretório existir)
+# Build do frontend via Docker (não requer npm na VPS)
 if [ -d "frontend" ]; then
-  echo "🔨 Buildando frontend React..."
-  cd frontend
-  npm ci
-  npm run build
-  cd ..
-  echo "✅ Frontend buildado"
+  echo "🔨 Buildando frontend React via Docker..."
+  docker build -t nosfluir-frontend-builder ./frontend
+  docker create --name _frontend_build nosfluir-frontend-builder
+  docker cp _frontend_build:/var/www/frontend ./frontend/dist
+  docker rm _frontend_build
+  docker rmi nosfluir-frontend-builder
+  echo "✅ Frontend buildado (dist/ atualizado)"
   echo ""
 fi
 

@@ -312,14 +312,27 @@ npm run build      # gerar dist/ para deploy
 - [x] Deploy realizado na VPS — banco recriado do zero (22 tabelas), sistema rodando
 - [x] VPS aponta para repo `UidSoftware/NosFluir` (removido o antigo `NosFluirSis`)
 
-### Fase 2 — Frontend React ✅ COMPLETO (em produção)
-- [x] Login, Dashboard, Alunos, Turmas, Ministrar Aula, Financeiro, Livro Caixa, PWA
+### Fase 2 — Frontend React ✅ COMPLETO (03/04/2026)
+- [x] Estrutura completa em `frontend/` — 58 arquivos
+- [x] Login, Dashboard, Alunos, Funcionários, Turmas (+ gerenciar alunos), Agendamentos
+- [x] Finanças: Livro Caixa, Contas a Pagar, Contas a Receber, Planos, Folha, Fornecedores, Serviços
+- [x] Técnico: Exercícios, Fichas de Treino, Ministrar Aula, Reposições
+- [x] Relatórios: Frequência, Pressão Arterial, Contas a Pagar, Contas a Receber, Livro Caixa
+- [x] Gráficos: Financeiro (Line+Bar), Alunos (Bar+Pie), Frequência (Bar+Line)
+- [x] Configuração: Usuários, Profissões
+- [x] PWA, Sidebar colapsável, Toaster, ConfirmDialog, paginação, permissões
 
-### Fase 3 — Site Institucional ✅ COMPLETO (em produção)
-- [x] Home, Quem Somos, Serviços, Artigos, Agendamento, Contato
-- [ ] Instagram/YouTube feed real (pendente credenciais)
-- [ ] Endereço físico para Google Maps
-- [ ] Número WhatsApp real (substituir 5534999999999)
+### Fase 3 — Site Institucional ✅ COMPLETO (04/04/2026)
+- [x] Single-page HTML/CSS/JS: Hero, Quem Somos, Serviços (6 modalidades), Diferenciais, Depoimentos, Agendamento, Contato, Footer
+- [x] WhatsApp: 5534998218204 — botão flutuante + links no header/footer
+- [x] Formulário de agendamento → POST /api/operacional/agendamentos-horario/ (fallback: abre WhatsApp)
+- [x] Mobile-first, animações scroll, menu hamburger, tema dark Fluir
+- [ ] Google Maps: substituir `<div class="mapa__placeholder">` pelo iframe do Maps (cliente tem cadastro)
+- [ ] Endereço físico completo (campo marcado com TODO)
+- [ ] E-mail de contato (campo marcado com TODO)
+- [ ] Horário real de funcionamento (campo marcado com TODO)
+- [ ] Instagram / YouTube feed real (pendente credenciais)
+- [ ] Links das redes sociais reais no footer
 
 ### Fase 4 — Sistema de Reposições 🔄 EM ANDAMENTO
 - [x] Model CreditoReposicao criado

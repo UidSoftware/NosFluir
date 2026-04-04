@@ -40,9 +40,9 @@ echo ""
 if [ -d "frontend" ]; then
   echo "🔨 Buildando frontend React via Docker..."
   docker build -t nosfluir-frontend-builder ./frontend
-  docker create --name _frontend_build nosfluir-frontend-builder
-  docker cp _frontend_build:/var/www/frontend ./frontend/dist
-  docker rm _frontend_build
+  docker create --name nosfluir-frontend-build nosfluir-frontend-builder
+  docker cp nosfluir-frontend-build:/var/www/frontend ./frontend/dist
+  docker rm nosfluir-frontend-build
   docker rmi nosfluir-frontend-builder
   echo "✅ Frontend buildado (dist/ atualizado)"
   echo ""

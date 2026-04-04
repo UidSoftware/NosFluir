@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 03/04/2026 | Versão: 4.3
+> Última atualização: 04/04/2026 | Versão: 4.4
 
 ---
 
@@ -51,6 +51,8 @@ Sistema web de gestão completo para studio de Pilates e treinamento funcional, 
 - Nginx 1.25 (SSL Let's Encrypt) | Gunicorn (3 workers)
 - `entrypoint.sh` executa makemigrations → migrate usuarios → migrate → collectstatic → gunicorn
 - Repo na VPS aponta para `UidSoftware/NosFluir` (substituiu o antigo `UidSoftware/NosFluirSis`)
+- Projeto na VPS: `/var/www/studio-fluir/`
+- Deploy do frontend via Docker multi-stage (não requer npm na VPS) — `deploy.sh` cuida disso
 
 ---
 
@@ -239,27 +241,31 @@ const total = response.data.count
 ## 🚀 Comandos Principais
 
 ```bash
-# Desenvolvimento local
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
+# ── Desenvolvimento local (via Makefile) ──────────────────────────────────────
+make dev              # sobe db + backend + nginx-dev (site em :8080)
+make frontend-dev     # npm run dev → sistema em localhost:5173/sistema/
+make migrate          # executa migrations dentro do container
+make createsuperuser  # cria superusuário Django
+make dev-down         # para tudo
 
-# Docker (produção) — usar docker compose v2 (sem hífen)
-docker compose build
-docker compose up -d
-docker compose logs -f backend
-docker compose down
+# ── Deploy na VPS ─────────────────────────────────────────────────────────────
+# Na VPS: /var/www/studio-fluir/
+git pull origin main
+./deploy.sh prod      # git pull + build frontend + docker compose up -d
 
-# Para aplicar mudanças de código (rebuild obrigatório — código é copiado na imagem):
+# Rebuild somente do backend (sem mexer no frontend):
 docker compose build backend && docker compose up -d backend
 
-# Frontend
-cd frontend
-npm install
-npm run dev        # desenvolvimento
-npm run build      # gerar dist/ para deploy
+# Atualizar somente o site institucional (é volume — sem rebuild):
+git pull origin main && docker compose restart nginx
+
+# ── Frontend — rebuild manual na VPS ─────────────────────────────────────────
+docker build -t nosfluir-frontend-builder ./frontend
+docker create --name nosfluir-frontend-build nosfluir-frontend-builder
+rm -rf ./frontend/dist && mkdir -p ./frontend/dist
+docker cp nosfluir-frontend-build:/var/www/frontend/. ./frontend/dist/
+docker rm nosfluir-frontend-build && docker rmi nosfluir-frontend-builder
+docker compose restart nginx
 ```
 
 ---
@@ -293,6 +299,10 @@ npm run build      # gerar dist/ para deploy
 | 403 CSRF no admin | Sistema atrás de Nginx sem proxy headers | `CSRF_TRUSTED_ORIGINS`, `SECURE_PROXY_SSL_HEADER`, `USE_X_FORWARDED_HOST` — já configurados |
 | `restart` não aplica mudanças de código | Código está na imagem Docker, não em volume | Sempre usar `docker compose build backend && docker compose up -d backend` |
 | `App does not have migrations` | Diretório `migrations/` não existia | Criar `migrations/__init__.py` em cada app e commitar |
+| Login sistema: "não encontrado" | `/api/usuarios/me/` não existe | Endpoint correto é `/api/me/` — já corrigido no frontend |
+| `docker cp` cria subdiretório `frontend/dist/frontend/` | `dist/` já existia ao copiar | Usar `rm -rf dist && mkdir dist` antes do `docker cp src/. dist/` |
+| `entrypoint.sh: permission denied` no Docker | Arquivo sem bit de execução | `chmod +x backend/entrypoint.sh` e commitar a permissão |
+| `deploy.sh` não encontra repo | Nome antigo `NosFluirSis` | Já corrigido para `NosFluir` |
 
 ---
 
@@ -312,7 +322,7 @@ npm run build      # gerar dist/ para deploy
 - [x] Deploy realizado na VPS — banco recriado do zero (22 tabelas), sistema rodando
 - [x] VPS aponta para repo `UidSoftware/NosFluir` (removido o antigo `NosFluirSis`)
 
-### Fase 2 — Frontend React ✅ COMPLETO (03/04/2026)
+### Fase 2 — Frontend React ✅ COMPLETO E EM PRODUÇÃO (04/04/2026)
 - [x] Estrutura completa em `frontend/` — 58 arquivos
 - [x] Login, Dashboard, Alunos, Funcionários, Turmas (+ gerenciar alunos), Agendamentos
 - [x] Finanças: Livro Caixa, Contas a Pagar, Contas a Receber, Planos, Folha, Fornecedores, Serviços
@@ -321,10 +331,12 @@ npm run build      # gerar dist/ para deploy
 - [x] Gráficos: Financeiro (Line+Bar), Alunos (Bar+Pie), Frequência (Bar+Line)
 - [x] Configuração: Usuários, Profissões
 - [x] PWA, Sidebar colapsável, Toaster, ConfirmDialog, paginação, permissões
+- [x] Deploy em produção — build via Docker multi-stage, dist servido pelo Nginx
 
-### Fase 3 — Site Institucional ✅ COMPLETO (04/04/2026)
+### Fase 3 — Site Institucional ✅ COMPLETO E EM PRODUÇÃO (04/04/2026)
 - [x] Single-page HTML/CSS/JS: Hero, Quem Somos, Serviços (6 modalidades), Diferenciais, Depoimentos, Agendamento, Contato, Footer
 - [x] WhatsApp: 5534998218204 — botão flutuante + links no header/footer
+- [x] Botão flutuante "Entrar" (roxo) ao lado do WhatsApp → leva para /sistema/
 - [x] Formulário de agendamento → POST /api/operacional/agendamentos-horario/ (fallback: abre WhatsApp)
 - [x] Mobile-first, animações scroll, menu hamburger, tema dark Fluir
 - [ ] Google Maps: substituir `<div class="mapa__placeholder">` pelo iframe do Maps (cliente tem cadastro)

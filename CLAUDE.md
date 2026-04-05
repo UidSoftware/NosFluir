@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 04/04/2026 | Versão: 4.5
+> Última atualização: 05/04/2026 | Versão: 4.6
 
 ---
 
@@ -303,6 +303,10 @@ docker compose restart nginx
 | `docker cp` cria subdiretório `frontend/dist/frontend/` | `dist/` já existia ao copiar | Usar `rm -rf dist && mkdir dist` antes do `docker cp src/. dist/` |
 | `entrypoint.sh: permission denied` no Docker | Arquivo sem bit de execução | `chmod +x backend/entrypoint.sh` e commitar a permissão |
 | `deploy.sh` não encontra repo | Nome antigo `NosFluirSis` | Já corrigido para `NosFluir` |
+| Menu sidebar mostra só Dashboard/Relatórios/Gráficos | `UserSerializer` não retornava `is_superuser` nem `groups` | Já corrigido — serializer inclui ambos os campos |
+| nginx: "host not found in upstream backend:8000" no boot | nginx sobe antes do backend estar pronto | `depends_on: condition: service_healthy` + healthcheck socket no backend + `resolver 127.0.0.11` no nginx.conf |
+| nginx não sobe após reboot da VPS | nginx do sistema (apt) ocupa porta 80 | `systemctl disable nginx` — nginx do sistema desabilitado, apenas o Docker usa as portas |
+| PWA serve versão antiga após deploy | Service Worker em cache sem recarregar | `skipWaiting/clientsClaim` no workbox + listener `controllerchange` em `main.jsx` para auto-reload |
 
 ---
 
@@ -363,6 +367,13 @@ docker compose restart nginx
 - [ ] E-mail de contato (TODO em `contato.html`)
 - [ ] Horário real de funcionamento (TODO em `agendamento.html` e `contato.html`)
 - [ ] Links reais das redes sociais no footer e em `contato.html`
+
+#### Fase 2.4 — Bug fixes pós-deploy ✅ (05/04/2026)
+- [x] `UserSerializer` corrigido: agora retorna `is_superuser` e `groups` (nomes dos grupos) — sem isso o menu ficava bloqueado para todos os usuários
+- [x] PWA: `skipWaiting/clientsClaim/cleanupOutdatedCaches` explícitos no workbox + listener `controllerchange` em `main.jsx` para auto-reload após deploy
+- [x] Infra: healthcheck socket Python no backend + `depends_on: service_healthy` no nginx — evita "host not found" no boot
+- [x] Infra: `resolver 127.0.0.11` no nginx.conf para DNS dinâmico do Docker
+- [x] Infra: nginx do sistema desabilitado (`systemctl disable nginx`) — conflitava com Docker na porta 80
 
 ### Fase 4 — Sistema de Reposições 🔄 EM ANDAMENTO
 - [x] Model CreditoReposicao criado

@@ -34,7 +34,7 @@ function TurmaForm({ turma, onClose }) {
 
   const { data: funcionarios } = useQuery({
     queryKey: ['funcionarios-select'],
-    queryFn: () => api.get('/operacional/funcionarios/', { params: { page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get('/operacional/funcionarios/').then(r => r.data.results),
   })
 
   const onSubmit = (data) => {

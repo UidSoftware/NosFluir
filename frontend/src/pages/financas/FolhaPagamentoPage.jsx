@@ -47,7 +47,7 @@ function FolhaForm({ folha, onClose }) {
 
   const { data: funcionarios } = useQuery({
     queryKey: ['funcionarios-select'],
-    queryFn: () => api.get('/operacional/funcionarios/', { params: { page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get('/operacional/funcionarios/').then(r => r.data.results),
   })
 
   const onSubmit = (data) => {
@@ -76,7 +76,7 @@ function FolhaForm({ folha, onClose }) {
         </Select>
       </FormField>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <FormField label="Mês" required>
           <Select value={watch('fopa_mes') || ''} onValueChange={v => setValue('fopa_mes', v)} disabled={busy}>
             <SelectTrigger><SelectValue placeholder="Mês..." /></SelectTrigger>
@@ -92,7 +92,7 @@ function FolhaForm({ folha, onClose }) {
         </FormField>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <FormField label="Salário Base (R$)" required>
           <Input type="number" step="0.01" {...register('fopa_salario_base', { required: true })} placeholder="3000.00" disabled={busy} />
         </FormField>

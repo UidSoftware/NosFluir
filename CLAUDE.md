@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 04/04/2026 | Versão: 4.4
+> Última atualização: 04/04/2026 | Versão: 4.5
 
 ---
 
@@ -333,18 +333,36 @@ docker compose restart nginx
 - [x] PWA, Sidebar colapsável, Toaster, ConfirmDialog, paginação, permissões
 - [x] Deploy em produção — build via Docker multi-stage, dist servido pelo Nginx
 
+#### Fase 2.1 — Bug fixes ✅ (04/04/2026)
+- [x] `fich_nome` → `fitr_nome` em FichasTreinoPage (campo correto do serializer)
+- [x] `'presente'` → `'regular'` em MinistrarAulaPage (valor correto da API Aula)
+- [x] Filtro `turma_id` → `tur` + `ativo: true` em turma-alunos (campo correto do ViewSet)
+- [x] `page_size` removido de queries de select (5 arquivos) — backend ignora esse param
+- [x] MinistrarAulaPage reescrita: POST completo por aluno, horaInicio/Final capturados, validação P.A. regex, validação crédito reposição, toast por aluno com erro
+- [x] README corrigido: repo `NosFluirSis` → `NosFluir`
+
+#### Fase 2.2 — Responsividade mobile/tablet ✅ (04/04/2026)
+- [x] Sidebar fecha ao navegar em mobile (`window.innerWidth < 1024` → `onToggle()`)
+- [x] Grids de formulário: `grid-cols-2/3` → `grid-cols-1 sm:grid-cols-2/3` em 5 páginas
+- [x] MinistrarAulaPage: botões de presença com `min-h-[36px]`, falta grid `sm:grid-cols-2`, P.A. grid `sm:grid-cols-3`
+- [x] LivroCaixaPage: cards de saldo `grid-cols-1 sm:grid-cols-3`
+
 ### Fase 3 — Site Institucional ✅ COMPLETO E EM PRODUÇÃO (04/04/2026)
-- [x] Single-page HTML/CSS/JS: Hero, Quem Somos, Serviços (6 modalidades), Diferenciais, Depoimentos, Agendamento, Contato, Footer
-- [x] WhatsApp: 5534998218204 — botão flutuante + links no header/footer
-- [x] Botão flutuante "Entrar" (roxo) ao lado do WhatsApp → leva para /sistema/
-- [x] Formulário de agendamento → POST /api/operacional/agendamentos-horario/ (fallback: abre WhatsApp)
-- [x] Mobile-first, animações scroll, menu hamburger, tema dark Fluir
-- [ ] Google Maps: substituir `<div class="mapa__placeholder">` pelo iframe do Maps (cliente tem cadastro)
-- [ ] Endereço físico completo (campo marcado com TODO)
-- [ ] E-mail de contato (campo marcado com TODO)
-- [ ] Horário real de funcionamento (campo marcado com TODO)
-- [ ] Instagram / YouTube feed real (pendente credenciais)
-- [ ] Links das redes sociais reais no footer
+
+#### Fase 2.3 — Site multi-página ✅ (04/04/2026)
+- [x] Refatorado de single-page para 5 páginas separadas: `index.html`, `sobre.html`, `servicos.html`, `agendamento.html`, `contato.html`
+- [x] Componentes compartilhados: `components/header.html` e `components/footer.html` (carregados via fetch assíncrono)
+- [x] `js/main.js` reescrito: `loadComponent()`, `initHeader()`, `initFooter()`, `markActiveNav()`, `initScrollAnimations()`
+- [x] CSS: fontes `Cormorant Garamond` + `Nunito` (identidade visual oficial), `.page-hero`, `.profissionais__grid`, `.estrutura__grid`, `.nav__link.active`
+- [x] Logo usa imagem real: `/static/landing/Icone-401x401-Sem-Fundo.png`
+- [x] Fotos das profissionais: `Perfil2.png` (Giulia) e `Perfil3.png` (Tássia)
+- [x] nginx: `try_files $uri $uri.html $uri/ =404` (URLs sem `.html`)
+- [x] WhatsApp + "Entrar" flutuantes em todas as páginas
+- [ ] Google Maps: substituir `<div class="mapa__placeholder">` em `contato.html` pelo iframe do Maps
+- [ ] Endereço físico completo (TODO em `agendamento.html` e `contato.html`)
+- [ ] E-mail de contato (TODO em `contato.html`)
+- [ ] Horário real de funcionamento (TODO em `agendamento.html` e `contato.html`)
+- [ ] Links reais das redes sociais no footer e em `contato.html`
 
 ### Fase 4 — Sistema de Reposições 🔄 EM ANDAMENTO
 - [x] Model CreditoReposicao criado

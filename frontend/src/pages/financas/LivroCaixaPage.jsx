@@ -48,7 +48,7 @@ function LancamentoForm({ onClose }) {
         <Input {...register('lica_descricao', { required: 'Descrição obrigatória' })} placeholder="Descrição do lançamento" disabled={create.isPending} />
       </FormField>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <FormField label="Valor (R$)" required error={errors.lica_valor?.message}>
           <Input type="number" step="0.01" {...register('lica_valor', { required: 'Valor obrigatório' })} placeholder="0.00" disabled={create.isPending} />
         </FormField>
@@ -121,7 +121,7 @@ export default function LivroCaixaPage() {
       />
 
       {/* Resumo */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">

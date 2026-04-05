@@ -1,19 +1,18 @@
-import { useState } from 'react'
-import { Activity, Play, Square, ChevronRight, AlertCircle } from 'lucide-react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { Activity, Play, Square } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input, FormField, Spinner, Badge } from '@/components/ui/primitives'
+import { Input, FormField, Spinner } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { StatusBadge } from '@/components/shared/StatusBadge'
 import { toast } from '@/hooks/useToast'
 import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import api from '@/services/api'
 
 const PRESENCA_OPTS = [
-  { value: 'presente',  label: 'Presente' },
+  { value: 'regular',   label: 'Presente' },
   { value: 'falta',     label: 'Falta' },
   { value: 'reposicao', label: 'Reposição' },
 ]
@@ -22,42 +21,51 @@ const FALTA_TIPOS = [
   { value: 'sem_aviso',   label: 'Sem aviso (não gera crédito)' },
   { value: 'justificada', label: 'Justificada (48h a 1h antes)' },
   { value: 'atestado',    label: 'Atestado médico' },
-  { value: 'cenario3',    label: 'Aviso com mais de 48h (pendente definição)' },
+  { value: 'cenario3',    label: 'Aviso com mais de 48h (pendente)' },
 ]
 
 const PRESSAO_REGEX = /^\d{2,3}\/\d{2}$/
 
-function AlunoRow({ aluno, aulaId, onUpdate }) {
-  const [presenca, setPresenca]   = useState('presente')
-  const [faltaTipo, setFaltaTipo] = useState('sem_aviso')
-  const [pressaoI, setPressaoI]   = useState('')
-  const [pressaoF, setPressaoF]   = useState('')
-  const [intensidade, setIntens]  = useState('')
-  const [creditoId, setCreditoId] = useState(null)
+function AlunoRow({ aluno, state, onUpdate }) {
+  const presenca   = state?.presenca   ?? 'regular'
+  const faltaTipo  = state?.faltaTipo  ?? 'sem_aviso'
+  const pressaoI   = state?.pressaoI   ?? ''
+  const pressaoF   = state?.pressaoF   ?? ''
+  const intensidade= state?.intensidade?? ''
 
   const { data: creditos } = useQuery({
     queryKey: ['creditos-aluno', aluno.id],
     queryFn: () => api.get('/tecnico/creditos-reposicao/', {
-      params: { aluno_id: aluno.id, cred_status: 'disponivel', ordering: 'cred_data_expiracao', page_size: 5 },
+      params: { alu: aluno.id, cred_status: 'disponivel', ordering: 'cred_data_expiracao' },
     }).then(r => r.data.results),
     enabled: presenca === 'reposicao',
   })
 
   const proximoCredito = creditos?.[0]
 
+  // Sincroniza creditoId no state quando a query retorna
+  const onUpdateRef = useRef(onUpdate)
+  useEffect(() => { onUpdateRef.current = onUpdate })
+  useEffect(() => {
+    if (presenca === 'reposicao') {
+      onUpdateRef.current(aluno.id, { creditoId: proximoCredito?.id ?? null })
+    }
+  }, [proximoCredito?.id, presenca, aluno.id])
+
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
-      <div className="flex items-center justify-between">
+      {/* Nome + botões presença */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <p className="font-medium text-sm">{aluno.alu_nome}</p>
-        <div className="flex gap-1">
+        <div className="flex gap-1.5 flex-wrap">
           {PRESENCA_OPTS.map(o => (
             <button
               key={o.value}
-              onClick={() => setPresenca(o.value)}
+              onClick={() => onUpdate(aluno.id, { presenca: o.value })}
               className={cn(
-                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+                'px-3 py-2 rounded-md text-xs font-medium transition-colors min-h-[36px]',
                 presenca === o.value
-                  ? o.value === 'presente'
+                  ? o.value === 'regular'
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                     : o.value === 'falta'
                     ? 'bg-red-500/20 text-red-400 border border-red-500/30'
@@ -71,14 +79,15 @@ function AlunoRow({ aluno, aulaId, onUpdate }) {
         </div>
       </div>
 
+      {/* Tipo de falta */}
       {presenca === 'falta' && (
         <div>
           <p className="text-xs text-muted-foreground mb-1.5">Tipo de falta:</p>
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
             {FALTA_TIPOS.map(t => (
               <button
                 key={t.value}
-                onClick={() => setFaltaTipo(t.value)}
+                onClick={() => onUpdate(aluno.id, { faltaTipo: t.value })}
                 className={cn(
                   'px-2.5 py-1.5 rounded-md text-xs text-left transition-colors',
                   faltaTipo === t.value
@@ -93,6 +102,7 @@ function AlunoRow({ aluno, aulaId, onUpdate }) {
         </div>
       )}
 
+      {/* Crédito de reposição */}
       {presenca === 'reposicao' && (
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 px-3 py-2">
           {proximoCredito ? (
@@ -106,12 +116,13 @@ function AlunoRow({ aluno, aulaId, onUpdate }) {
         </div>
       )}
 
-      {presenca === 'presente' && (
-        <div className="grid grid-cols-3 gap-3">
+      {/* P.A. e intensidade */}
+      {presenca === 'regular' && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <FormField label="P.A. Inicial">
             <Input
               value={pressaoI}
-              onChange={e => setPressaoI(e.target.value)}
+              onChange={e => onUpdate(aluno.id, { pressaoI: e.target.value })}
               placeholder="120/80"
               className={cn('text-xs', pressaoI && !PRESSAO_REGEX.test(pressaoI) ? 'border-red-500' : '')}
             />
@@ -119,7 +130,7 @@ function AlunoRow({ aluno, aulaId, onUpdate }) {
           <FormField label="P.A. Final">
             <Input
               value={pressaoF}
-              onChange={e => setPressaoF(e.target.value)}
+              onChange={e => onUpdate(aluno.id, { pressaoF: e.target.value })}
               placeholder="120/80"
               className={cn('text-xs', pressaoF && !PRESSAO_REGEX.test(pressaoF) ? 'border-red-500' : '')}
             />
@@ -128,7 +139,7 @@ function AlunoRow({ aluno, aulaId, onUpdate }) {
             <Input
               type="number" min="0" max="10"
               value={intensidade}
-              onChange={e => setIntens(e.target.value)}
+              onChange={e => onUpdate(aluno.id, { intensidade: e.target.value })}
               placeholder="7"
             />
           </FormField>
@@ -139,36 +150,144 @@ function AlunoRow({ aluno, aulaId, onUpdate }) {
 }
 
 export default function MinistrarAulaPage() {
-  const [turmaId, setTurmaId]       = useState('')
-  const [fichaId, setFichaId]       = useState('')
-  const [data, setDataAula]          = useState(new Date().toISOString().split('T')[0])
-  const [step, setStep]             = useState('configurar') // configurar | aula
+  const [turmaId, setTurmaId]     = useState('')
+  const [fichaId, setFichaId]     = useState('')
+  const [data, setDataAula]        = useState(new Date().toISOString().split('T')[0])
+  const [step, setStep]           = useState('configurar') // configurar | aula
+  const [horaInicio, setHoraInicio] = useState(null)
+  const [finalizando, setFinalizando] = useState(false)
+  const [alunoStates, setAlunoStates] = useState({})
 
   const { data: turmas, isLoading: loadingTurmas } = useQuery({
     queryKey: ['turmas-select'],
-    queryFn: () => api.get('/operacional/turmas/', { params: { page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get('/operacional/turmas/').then(r => r.data.results),
   })
 
   const { data: fichas } = useQuery({
     queryKey: ['fichas-select'],
-    queryFn: () => api.get('/tecnico/fichas-treino/', { params: { page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get('/tecnico/fichas-treino/').then(r => r.data.results),
   })
 
   const { data: alunosTurma, isLoading: loadingAlunos } = useQuery({
     queryKey: ['turma-alunos-aula', turmaId],
-    queryFn: () => api.get('/operacional/turma-alunos/', { params: { turma_id: turmaId, page_size: 100 } })
+    queryFn: () => api.get('/operacional/turma-alunos/', { params: { tur: turmaId, ativo: true } })
       .then(r => r.data.results),
     enabled: !!turmaId,
   })
+
+  // Inicializa states quando a lista de alunos carrega
+  useEffect(() => {
+    if (alunosTurma?.length) {
+      const init = {}
+      alunosTurma.forEach(ta => {
+        init[ta.alu] = {
+          presenca: 'regular',
+          faltaTipo: 'sem_aviso',
+          pressaoI: '',
+          pressaoF: '',
+          intensidade: '',
+          creditoId: null,
+        }
+      })
+      setAlunoStates(init)
+    }
+  }, [alunosTurma])
+
+  const updateAluno = useCallback((alunoId, patch) => {
+    setAlunoStates(prev => ({
+      ...prev,
+      [alunoId]: { ...prev[alunoId], ...patch },
+    }))
+  }, [])
 
   const iniciar = () => {
     if (!turmaId) {
       toast({ title: 'Selecione uma turma.', variant: 'destructive' })
       return
     }
+    setHoraInicio(new Date().toTimeString().slice(0, 5))
     setStep('aula')
   }
 
+  const finalizar = async () => {
+    const horaFinal = new Date().toTimeString().slice(0, 5)
+    const alunos = alunosTurma || []
+
+    // Validação
+    for (const ta of alunos) {
+      const d = alunoStates[ta.alu]
+      if (!d) continue
+      const nome = ta.aluno_nome || `Aluno ${ta.alu}`
+
+      if (d.presenca === 'regular') {
+        if (d.pressaoI && !PRESSAO_REGEX.test(d.pressaoI)) {
+          toast({ title: `P.A. inicial inválida para ${nome}. Formato: 120/80`, variant: 'destructive' })
+          return
+        }
+        if (d.pressaoF && !PRESSAO_REGEX.test(d.pressaoF)) {
+          toast({ title: `P.A. final inválida para ${nome}. Formato: 120/80`, variant: 'destructive' })
+          return
+        }
+        if (d.intensidade !== '' && (parseInt(d.intensidade) < 0 || parseInt(d.intensidade) > 10)) {
+          toast({ title: `Intensidade inválida para ${nome}. Use 0–10.`, variant: 'destructive' })
+          return
+        }
+      }
+
+      if (d.presenca === 'reposicao' && !d.creditoId) {
+        toast({
+          title: `${nome} não tem crédito disponível. Altere o tipo de presença.`,
+          variant: 'destructive',
+        })
+        return
+      }
+    }
+
+    setFinalizando(true)
+    let erros = 0
+
+    for (const ta of alunos) {
+      const d = alunoStates[ta.alu]
+      if (!d) continue
+
+      const payload = {
+        tur:                     parseInt(turmaId),
+        alu:                     ta.alu,
+        fitr:                    fichaId ? parseInt(fichaId) : null,
+        cred:                    d.creditoId || null,
+        aul_data:                data,
+        aul_hora_inicio:         horaInicio,
+        aul_hora_final:          horaFinal,
+        aul_pressao_inicio:      d.pressaoI || null,
+        aul_pressao_final:       d.pressaoF || null,
+        aul_tipo_presenca:       d.presenca,
+        aul_tipo_falta:          d.presenca === 'falta' ? d.faltaTipo : null,
+        aul_intensidade_esforco: d.intensidade !== '' ? parseInt(d.intensidade) : null,
+      }
+
+      try {
+        await api.post('/tecnico/aulas/', payload)
+      } catch (err) {
+        erros++
+        const nome = ta.aluno_nome || `Aluno ${ta.alu}`
+        const detalhe = err.response?.data?.detail || JSON.stringify(err.response?.data) || 'erro desconhecido'
+        toast({ title: `Erro ao salvar ${nome}: ${detalhe}`, variant: 'destructive' })
+      }
+    }
+
+    setFinalizando(false)
+
+    if (erros === 0) {
+      toast({ title: 'Aula finalizada e registrada com sucesso!', variant: 'success' })
+      setStep('configurar')
+      setTurmaId('')
+      setFichaId('')
+      setHoraInicio(null)
+      setAlunoStates({})
+    }
+  }
+
+  // ── Step: aula em andamento ─────────────────────────────────────────────
   if (step === 'aula') {
     return (
       <div className="space-y-5">
@@ -176,7 +295,7 @@ export default function MinistrarAulaPage() {
           title="Ministrar Aula"
           description={`${turmas?.find(t => t.id === parseInt(turmaId))?.tur_nome || ''} — ${formatDate(data)}`}
           actions={
-            <Button variant="outline" onClick={() => setStep('configurar')}>
+            <Button variant="outline" onClick={() => setStep('configurar')} disabled={finalizando}>
               Voltar
             </Button>
           }
@@ -188,10 +307,10 @@ export default function MinistrarAulaPage() {
           ) : alunosTurma?.length ? (
             alunosTurma.map(ta => (
               <AlunoRow
-                key={ta.aluno_id}
-                aluno={{ id: ta.aluno_id, alu_nome: ta.aluno_nome || `Aluno ${ta.aluno_id}` }}
-                aulaId={null}
-                onUpdate={() => {}}
+                key={ta.alu}
+                aluno={{ id: ta.alu, alu_nome: ta.aluno_nome || `Aluno ${ta.alu}` }}
+                state={alunoStates[ta.alu]}
+                onUpdate={updateAluno}
               />
             ))
           ) : (
@@ -204,15 +323,23 @@ export default function MinistrarAulaPage() {
         </div>
 
         <div className="flex justify-end gap-3">
-          <Button variant="gradient">
-            <Square className="w-4 h-4" />
-            Finalizar Aula
+          <Button
+            variant="gradient"
+            onClick={finalizar}
+            disabled={finalizando || !alunosTurma?.length}
+          >
+            {finalizando ? (
+              <><Spinner className="w-4 h-4" /> Salvando...</>
+            ) : (
+              <><Square className="w-4 h-4" /> Finalizar Aula</>
+            )}
           </Button>
         </div>
       </div>
     )
   }
 
+  // ── Step: configurar ────────────────────────────────────────────────────
   return (
     <div className="space-y-5">
       <PageHeader
@@ -241,7 +368,7 @@ export default function MinistrarAulaPage() {
             <Select value={fichaId} onValueChange={setFichaId}>
               <SelectTrigger><SelectValue placeholder="Selecionar ficha..." /></SelectTrigger>
               <SelectContent>
-                {fichas?.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.fich_nome}</SelectItem>)}
+                {fichas?.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.fitr_nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormField>

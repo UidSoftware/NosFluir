@@ -37,12 +37,12 @@ function PlanoForm({ plano, onClose }) {
 
   const { data: alunos } = useQuery({
     queryKey: ['alunos-select'],
-    queryFn: () => api.get('/operacional/alunos/', { params: { page_size: 200 } }).then(r => r.data.results),
+    queryFn: () => api.get('/operacional/alunos/').then(r => r.data.results),
   })
 
   const { data: servicos } = useQuery({
     queryKey: ['servicos-select'],
-    queryFn: () => api.get('/financeiro/servicos-produtos/', { params: { page_size: 100, serv_ativo: true } }).then(r => r.data.results),
+    queryFn: () => api.get('/financeiro/servicos-produtos/', { params: { serv_ativo: true } }).then(r => r.data.results),
   })
 
   const onSubmit = (data) => {
@@ -79,7 +79,7 @@ function PlanoForm({ plano, onClose }) {
         </Select>
       </FormField>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <FormField label="Valor (R$)" required>
           <Input type="number" step="0.01" {...register('plan_valor', { required: true })} placeholder="350.00" disabled={busy} />
         </FormField>
@@ -88,7 +88,7 @@ function PlanoForm({ plano, onClose }) {
         </FormField>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <FormField label="Data Início">
           <Input type="date" {...register('plan_data_inicio')} disabled={busy} />
         </FormField>

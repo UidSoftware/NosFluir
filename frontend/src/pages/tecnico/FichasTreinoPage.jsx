@@ -23,9 +23,9 @@ const EXER_ENDPOINT = '/tecnico/ficha-treino-exercicios/'
 function FichaForm({ ficha, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: ficha ? {
-      fich_nome:     ficha.fich_nome,
+      fitr_nome:     ficha.fitr_nome,
       aluno_id:      ficha.aluno_id ? String(ficha.aluno_id) : '',
-      fich_descricao: ficha.fich_descricao || '',
+      fitr_descricao: ficha.fitr_descricao || '',
     } : {},
   })
 
@@ -35,7 +35,7 @@ function FichaForm({ ficha, onClose }) {
 
   const { data: alunos } = useQuery({
     queryKey: ['alunos-select'],
-    queryFn: () => api.get('/operacional/alunos/', { params: { page_size: 200 } }).then(r => r.data.results),
+    queryFn: () => api.get('/operacional/alunos/').then(r => r.data.results),
   })
 
   const onSubmit = (data) => {
@@ -49,8 +49,8 @@ function FichaForm({ ficha, onClose }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
-      <FormField label="Nome da Ficha" required error={errors.fich_nome?.message}>
-        <Input {...register('fich_nome', { required: 'Nome obrigatório' })} placeholder="Ficha A — Iniciante" disabled={busy} />
+      <FormField label="Nome da Ficha" required error={errors.fitr_nome?.message}>
+        <Input {...register('fitr_nome', { required: 'Nome obrigatório' })} placeholder="Ficha A — Iniciante" disabled={busy} />
       </FormField>
       <FormField label="Aluno">
         <Select value={watch('aluno_id') || ''} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
@@ -61,7 +61,7 @@ function FichaForm({ ficha, onClose }) {
         </Select>
       </FormField>
       <FormField label="Descrição">
-        <Textarea {...register('fich_descricao')} placeholder="Observações da ficha..." rows={2} disabled={busy} />
+        <Textarea {...register('fitr_descricao')} placeholder="Observações da ficha..." rows={2} disabled={busy} />
       </FormField>
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
@@ -79,7 +79,7 @@ function AddExercicioForm({ fichaId, onClose }) {
 
   const { data: exercicios } = useQuery({
     queryKey: ['exercicios-select'],
-    queryFn: () => api.get('/tecnico/exercicios/', { params: { page_size: 200 } }).then(r => r.data.results),
+    queryFn: () => api.get('/tecnico/exercicios/').then(r => r.data.results),
   })
 
   const mutation = useMutation({
@@ -115,7 +115,7 @@ function AddExercicioForm({ fichaId, onClose }) {
           </SelectContent>
         </Select>
       </FormField>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <FormField label="Ordem"><Input type="number" {...register('ordem')} disabled={mutation.isPending} /></FormField>
         <FormField label="Séries"><Input type="number" {...register('fte_series')} disabled={mutation.isPending} /></FormField>
         <FormField label="Repetições"><Input type="number" {...register('fte_repeticoes')} disabled={mutation.isPending} /></FormField>
@@ -144,7 +144,7 @@ export default function FichasTreinoPage() {
 
   const { data: exerciciosFicha, isLoading: loadingExerc } = useQuery({
     queryKey: ['ficha-exercicios', fichaDetalhe?.id],
-    queryFn: () => api.get(EXER_ENDPOINT, { params: { ficha_treino_id: fichaDetalhe.id, page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get(EXER_ENDPOINT, { params: { ficha_treino_id: fichaDetalhe.id } }).then(r => r.data.results),
     enabled: !!fichaDetalhe,
   })
 
@@ -157,7 +157,7 @@ export default function FichasTreinoPage() {
   })
 
   const fichasCols = [
-    { key: 'fich_nome',  header: 'Ficha',  render: r => <span className="font-medium">{r.fich_nome}</span> },
+    { key: 'fitr_nome',  header: 'Ficha',  render: r => <span className="font-medium">{r.fitr_nome}</span> },
     { key: 'aluno_nome', header: 'Aluno',  render: r => r.aluno_nome || '—' },
     {
       key: 'acoes', header: '', cellClassName: 'w-32',
@@ -211,7 +211,7 @@ export default function FichasTreinoPage() {
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-fluir-cyan" />
-                {fichaDetalhe.fich_nome}
+                {fichaDetalhe.fitr_nome}
               </CardTitle>
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => setAddExerOpen(true)}><Plus className="w-3.5 h-3.5" />Exercício</Button>

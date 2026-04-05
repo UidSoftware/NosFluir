@@ -27,8 +27,8 @@ Sistema web completo de gestão para studio de Pilates e treinamento funcional, 
 ## Como rodar localmente
 
 ```bash
-git clone https://github.com/UidSoftware/NosFluirSis
-cd NosFluirSis
+git clone https://github.com/UidSoftware/NosFluir
+cd NosFluir
 
 # Copiar e configurar variáveis de ambiente
 cp .env.example .env
@@ -52,7 +52,7 @@ docker-compose exec backend python manage.py createsuperuser
 ## Estrutura do Projeto
 
 ```
-NosFluirSis/
+NosFluir/
 ├── CLAUDE.md                    ← memória do projeto (leia antes de codar)
 ├── backend/
 │   ├── manage.py

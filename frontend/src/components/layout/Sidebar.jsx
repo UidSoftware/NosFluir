@@ -95,6 +95,10 @@ export function Sidebar({ collapsed, onToggle }) {
   const location = useLocation()
   const { canAccessFinanceiro, canAccessTecnico, canAccessOperacional, isAdmin } = useAuthStore()
 
+  const handleNavClick = () => {
+    if (window.innerWidth < 1024) onToggle()
+  }
+
   const canAccess = (permission) => {
     if (!permission) return true
     if (permission === 'admin')       return isAdmin()
@@ -147,6 +151,7 @@ export function Sidebar({ collapsed, onToggle }) {
               <NavLink
                 key={item.id}
                 to={item.path}
+                onClick={handleNavClick}
                 className={({ isActive }) => cn(
                   'flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors',
                   isActive
@@ -196,6 +201,7 @@ export function Sidebar({ collapsed, onToggle }) {
                     <NavLink
                       key={child.path}
                       to={child.path}
+                      onClick={handleNavClick}
                       className={({ isActive }) => cn(
                         'flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors',
                         isActive

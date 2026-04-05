@@ -6,10 +6,15 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    groups = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'date_joined']
-        read_only_fields = ['id', 'date_joined']
+        fields = ['id', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser', 'date_joined', 'groups']
+        read_only_fields = ['id', 'date_joined', 'is_superuser']
+
+    def get_groups(self, obj):
+        return list(obj.groups.values_list('name', flat=True))
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

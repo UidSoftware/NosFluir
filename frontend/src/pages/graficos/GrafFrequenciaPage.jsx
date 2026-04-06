@@ -17,7 +17,7 @@ export default function GrafFrequenciaPage() {
 
   const { data: aulas, isLoading } = useQuery({
     queryKey: ['graf-frequencia', dataInicio, dataFim],
-    queryFn: () => api.get('/tecnico/aulas/', {
+    queryFn: () => api.get('/aulas/', {
       params: { data_inicio: dataInicio || undefined, data_fim: dataFim || undefined, page_size: 500 },
     }).then(r => r.data.results),
   })

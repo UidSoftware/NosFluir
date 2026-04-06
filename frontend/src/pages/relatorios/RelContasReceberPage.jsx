@@ -16,7 +16,7 @@ export default function RelContasReceberPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['rel-contas-receber', dataInicio, dataFim, page],
-    queryFn: () => api.get('/financeiro/contas-receber/', {
+    queryFn: () => api.get('/contas-receber/', {
       params: { data_inicio: dataInicio || undefined, data_fim: dataFim || undefined, page },
     }).then(r => r.data),
   })

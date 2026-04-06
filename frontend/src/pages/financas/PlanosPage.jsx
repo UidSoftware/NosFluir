@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency, formatDate } from '@/lib/utils'
 import api from '@/services/api'
 
-const ENDPOINT = '/financeiro/planos-pagamentos/'
+const ENDPOINT = '/planos-pagamentos/'
 const KEY      = 'planos'
 
 function PlanoForm({ plano, onClose }) {
@@ -37,12 +37,12 @@ function PlanoForm({ plano, onClose }) {
 
   const { data: alunos } = useQuery({
     queryKey: ['alunos-select'],
-    queryFn: () => api.get('/operacional/alunos/').then(r => r.data.results),
+    queryFn: () => api.get('/alunos/').then(r => r.data.results),
   })
 
   const { data: servicos } = useQuery({
     queryKey: ['servicos-select'],
-    queryFn: () => api.get('/financeiro/servicos-produtos/', { params: { serv_ativo: true } }).then(r => r.data.results),
+    queryFn: () => api.get('/servicos-produtos/', { params: { serv_ativo: true } }).then(r => r.data.results),
   })
 
   const onSubmit = (data) => {

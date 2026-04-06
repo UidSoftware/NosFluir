@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input, FormField } from '@/components/ui/primitives'
 import { formatCNPJ, onlyNumbers } from '@/lib/utils'
 
-const ENDPOINT = '/financeiro/fornecedores/'
+const ENDPOINT = '/fornecedores/'
 const KEY      = 'fornecedores'
 
 function FornForm({ forn, onClose }) {

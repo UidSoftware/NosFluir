@@ -15,7 +15,7 @@ export default function RelPressaoPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['rel-pressao', dataInicio, dataFim, page],
-    queryFn: () => api.get('/tecnico/aulas/', {
+    queryFn: () => api.get('/aulas/', {
       params: {
         data_inicio: dataInicio || undefined,
         data_fim: dataFim || undefined,

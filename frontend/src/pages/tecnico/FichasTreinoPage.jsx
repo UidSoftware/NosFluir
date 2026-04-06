@@ -16,9 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
-const ENDPOINT     = '/tecnico/fichas-treino/'
+const ENDPOINT     = '/fichas-treino/'
 const KEY          = 'fichas-treino'
-const EXER_ENDPOINT = '/tecnico/ficha-treino-exercicios/'
+const EXER_ENDPOINT = '/fichas-treino-exercicios/'
 
 function FichaForm({ ficha, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
@@ -35,7 +35,7 @@ function FichaForm({ ficha, onClose }) {
 
   const { data: alunos } = useQuery({
     queryKey: ['alunos-select'],
-    queryFn: () => api.get('/operacional/alunos/').then(r => r.data.results),
+    queryFn: () => api.get('/alunos/').then(r => r.data.results),
   })
 
   const onSubmit = (data) => {
@@ -79,7 +79,7 @@ function AddExercicioForm({ fichaId, onClose }) {
 
   const { data: exercicios } = useQuery({
     queryKey: ['exercicios-select'],
-    queryFn: () => api.get('/tecnico/exercicios/').then(r => r.data.results),
+    queryFn: () => api.get('/exercicios/').then(r => r.data.results),
   })
 
   const mutation = useMutation({

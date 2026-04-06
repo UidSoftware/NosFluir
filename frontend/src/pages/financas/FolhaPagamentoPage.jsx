@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency } from '@/lib/utils'
 import api from '@/services/api'
 
-const ENDPOINT = '/financeiro/folha-pagamento/'
+const ENDPOINT = '/folha-pagamento/'
 const KEY      = 'folha-pagamento'
 
 const MESES = [
@@ -47,7 +47,7 @@ function FolhaForm({ folha, onClose }) {
 
   const { data: funcionarios } = useQuery({
     queryKey: ['funcionarios-select'],
-    queryFn: () => api.get('/operacional/funcionarios/').then(r => r.data.results),
+    queryFn: () => api.get('/funcionarios/').then(r => r.data.results),
   })
 
   const onSubmit = (data) => {

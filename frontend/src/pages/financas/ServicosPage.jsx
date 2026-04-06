@@ -14,7 +14,7 @@ import { Input, FormField } from '@/components/ui/primitives'
 import { BooleanBadge } from '@/components/shared/StatusBadge'
 import { formatCurrency } from '@/lib/utils'
 
-const ENDPOINT = '/financeiro/servicos-produtos/'
+const ENDPOINT = '/servicos-produtos/'
 const KEY      = 'servicos'
 
 function ServicoForm({ servico, onClose }) {

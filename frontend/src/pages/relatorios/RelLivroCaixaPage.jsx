@@ -17,7 +17,7 @@ export default function RelLivroCaixaPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['rel-livro-caixa', dataInicio, dataFim, page],
-    queryFn: () => api.get('/financeiro/livro-caixa/', {
+    queryFn: () => api.get('/livro-caixa/', {
       params: { data_inicio: dataInicio || undefined, data_fim: dataFim || undefined, page },
     }).then(r => r.data),
   })

@@ -12,7 +12,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input, FormField } from '@/components/ui/primitives'
 
-const ENDPOINT = '/operacional/profissoes/'
+const ENDPOINT = '/profissoes/'
 const KEY      = 'profissoes'
 
 function ProfForm({ prof, onClose }) {

@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
-const ENDPOINT = '/financeiro/livro-caixa/'
+const ENDPOINT = '/livro-caixa/'
 const KEY      = 'livro-caixa'
 
 function LancamentoForm({ onClose }) {
@@ -73,7 +73,7 @@ function LancamentoForm({ onClose }) {
 
 export default function LivroCaixaPage() {
   const [modalOpen, setModalOpen]   = useState(false)
-  const [tipoFilter, setTipoFilter] = useState('')
+  const [tipoFilter, setTipoFilter] = useState('all')
 
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
 
@@ -83,7 +83,7 @@ export default function LivroCaixaPage() {
 
   const handleTipoChange = (v) => {
     setTipoFilter(v)
-    setFilters(v ? { lica_tipo: v } : {})
+    setFilters(v && v !== 'all' ? { lica_tipo: v } : {})
   }
 
   const columns = [
@@ -165,7 +165,7 @@ export default function LivroCaixaPage() {
             <Select value={tipoFilter} onValueChange={handleTipoChange}>
               <SelectTrigger className="w-32"><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="entrada">Entradas</SelectItem>
                 <SelectItem value="saida">Saídas</SelectItem>
               </SelectContent>

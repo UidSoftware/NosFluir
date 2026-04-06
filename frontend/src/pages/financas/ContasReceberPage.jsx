@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency, formatDate } from '@/lib/utils'
 import api from '@/services/api'
 
-const ENDPOINT = '/financeiro/contas-receber/'
+const ENDPOINT = '/contas-receber/'
 const KEY      = 'contas-receber'
 
 function ContaForm({ conta, onClose }) {
@@ -47,7 +47,7 @@ function ContaForm({ conta, onClose }) {
 
   const { data: alunos } = useQuery({
     queryKey: ['alunos-select'],
-    queryFn: () => api.get('/operacional/alunos/', { params: { page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get('/alunos/', { params: { page_size: 100 } }).then(r => r.data.results),
   })
 
   const onSubmit = (data) => {
@@ -130,7 +130,7 @@ export default function ContasReceberPage() {
   const [modalOpen, setModalOpen]       = useState(false)
   const [selected, setSelected]         = useState(null)
   const [deleteId, setDeleteId]         = useState(null)
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
 
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Conta excluída.' })
@@ -140,7 +140,7 @@ export default function ContasReceberPage() {
 
   const handleStatusChange = (v) => {
     setStatusFilter(v)
-    setFilters(v ? { rec_status: v } : {})
+    setFilters(v && v !== 'all' ? { rec_status: v } : {})
   }
 
   const columns = [
@@ -181,7 +181,7 @@ export default function ContasReceberPage() {
             <Select value={statusFilter} onValueChange={handleStatusChange}>
               <SelectTrigger className="w-36"><SelectValue placeholder="Todos status" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="pendente">Pendente</SelectItem>
                 <SelectItem value="recebido">Recebido</SelectItem>
                 <SelectItem value="vencido">Vencido</SelectItem>

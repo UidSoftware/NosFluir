@@ -13,12 +13,12 @@ const COLORS = ['#5D5CE0', '#01E2CD', '#f59e0b', '#ef4444', '#10b981']
 export default function GrafAlunosPage() {
   const { data: turmasData, isLoading: loadingT } = useQuery({
     queryKey: ['graf-alunos-turmas'],
-    queryFn: () => api.get('/operacional/turma-alunos/', { params: { page_size: 500 } }).then(r => r.data.results),
+    queryFn: () => api.get('/turma-alunos/', { params: { page_size: 500 } }).then(r => r.data.results),
   })
 
   const { data: alunos, isLoading: loadingA } = useQuery({
     queryKey: ['graf-alunos-all'],
-    queryFn: () => api.get('/operacional/alunos/', { params: { page_size: 500 } }).then(r => r.data.results),
+    queryFn: () => api.get('/alunos/', { params: { page_size: 500 } }).then(r => r.data.results),
   })
 
   // Alunos por turma

@@ -16,7 +16,7 @@ export default function RelContasPagarPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['rel-contas-pagar', dataInicio, dataFim, page],
-    queryFn: () => api.get('/financeiro/contas-pagar/', {
+    queryFn: () => api.get('/contas-pagar/', {
       params: { data_inicio: dataInicio || undefined, data_fim: dataFim || undefined, page },
     }).then(r => r.data),
   })

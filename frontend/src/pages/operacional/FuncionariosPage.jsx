@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCPF, onlyNumbers } from '@/lib/utils'
 import api from '@/services/api'
 
-const ENDPOINT = '/operacional/funcionarios/'
+const ENDPOINT = '/funcionarios/'
 const KEY      = 'funcionarios'
 
 function FuncForm({ func, onClose }) {
@@ -38,7 +38,7 @@ function FuncForm({ func, onClose }) {
 
   const { data: profissoes } = useQuery({
     queryKey: ['profissoes-select'],
-    queryFn: () => api.get('/operacional/profissoes/', { params: { page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get('/profissoes/', { params: { page_size: 100 } }).then(r => r.data.results),
   })
 
   const onSubmit = (data) => {

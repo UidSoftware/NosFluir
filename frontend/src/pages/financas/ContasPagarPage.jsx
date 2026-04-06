@@ -17,11 +17,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency, formatDate } from '@/lib/utils'
 import api from '@/services/api'
 
-const ENDPOINT = '/financeiro/contas-pagar/'
+const ENDPOINT = '/contas-pagar/'
 const KEY      = 'contas-pagar'
 
 const STATUS_OPTS = [
-  { value: '', label: 'Todos' },
+  { value: 'all', label: 'Todos' },
   { value: 'pendente', label: 'Pendente' },
   { value: 'pago', label: 'Pago' },
   { value: 'vencido', label: 'Vencido' },
@@ -49,7 +49,7 @@ function ContaForm({ conta, onClose }) {
 
   const { data: fornecedores } = useQuery({
     queryKey: ['fornecedores-select'],
-    queryFn: () => api.get('/financeiro/fornecedores/', { params: { page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get('/fornecedores/', { params: { page_size: 100 } }).then(r => r.data.results),
   })
 
   const onSubmit = (data) => {
@@ -127,7 +127,7 @@ export default function ContasPagarPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected]   = useState(null)
   const [deleteId, setDeleteId]   = useState(null)
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
 
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Conta excluída.' })
@@ -141,7 +141,7 @@ export default function ContasPagarPage() {
 
   const handleStatusChange = (v) => {
     setStatusFilter(v)
-    setFilters(v ? { pag_status: v } : {})
+    setFilters(v && v !== 'all' ? { pag_status: v } : {})
   }
 
   const today = new Date().toISOString().split('T')[0]

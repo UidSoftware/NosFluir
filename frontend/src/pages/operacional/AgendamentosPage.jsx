@@ -12,8 +12,8 @@ import { formatDate, formatDateTime } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
 const TABS = [
-  { id: 'horarios', label: 'Horários', endpoint: '/operacional/agendamentos-horario/', key: 'ag-horarios' },
-  { id: 'turmas',   label: 'Turmas',   endpoint: '/operacional/agendamentos-turmas/',  key: 'ag-turmas' },
+  { id: 'horarios', label: 'Horários', endpoint: '/agendamentos-horario/', key: 'ag-horarios' },
+  { id: 'turmas',   label: 'Turmas',   endpoint: '/agendamentos-turmas/',  key: 'ag-turmas' },
 ]
 
 function TabContent({ endpoint, keyName, columns, emptyMessage }) {

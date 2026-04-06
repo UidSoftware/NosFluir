@@ -35,7 +35,7 @@ function AlunoRow({ aluno, state, onUpdate }) {
 
   const { data: creditos } = useQuery({
     queryKey: ['creditos-aluno', aluno.id],
-    queryFn: () => api.get('/tecnico/creditos-reposicao/', {
+    queryFn: () => api.get('/creditos/', {
       params: { alu: aluno.id, cred_status: 'disponivel', ordering: 'cred_data_expiracao' },
     }).then(r => r.data.results),
     enabled: presenca === 'reposicao',
@@ -160,17 +160,17 @@ export default function MinistrarAulaPage() {
 
   const { data: turmas, isLoading: loadingTurmas } = useQuery({
     queryKey: ['turmas-select'],
-    queryFn: () => api.get('/operacional/turmas/').then(r => r.data.results),
+    queryFn: () => api.get('/turmas/').then(r => r.data.results),
   })
 
   const { data: fichas } = useQuery({
     queryKey: ['fichas-select'],
-    queryFn: () => api.get('/tecnico/fichas-treino/').then(r => r.data.results),
+    queryFn: () => api.get('/fichas-treino/').then(r => r.data.results),
   })
 
   const { data: alunosTurma, isLoading: loadingAlunos } = useQuery({
     queryKey: ['turma-alunos-aula', turmaId],
-    queryFn: () => api.get('/operacional/turma-alunos/', { params: { tur: turmaId, ativo: true } })
+    queryFn: () => api.get('/turma-alunos/', { params: { tur: turmaId, ativo: true } })
       .then(r => r.data.results),
     enabled: !!turmaId,
   })
@@ -266,7 +266,7 @@ export default function MinistrarAulaPage() {
       }
 
       try {
-        await api.post('/tecnico/aulas/', payload)
+        await api.post('/aulas/', payload)
       } catch (err) {
         erros++
         const nome = ta.aluno_nome || `Aluno ${ta.alu}`

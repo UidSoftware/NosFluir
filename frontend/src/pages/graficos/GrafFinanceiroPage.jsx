@@ -29,7 +29,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 export default function GrafFinanceiroPage() {
   const { data: caixa, isLoading } = useQuery({
     queryKey: ['graf-financeiro'],
-    queryFn: () => api.get('/financeiro/livro-caixa/', { params: { page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get('/livro-caixa/', { params: { page_size: 100 } }).then(r => r.data.results),
   })
 
   // Agrupar por mês

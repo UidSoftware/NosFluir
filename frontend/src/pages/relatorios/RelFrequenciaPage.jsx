@@ -18,7 +18,7 @@ export default function RelFrequenciaPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['rel-frequencia', dataInicio, dataFim, page],
-    queryFn: () => api.get('/tecnico/aulas/', {
+    queryFn: () => api.get('/aulas/', {
       params: { data_inicio: dataInicio || undefined, data_fim: dataFim || undefined, page },
     }).then(r => r.data),
   })

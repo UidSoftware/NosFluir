@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
-const ENDPOINT = '/operacional/turmas/'
+const ENDPOINT = '/turmas/'
 const KEY      = 'turmas'
 
 function TurmaForm({ turma, onClose }) {
@@ -34,7 +34,7 @@ function TurmaForm({ turma, onClose }) {
 
   const { data: funcionarios } = useQuery({
     queryKey: ['funcionarios-select'],
-    queryFn: () => api.get('/operacional/funcionarios/').then(r => r.data.results),
+    queryFn: () => api.get('/funcionarios/').then(r => r.data.results),
   })
 
   const onSubmit = (data) => {
@@ -85,20 +85,20 @@ function GerenciarAlunosModal({ turma, onClose }) {
 
   const { data: matriculados, isLoading: loadingM } = useQuery({
     queryKey: ['turma-alunos', turma.id],
-    queryFn: () => api.get('/operacional/turma-alunos/', { params: { turma_id: turma.id, page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get('/turma-alunos/', { params: { turma_id: turma.id, page_size: 100 } }).then(r => r.data.results),
     enabled: !!turma,
   })
 
   const { data: todosAlunos, isLoading: loadingA } = useQuery({
     queryKey: ['alunos-select', search],
-    queryFn: () => api.get('/operacional/alunos/', { params: { search, page_size: 20 } }).then(r => r.data.results),
+    queryFn: () => api.get('/alunos/', { params: { search, page_size: 20 } }).then(r => r.data.results),
   })
 
   const matriculadosIds = new Set(matriculados?.map(m => m.aluno_id) ?? [])
   const totalMatriculados = matriculados?.length ?? 0
 
   const addMutation = useMutation({
-    mutationFn: (aluno_id) => api.post('/operacional/turma-alunos/', { turma_id: turma.id, aluno_id }),
+    mutationFn: (aluno_id) => api.post('/turma-alunos/', { turma_id: turma.id, aluno_id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turma-alunos', turma.id] })
       toast({ title: 'Aluno adicionado.', variant: 'success' })
@@ -110,7 +110,7 @@ function GerenciarAlunosModal({ turma, onClose }) {
   })
 
   const removeMutation = useMutation({
-    mutationFn: (id) => api.delete(`/operacional/turma-alunos/${id}/`),
+    mutationFn: (id) => api.delete(`/turma-alunos/${id}/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turma-alunos', turma.id] })
       toast({ title: 'Aluno removido.', variant: 'success' })

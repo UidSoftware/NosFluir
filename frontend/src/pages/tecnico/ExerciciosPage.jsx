@@ -14,7 +14,7 @@ import { Input, FormField, Textarea } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/primitives'
 
-const ENDPOINT = '/tecnico/exercicios/'
+const ENDPOINT = '/exercicios/'
 const KEY      = 'exercicios'
 
 const APARELHOS = [
@@ -89,14 +89,14 @@ export default function ExerciciosPage() {
   const [modalOpen, setModalOpen]     = useState(false)
   const [selected, setSelected]       = useState(null)
   const [deleteId, setDeleteId]       = useState(null)
-  const [aparelhoFilter, setAparelhoFilter] = useState('')
+  const [aparelhoFilter, setAparelhoFilter] = useState('all')
 
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Exercício excluído.' })
 
   const handleAparelhoFilter = (v) => {
     setAparelhoFilter(v)
-    setFilters(v ? { exe_aparelho: v } : {})
+    setFilters(v && v !== 'all' ? { exe_aparelho: v } : {})
   }
 
   const columns = [
@@ -136,7 +136,7 @@ export default function ExerciciosPage() {
             <Select value={aparelhoFilter} onValueChange={handleAparelhoFilter}>
               <SelectTrigger className="w-36"><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 {APARELHOS.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
               </SelectContent>
             </Select>

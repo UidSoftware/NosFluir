@@ -11,19 +11,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
-const ENDPOINT = '/tecnico/creditos-reposicao/'
+const ENDPOINT = '/creditos/'
 const KEY      = 'creditos-reposicao'
 
 const DIAS_PARA_EXPIRAR = 7
 
 export default function ReposicoesPage() {
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
 
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
 
   const handleStatusFilter = (v) => {
     setStatusFilter(v)
-    setFilters(v ? { cred_status: v } : {})
+    setFilters(v && v !== 'all' ? { cred_status: v } : {})
   }
 
   const today    = new Date()
@@ -80,7 +80,7 @@ export default function ReposicoesPage() {
             <Select value={statusFilter} onValueChange={handleStatusFilter}>
               <SelectTrigger className="w-36"><SelectValue placeholder="Todos status" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="disponivel">Disponível</SelectItem>
                 <SelectItem value="usado">Usado</SelectItem>
                 <SelectItem value="expirado">Expirado</SelectItem>

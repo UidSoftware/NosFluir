@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input, FormField } from '@/components/ui/primitives'
 import { formatDate, formatCPF, onlyNumbers } from '@/lib/utils'
 
-const ENDPOINT = '/operacional/alunos/'
+const ENDPOINT = '/alunos/'
 const KEY      = 'alunos'
 
 function AlunoForm({ aluno, onClose }) {

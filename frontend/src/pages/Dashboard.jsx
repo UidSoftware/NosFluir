@@ -57,29 +57,29 @@ export default function Dashboard() {
 
   const { data: alunos, isLoading: loadingAlunos } = useQuery({
     queryKey: ['dashboard-alunos'],
-    queryFn: () => api.get('/operacional/alunos/', { params: { page_size: 1 } }).then(r => r.data),
+    queryFn: () => api.get('/alunos/', { params: { page_size: 1 } }).then(r => r.data),
   })
 
   const { data: turmas, isLoading: loadingTurmas } = useQuery({
     queryKey: ['dashboard-turmas'],
-    queryFn: () => api.get('/operacional/turmas/', { params: { page_size: 1 } }).then(r => r.data),
+    queryFn: () => api.get('/turmas/', { params: { page_size: 1 } }).then(r => r.data),
   })
 
   const { data: contasPagar, isLoading: loadingPagar } = useQuery({
     queryKey: ['dashboard-contas-pagar'],
-    queryFn: () => api.get('/financeiro/contas-pagar/', { params: { page_size: 5, status: 'pendente' } }).then(r => r.data),
+    queryFn: () => api.get('/contas-pagar/', { params: { page_size: 5, status: 'pendente' } }).then(r => r.data),
     enabled: canAccessFinanceiro(),
   })
 
   const { data: contasReceber, isLoading: loadingReceber } = useQuery({
     queryKey: ['dashboard-contas-receber'],
-    queryFn: () => api.get('/financeiro/contas-receber/', { params: { page_size: 5, status: 'pendente' } }).then(r => r.data),
+    queryFn: () => api.get('/contas-receber/', { params: { page_size: 5, status: 'pendente' } }).then(r => r.data),
     enabled: canAccessFinanceiro(),
   })
 
   const { data: livroCaixa, isLoading: loadingCaixa } = useQuery({
     queryKey: ['dashboard-livro-caixa'],
-    queryFn: () => api.get('/financeiro/livro-caixa/', { params: { page_size: 5 } }).then(r => r.data),
+    queryFn: () => api.get('/livro-caixa/', { params: { page_size: 5 } }).then(r => r.data),
     enabled: canAccessFinanceiro(),
   })
 

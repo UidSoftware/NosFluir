@@ -150,10 +150,11 @@ function AlunoRow({ aluno, state, onUpdate }) {
 }
 
 export default function MinistrarAulaPage() {
-  const [turmaId, setTurmaId]     = useState('')
-  const [fichaId, setFichaId]     = useState('')
-  const [data, setDataAula]        = useState(new Date().toISOString().split('T')[0])
-  const [step, setStep]           = useState('configurar') // configurar | aula
+  const [turmaId, setTurmaId]       = useState('')
+  const [fichaId, setFichaId]       = useState('')
+  const [funcId, setFuncId]         = useState('')
+  const [data, setDataAula]         = useState(new Date().toISOString().split('T')[0])
+  const [step, setStep]             = useState('configurar') // configurar | aula
   const [horaInicio, setHoraInicio] = useState(null)
   const [finalizando, setFinalizando] = useState(false)
   const [alunoStates, setAlunoStates] = useState({})
@@ -161,6 +162,11 @@ export default function MinistrarAulaPage() {
   const { data: turmas, isLoading: loadingTurmas } = useQuery({
     queryKey: ['turmas-select'],
     queryFn: () => api.get('/turmas/').then(r => r.data.results),
+  })
+
+  const { data: funcionarios } = useQuery({
+    queryKey: ['funcionarios-select'],
+    queryFn: () => api.get('/funcionarios/').then(r => r.data.results),
   })
 
   const { data: fichas } = useQuery({
@@ -203,6 +209,10 @@ export default function MinistrarAulaPage() {
   const iniciar = () => {
     if (!turmaId) {
       toast({ title: 'Selecione uma turma.', variant: 'destructive' })
+      return
+    }
+    if (!funcId) {
+      toast({ title: 'Selecione o professor que está ministrando.', variant: 'destructive' })
       return
     }
     setHoraInicio(new Date().toTimeString().slice(0, 5))
@@ -253,6 +263,7 @@ export default function MinistrarAulaPage() {
       const payload = {
         tur:                     parseInt(turmaId),
         alu:                     ta.alu,
+        func:                    funcId ? parseInt(funcId) : null,
         fitr:                    fichaId ? parseInt(fichaId) : null,
         cred:                    d.creditoId || null,
         aul_data:                data,
@@ -282,6 +293,7 @@ export default function MinistrarAulaPage() {
       setStep('configurar')
       setTurmaId('')
       setFichaId('')
+      setFuncId('')
       setHoraInicio(null)
       setAlunoStates({})
     }
@@ -357,10 +369,20 @@ export default function MinistrarAulaPage() {
         <CardContent className="space-y-4 pb-5">
           <FormField label="Turma" required>
             <Select value={turmaId || '__none__'} onValueChange={v => setTurmaId(v === '__none__' ? '' : v)} disabled={loadingTurmas}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecionar turma..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar turma...</SelectItem>
                 {turmas?.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.tur_nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          <FormField label="Professor ministrando" required>
+            <Select value={funcId || '__none__'} onValueChange={v => setFuncId(v === '__none__' ? '' : v)}>
+              <SelectTrigger><SelectValue placeholder="Selecionar professor..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar professor...</SelectItem>
+                {funcionarios?.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.func_nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormField>

@@ -69,13 +69,12 @@ class FuncionarioSerializer(serializers.ModelSerializer):
 
 
 class TurmaSerializer(serializers.ModelSerializer):
-    func_nome = serializers.CharField(source='func.func_nome', read_only=True)
     total_alunos = serializers.SerializerMethodField()
 
     class Meta:
         model = Turma
         fields = [
-            'tur_id', 'func', 'func_nome', 'tur_nome', 'tur_horario',
+            'tur_id', 'tur_nome', 'tur_horario',
             'total_alunos', 'created_at', 'updated_at',
         ]
         read_only_fields = ['tur_id', 'total_alunos', 'created_at', 'updated_at']

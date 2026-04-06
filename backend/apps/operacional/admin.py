@@ -28,8 +28,7 @@ class FuncionarioAdmin(admin.ModelAdmin):
 
 @admin.register(Turma)
 class TurmaAdmin(admin.ModelAdmin):
-    list_display = ['tur_nome', 'func', 'tur_horario']
-    list_filter = ['func']
+    list_display = ['tur_nome', 'tur_horario']
     search_fields = ['tur_nome']
 
 

@@ -48,11 +48,13 @@ class FichaTreinoSerializer(serializers.ModelSerializer):
 class AulaSerializer(serializers.ModelSerializer):
     alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
     tur_nome = serializers.CharField(source='tur.tur_nome', read_only=True)
+    func_nome = serializers.CharField(source='func.func_nome', read_only=True)
 
     class Meta:
         model = Aula
         fields = [
-            'aul_id', 'tur', 'tur_nome', 'alu', 'alu_nome', 'fitr', 'cred',
+            'aul_id', 'tur', 'tur_nome', 'alu', 'alu_nome', 'func', 'func_nome',
+            'fitr', 'cred',
             'aul_data', 'aul_hora_inicio', 'aul_hora_final',
             'aul_pressao_inicio', 'aul_pressao_final',
             'aul_tipo_presenca', 'aul_tipo_falta', 'aul_intensidade_esforco',

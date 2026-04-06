@@ -143,6 +143,10 @@ class Aula(BaseModel):
     aul_id = models.AutoField(primary_key=True)
     tur = models.ForeignKey('operacional.Turma', on_delete=models.PROTECT, verbose_name='turma')
     alu = models.ForeignKey('operacional.Aluno', on_delete=models.PROTECT, verbose_name='aluno')
+    func = models.ForeignKey(
+        'operacional.Funcionario', on_delete=models.PROTECT,
+        null=True, blank=True, verbose_name='professor'
+    )
     fitr = models.ForeignKey(
         FichaTreino, on_delete=models.SET_NULL,
         null=True, blank=True, verbose_name='ficha de treino'

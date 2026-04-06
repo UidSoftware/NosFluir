@@ -33,8 +33,8 @@ class FichaTreinoExerciciosAdmin(admin.ModelAdmin):
 
 @admin.register(Aula)
 class AulaAdmin(admin.ModelAdmin):
-    list_display = ['aul_data', 'tur', 'alu', 'aul_tipo_presenca', 'aul_pressao_inicio']
-    list_filter = ['aul_tipo_presenca', 'aul_tipo_falta', 'tur']
+    list_display = ['aul_data', 'tur', 'alu', 'func', 'aul_tipo_presenca', 'aul_pressao_inicio']
+    list_filter = ['aul_tipo_presenca', 'aul_tipo_falta', 'tur', 'func']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
     date_hierarchy = 'aul_data'
     ordering = ['-aul_data', '-aul_hora_inicio']

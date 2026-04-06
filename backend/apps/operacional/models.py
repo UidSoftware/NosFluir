@@ -75,7 +75,6 @@ class Funcionario(BaseModel):
 class Turma(BaseModel):
     """Turmas/grupos de aulas. Máximo 15 alunos."""
     tur_id = models.AutoField(primary_key=True)
-    func = models.ForeignKey(Funcionario, on_delete=models.PROTECT, verbose_name='professor')
     tur_nome = models.CharField('nome da turma', max_length=100, unique=True)
     tur_horario = models.CharField('horário', max_length=50)
 

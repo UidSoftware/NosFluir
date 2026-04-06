@@ -12,7 +12,6 @@ import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input, FormField, Spinner, Badge } from '@/components/ui/primitives'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
@@ -20,11 +19,10 @@ const ENDPOINT = '/turmas/'
 const KEY      = 'turmas'
 
 function TurmaForm({ turma, onClose }) {
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
+  const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: turma ? {
       tur_nome:    turma.tur_nome,
       tur_horario: turma.tur_horario || '',
-      func:        turma.func ? String(turma.func) : '',
     } : {},
   })
 
@@ -32,20 +30,9 @@ function TurmaForm({ turma, onClose }) {
   const update = useUpdate(KEY, ENDPOINT, { onSuccess: onClose })
   const busy   = create.isPending || update.isPending
 
-  const { data: funcionarios } = useQuery({
-    queryKey: ['funcionarios-select'],
-    queryFn: () => api.get('/funcionarios/').then(r => r.data.results),
-  })
-
   const onSubmit = (data) => {
-    const funcId = data.func && data.func !== '__none__' ? parseInt(data.func) : null
-    if (!funcId) {
-      toast({ title: 'Selecione o professor responsável.', variant: 'destructive' })
-      return
-    }
-    const cleaned = { ...data, func: funcId }
-    if (turma) update.mutate({ id: turma.id, data: cleaned })
-    else       create.mutate(cleaned)
+    if (turma) update.mutate({ id: turma.id, data })
+    else       create.mutate(data)
   }
 
   return (
@@ -57,18 +44,6 @@ function TurmaForm({ turma, onClose }) {
 
         <FormField label="Horário" required error={errors.tur_horario?.message}>
           <Input {...register('tur_horario', { required: 'Horário obrigatório' })} placeholder="Seg/Qua/Sex 07:00" disabled={busy} />
-        </FormField>
-
-        <FormField label="Professor responsável">
-          <Select value={watch('func') || '__none__'} onValueChange={v => setValue('func', v)} disabled={busy}>
-            <SelectTrigger><SelectValue placeholder="Selecionar professor..." /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar professor...</SelectItem>
-              {funcionarios?.map(f => (
-                <SelectItem key={f.id} value={String(f.id)}>{f.func_nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </FormField>
       </div>
 

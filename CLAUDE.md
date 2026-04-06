@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 06/04/2026 | Versão: 4.7
+> Última atualização: 06/04/2026 | Versão: 4.8
 
 ---
 
@@ -238,9 +238,9 @@ const total = response.data.count
 
 ### Select com FK — padrão obrigatório (Radix UI v2.2.6):
 ```jsx
-// CORRETO — sempre com item sentinela __none__
+// CORRETO — sempre com item sentinela __none__ + placeholder no SelectValue
 <Select value={watch('campo_id') || '__none__'} onValueChange={v => setValue('campo_id', v)}>
-  <SelectTrigger><SelectValue /></SelectTrigger>
+  <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
   <SelectContent>
     <SelectItem value="__none__" disabled className="text-muted-foreground italic">
       Selecionar...
@@ -249,9 +249,15 @@ const total = response.data.count
   </SelectContent>
 </Select>
 
+// CORRETO — tratar sentinela __none__ no onSubmit antes de parseInt
+const idVal = data.campo_id && data.campo_id !== '__none__' ? parseInt(data.campo_id) : null
+if (!idVal) { toast({ title: 'Campo obrigatório', variant: 'destructive' }); return }
+
 // ERRADO — Radix concatena todos os textos quando value não bate com nenhum item
 <Select value={watch('campo_id') || undefined} ...>   // ❌
 <Select value={watch('campo_id') || ''} ...>          // ❌
+// ERRADO — parseInt('__none__') === NaN → serializa como null → backend rejeita campo obrigatório
+if (cleaned.campo_id) cleaned.campo_id = parseInt(cleaned.campo_id)  // ❌ não trata '__none__'
 ```
 
 ### Select de filtro (useState) — padrão obrigatório:
@@ -346,7 +352,8 @@ docker compose restart nginx
 | nginx: "host not found in upstream backend:8000" no boot | nginx sobe antes do backend estar pronto | `depends_on: condition: service_healthy` + healthcheck socket no backend + `resolver 127.0.0.11` no nginx.conf |
 | nginx não sobe após reboot da VPS | nginx do sistema (apt) ocupa porta 80 | `systemctl disable nginx` — nginx do sistema desabilitado, apenas o Docker usa as portas |
 | PWA serve versão antiga após deploy | Service Worker em cache sem recarregar | `skipWaiting/clientsClaim` no workbox + listener `controllerchange` em `main.jsx` para auto-reload |
-| Select mostra todos os nomes concatenados | Radix Select v2.2.6 bug — nenhum item bate com o `value` atual (vazio ou undefined) | Sempre usar `value={watch('campo') \|\| '__none__'}` + `<SelectItem value="__none__" disabled>` como placeholder |
+| Select mostra todos os nomes concatenados | Radix Select v2.2.6 bug — nenhum item bate com o `value` atual (vazio ou undefined) | Sempre usar `value={watch('campo') \|\| '__none__'}` + `<SelectItem value="__none__" disabled>` como placeholder + `<SelectValue placeholder="..."/>` no trigger |
+| `parseInt('__none__')` envia `NaN`/`null` para FK obrigatória | `onSubmit` não tratava o valor sentinela `'__none__'` antes de fazer parseInt | Verificar `data.func !== '__none__'` antes de parseInt; se inválido, exibir toast e retornar |
 | Endpoints retornando 404 (API) | Prefixos errados no frontend (`/financeiro/`, `/operacional/`, `/tecnico/`) | Todos os endpoints ficam direto em `/api/` — sem prefixo de app |
 
 ---
@@ -422,6 +429,11 @@ docker compose restart nginx
 - [x] `/tecnico/ficha-treino-exercicios/` → `/fichas-treino-exercicios/` (plural correto)
 - [x] Radix Select v2.2.6 bug — Select de filtro: `value=""` proibido, substituído por `value="all"` em 5 arquivos (ContasPagar, ContasReceber, LivroCaixa, Reposições, Exercícios)
 - [x] Radix Select v2.2.6 bug — Select de FK: substituído `|| undefined` por `|| '__none__'` + item sentinela `disabled` em 9 arquivos (Turmas, Funcionários, FolhaPagamento, ContasPagar, ContasReceber, Planos, Exercícios, FichasTreino, MinistrarAula)
+
+#### Fase 2.6 — Bug fixes Select FK + validação ✅ (06/04/2026)
+- [x] TurmasPage: `parseInt('__none__')` = NaN enviava null para `func` (FK obrigatória) — corrigido com verificação `!== '__none__'` antes de parseInt + toast de erro
+- [x] TurmasPage: `tur_horario` sem validação obrigatória no frontend — adicionado `required` no register + mensagem de erro
+- [x] TurmasPage: `<SelectValue />` sem `placeholder` — o item sentinela `disabled` não renderizava no trigger; adicionado `placeholder="Selecionar professor..."` no `SelectValue`
 
 ### Fase 4 — Sistema de Reposições 🔄 EM ANDAMENTO
 - [x] Model CreditoReposicao criado

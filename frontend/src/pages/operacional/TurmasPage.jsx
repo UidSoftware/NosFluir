@@ -38,10 +38,12 @@ function TurmaForm({ turma, onClose }) {
   })
 
   const onSubmit = (data) => {
-    const cleaned = Object.fromEntries(
-      Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
-    )
-    if (cleaned.func) cleaned.func = parseInt(cleaned.func)
+    const funcId = data.func && data.func !== '__none__' ? parseInt(data.func) : null
+    if (!funcId) {
+      toast({ title: 'Selecione o professor responsável.', variant: 'destructive' })
+      return
+    }
+    const cleaned = { ...data, func: funcId }
     if (turma) update.mutate({ id: turma.id, data: cleaned })
     else       create.mutate(cleaned)
   }
@@ -53,13 +55,13 @@ function TurmaForm({ turma, onClose }) {
           <Input {...register('tur_nome', { required: 'Nome obrigatório' })} placeholder="Ex: Pilates Segunda 07h" disabled={busy} />
         </FormField>
 
-        <FormField label="Horário">
-          <Input {...register('tur_horario')} placeholder="Seg/Qua/Sex 07:00" disabled={busy} />
+        <FormField label="Horário" required error={errors.tur_horario?.message}>
+          <Input {...register('tur_horario', { required: 'Horário obrigatório' })} placeholder="Seg/Qua/Sex 07:00" disabled={busy} />
         </FormField>
 
         <FormField label="Professor responsável">
           <Select value={watch('func') || '__none__'} onValueChange={v => setValue('func', v)} disabled={busy}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Selecionar professor..." /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar professor...</SelectItem>
               {funcionarios?.map(f => (

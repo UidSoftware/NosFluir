@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 06/04/2026 | Versão: 4.9
+> Última atualização: 06/04/2026 | Versão: 5.0
 
 ---
 
@@ -43,14 +43,14 @@ Sistema web de gestão completo para studio de Pilates e treinamento funcional, 
 - `base: '/sistema/'` no vite.config.js — **NÃO ALTERAR**
 
 **Site Institucional:**
-- HTML/CSS/JS puro
+- HTML/CSS/JS puro — multi-página com componentes compartilhados via fetch
 - Roda na raiz: `nostudiofluir.com.br/`
 
 **Infra:**
 - VPS Ubuntu 24.04 | Docker Compose v2 (`docker compose`, sem hífen)
 - Nginx 1.25 (SSL Let's Encrypt) | Gunicorn (3 workers)
 - `entrypoint.sh` executa makemigrations → migrate usuarios → migrate → collectstatic → gunicorn
-- Repo na VPS aponta para `UidSoftware/NosFluir` (substituiu o antigo `UidSoftware/NosFluirSis`)
+- Repo na VPS aponta para `UidSoftware/NosFluir`
 - Projeto na VPS: `/var/www/studio-fluir/`
 - Deploy do frontend via Docker multi-stage (não requer npm na VPS) — `deploy.sh` cuida disso
 
@@ -74,6 +74,7 @@ nostudiofluir.com.br/api/redoc/ → ReDoc
 ```
 NosFluir/
 ├── CLAUDE.md                          ← este arquivo — raiz do projeto
+├── testes.md                          ← plano de testes v2.0 (52 testes)
 ├── backend/
 │   ├── manage.py
 │   ├── requirements.txt
@@ -85,18 +86,24 @@ NosFluir/
 │   │   └── wsgi.py
 │   └── apps/
 │       ├── core/
-│       │   └── mixins.py              ← AuditMixin, ReadCreateMixin
+│       │   └── mixins.py              ← BaseModel, AuditMixin, ReadCreateViewSet
 │       ├── usuarios/
 │       ├── financeiro/
-│       │   └── signals.py             ← lançamentos automáticos LivroCaixa
+│       │   ├── signals.py             ← lançamentos automáticos LivroCaixa
+│       │   └── tests.py               ← 18 testes
 │       ├── operacional/
+│       │   └── tests.py               ← 16 testes
 │       └── tecnico/
+│           ├── signals.py             ← geração/uso de créditos de reposição
+│           └── tests.py               ← 18 testes
 ├── frontend/
 │   ├── src/
 │   ├── public/
 │   ├── vite.config.js                 ← base: '/sistema/' + PWA
 │   └── package.json
 ├── site-institucional/
+│   ├── index.html / sobre.html / servicos.html / agendamento.html / contato.html
+│   └── components/header.html, footer.html
 ├── docker-compose.yml
 ├── nginx/
 │   └── nginx.conf
@@ -113,6 +120,7 @@ NosFluir/
    - `created_at`, `updated_at`, `deleted_at`
    - `created_by`, `updated_by`, `deleted_by`
 3. **Soft Delete:** NUNCA `objeto.delete()` — sempre setar `deleted_at` + `deleted_by`
+   - ⚠️ `perform_destroy` ainda **não sobrescrito** nos ViewSets — DELETE atual é hard delete
 4. **CPF/CNPJ:** String (preserva zeros à esquerda)
 5. **ENUMs:** usar choices do Django
 
@@ -137,11 +145,11 @@ created_at = models.DateTimeField(...)
 | Model | Tabela | Observação |
 |---|---|---|
 | Fornecedor | fornecedor | |
-| ServicoProduto | servico_produto | |
+| ServicoProduto | servico_produto | endpoint: `/api/servicos-produtos/` |
 | ContasPagar | contas_pagar | signal → LivroCaixa ao pagar |
 | ContasReceber | contas_receber | signal → LivroCaixa ao receber |
 | PlanosPagamentos | planos_pagamentos | |
-| LivroCaixa | livro_caixa | **IMUTÁVEL** via ReadCreateMixin |
+| LivroCaixa | livro_caixa | **IMUTÁVEL** via ReadCreateViewSet (405 em update/delete) |
 | FolhaPagamento | folha_pagamento | unique: func+mes+ano |
 
 ### App `operacional` — 7 models
@@ -150,10 +158,10 @@ created_at = models.DateTimeField(...)
 | Aluno | alunos | CPF único |
 | Profissao | profissao | catálogo |
 | Funcionario | funcionario | CPF único |
-| Turma | turma | max 15 alunos |
+| Turma | turma | max 15 alunos — **sem campo professor** (professor fica na Aula) |
 | TurmaAlunos | turma_alunos | N:N unique: turma+aluno |
-| AgendamentoHorario | agendamento_horario | pré-cadastro do site |
-| AgendamentoTurmas | agendamento_turmas | pré-cadastro do site |
+| AgendamentoHorario | agendamento_horario | pré-cadastro do site — aceita POST sem auth |
+| AgendamentoTurmas | agendamento_turmas | pré-cadastro do site — aceita POST sem auth |
 
 ### App `tecnico` — 5 models
 | Model | Tabela | Observação |
@@ -161,8 +169,8 @@ created_at = models.DateTimeField(...)
 | Exercicio | exercicios | aparelhos: solo/reformer/cadillac/chair/barrel |
 | FichaTreino | ficha_treino | |
 | FichaTreinoExercicios | ficha_treino_exercicios | N:N com ordem+séries+reps |
-| Aula | aulas | 1 linha = 1 aluno em 1 aula. unique: turma+aluno+data+hora_inicio |
-| CreditoReposicao | creditos_reposicao | **NOVO — Fase 4** |
+| Aula | aulas | 1 linha = 1 aluno em 1 aula; **`func` (FK Funcionario, nullable)** — professor que ministrou |
+| CreditoReposicao | creditos_reposicao | gerado por signal ao registrar falta |
 
 ### App `usuarios` — 1 model
 | Model | Tabela | Observação |
@@ -171,9 +179,13 @@ created_at = models.DateTimeField(...)
 
 ---
 
-## 🔐 Perfis de Acesso (4 grupos Django)
+## 🔐 Perfis de Acesso
 
-| Perfil | Acesso |
+> ⚠️ **Estado atual:** todos os endpoints usam apenas `IsAuthenticated` — sem restrição por grupo.
+> Exceção: `UserViewSet` usa `IsAdminUser` (403 para não-admin).
+> Permissões por perfil (Professor/Financeiro/Recepcionista) **pendentes de implementação**.
+
+| Perfil | Acesso planejado |
 |---|---|
 | **Administrador** | Tudo sem restrição |
 | **Professor** | Suas turmas, ministrar aula, fichas — sem financeiro |
@@ -187,17 +199,17 @@ created_at = models.DateTimeField(...)
 ### Tipos de falta:
 | Situação | Gera crédito? |
 |---|---|
-| Aviso entre 48h e 1h antes da aula | ✅ Sim |
-| Atestado médico (qualquer prazo) | ✅ Sim — pula regra de antecedência |
-| Aviso com mais de 48h antes | ⚠️ Pendente — perguntar às clientes |
-| Aviso com menos de 1h / sem aviso | ❌ Não |
+| Aviso entre 48h e 1h antes da aula | ✅ Sim (`justificada`) |
+| Atestado médico (qualquer prazo) | ✅ Sim (`atestado`) — pula regra de antecedência |
+| Aviso com mais de 48h antes | ⚠️ Pendente — perguntar às clientes (`cenario3`) |
+| Aviso com menos de 1h / sem aviso | ❌ Não (`sem_aviso`) |
 
 ### Regras do crédito:
-- **Validade:** 30 dias corridos a partir da data de aquisição
+- **Validade:** 30 dias corridos a partir da data de aquisição (calculado automaticamente no `save()`)
 - **Limite:** máximo 3 créditos simultâneos por aluno
 - **Prioridade:** crédito mais próximo de expirar é consumido primeiro (FIFO)
 - **Faltou na reposição:** perde o crédito definitivamente
-- **Uso cruzado** (Pilates ↔ Funcional): máximo 1x por mês
+- **Uso cruzado** (Pilates ↔ Funcional): máximo 1x por mês — **pendente de implementação no backend**
 
 ### Model `CreditoReposicao`:
 ```python
@@ -205,6 +217,12 @@ STATUS: 'disponivel' | 'usado' | 'expirado'
 Campos: aluno (FK), aula_origem (FK), aula_reposicao (FK nullable),
         cred_data_geracao, cred_data_expiracao (+30 dias auto),
         cred_usado (boolean), cred_status
+```
+
+### Endpoint créditos por aluno:
+```
+GET /api/creditos/aluno/{alu_id}/   → créditos disponíveis ordenados por expiração (FIFO)
+GET /api/creditos/?alu=X&cred_status=disponivel  → filtro padrão
 ```
 
 ### Pendências de reunião:
@@ -220,6 +238,7 @@ Campos: aluno (FK), aula_origem (FK), aula_reposicao (FK nullable),
 - `ContasReceber: valor_total = (qtd × valor_unitario) - desconto`
 - `valor_liquido = salario_base - descontos`
 - LivroCaixa: **NUNCA** editar/deletar — criar estorno se necessário
+- LivroCaixa: update/delete retornam **405** (ReadCreateViewSet) — não 403
 - ContasPagar pago → signal cria lançamento **saída** automático
 - ContasReceber recebido → signal cria lançamento **entrada** automático
 - FolhaPagamento: **NÃO** gera lançamento automático
@@ -228,6 +247,25 @@ Campos: aluno (FK), aula_origem (FK), aula_reposicao (FK nullable),
 - Pressão arterial: formato "120/80" — regex `^\d{2,3}/\d{2}$`
 - Intensidade de esforço: 0-10
 - Mesmo exercício com aparelhos diferentes = registros independentes
+- **Professor fica na Aula** (não na Turma) — turma tem só nome e horário
+
+### Serializers — campo `id` obrigatório (CRÍTICO):
+```python
+# TODOS os serializers devem expor campo id → source='pk'
+# O frontend usa r.id em todos os selects, edições e deleções
+class MeuSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    # ...
+    fields = ['id', 'meu_id', ...]
+```
+> Se criar um novo serializer sem `id`, **selects e operações CRUD vão quebrar** no frontend.
+
+### AuditMixin — usuário anônimo:
+```python
+# perform_create e perform_update tratam AnonymousUser → created_by=None
+# Necessário para endpoints AllowAny (agendamentos do site)
+# NUNCA reverter isso — quebraria POST de agendamento sem autenticação
+```
 
 ### Paginação (CRÍTICO para o frontend):
 ```javascript
@@ -253,14 +291,6 @@ const total = response.data.count
 // CORRETO — tratar sentinela __none__ no onSubmit antes de parseInt
 const idVal = data.campo_id && data.campo_id !== '__none__' ? parseInt(data.campo_id) : null
 if (!idVal) { toast({ title: 'Campo obrigatório', variant: 'destructive' }); return }
-
-// ERRADO — Radix concatena todos os textos quando value não bate com nenhum item
-<Select value={watch('campo_id') || undefined} ...>   // ❌
-<Select value={watch('campo_id') || ''} ...>          // ❌
-// ERRADO — item sentinela com disabled: Radix não renderiza seu texto → mostra nomes concatenados
-<SelectItem value="__none__" disabled ...>            // ❌
-// ERRADO — parseInt('__none__') === NaN → serializa como null → backend rejeita campo obrigatório
-if (cleaned.campo_id) cleaned.campo_id = parseInt(cleaned.campo_id)  // ❌ não trata '__none__'
 ```
 
 ### Select de filtro (useState) — padrão obrigatório:
@@ -268,19 +298,17 @@ if (cleaned.campo_id) cleaned.campo_id = parseInt(cleaned.campo_id)  // ❌ não
 // CORRETO — usar 'all' como sentinela, nunca ''
 const [filtro, setFiltro] = useState('all')
 setFilters(v && v !== 'all' ? { campo: v } : {})
-
-<Select value={filtro} onValueChange={handleChange}>
-  <SelectItem value="all">Todos</SelectItem>
-  ...
-</Select>
 ```
 
 ### Endpoints da API (CRÍTICO):
 ```
 Todos os endpoints ficam direto em /api/ — sem prefixo de app:
-✅ /api/alunos/         ✅ /api/turmas/         ✅ /api/exercicios/
-✅ /api/creditos/       ✅ /api/fichas-treino/  ✅ /api/folha-pagamento/
-❌ /api/operacional/alunos/   ❌ /api/tecnico/exercicios/   ← ERRADO
+✅ /api/alunos/              ✅ /api/turmas/           ✅ /api/exercicios/
+✅ /api/creditos/            ✅ /api/fichas-treino/    ✅ /api/folha-pagamento/
+✅ /api/servicos-produtos/   ✅ /api/fornecedores/     ✅ /api/aulas/
+✅ /api/logout/              ✅ /api/me/               ✅ /api/agendamentos-horario/
+❌ /api/operacional/alunos/  ❌ /api/tecnico/exercicios/  ← ERRADO
+❌ /api/servicos/            ← ERRADO (correto: /api/servicos-produtos/)
 ```
 
 ---
@@ -295,6 +323,9 @@ make migrate          # executa migrations dentro do container
 make createsuperuser  # cria superusuário Django
 make dev-down         # para tudo
 
+# ── Rodar testes ──────────────────────────────────────────────────────────────
+docker exec nosfluir-backend-1 python manage.py test apps.financeiro apps.operacional apps.tecnico --verbosity=2
+
 # ── Deploy na VPS ─────────────────────────────────────────────────────────────
 # Na VPS: /var/www/studio-fluir/
 git pull origin main
@@ -305,14 +336,6 @@ docker compose build backend && docker compose up -d backend
 
 # Atualizar somente o site institucional (é volume — sem rebuild):
 git pull origin main && docker compose restart nginx
-
-# ── Frontend — rebuild manual na VPS ─────────────────────────────────────────
-docker build -t nosfluir-frontend-builder ./frontend
-docker create --name nosfluir-frontend-build nosfluir-frontend-builder
-rm -rf ./frontend/dist && mkdir -p ./frontend/dist
-docker cp nosfluir-frontend-build:/var/www/frontend/. ./frontend/dist/
-docker rm nosfluir-frontend-build && docker rmi nosfluir-frontend-builder
-docker compose restart nginx
 ```
 
 ---
@@ -320,7 +343,7 @@ docker compose restart nginx
 ## ⚠️ O que NÃO fazer
 
 - ❌ Float/Double para dinheiro
-- ❌ `objeto.delete()` — usar soft delete
+- ❌ `objeto.delete()` — usar soft delete (mas atenção: `perform_destroy` ainda não sobrescrito)
 - ❌ Editar/deletar LivroCaixa
 - ❌ Lançamento automático para FolhaPagamento
 - ❌ CPF/CNPJ como número (perde zeros à esquerda)
@@ -330,7 +353,10 @@ docker compose restart nginx
 - ❌ `response.data` em listagens — sempre `response.data.results`
 - ❌ Criar outro CLAUDE.md — este é o único
 - ❌ `SelectItem value=""` — Radix UI reserva `""` para limpar seleção; usar `value="__none__"` como sentinel
-- ❌ `SelectItem value="__none__" disabled` — Radix não renderiza texto de itens `disabled` como valor selecionado; sentinela deve ser sem `disabled`
+- ❌ `SelectItem value="__none__" disabled` — Radix não renderiza texto de itens disabled; sentinela deve ser sem `disabled`
+- ❌ Serializer sem campo `id` — todos devem ter `id = serializers.IntegerField(source='pk', read_only=True)`
+- ❌ `filterset_fields` referenciando campo que não existe no model — causa 500 em toda listagem
+- ❌ Professor no model Turma — professor fica no model Aula (`func` FK Funcionario)
 
 ---
 
@@ -341,24 +367,21 @@ docker compose restart nginx
 | "decimal places not allowed" | Float em vez de Decimal | `Decimal('150.00')` |
 | "duplicate key violates unique" | Registro duplicado | Verificar `unique_together` |
 | Lançamento duplicado LivroCaixa | Signal chamado 2x | Signals já checam existência — não remover |
-| 403 no update/delete LivroCaixa | ReadCreateMixin por design | Criar estorno |
+| 405 no update/delete LivroCaixa | ReadCreateViewSet por design | Criar estorno (POST) |
 | Frontend 404 em /sistema/ | base não configurado | Verificar `base: '/sistema/'` no vite |
 | Login não funciona | Tentando auth por username | Verificar `USERNAME_FIELD = 'email'` no model User |
-| Django admin "credenciais incorretas" | EmailBackend não aceitava kwarg `username` | EmailBackend aceita `email or username` — já corrigido |
 | 403 CSRF no admin | Sistema atrás de Nginx sem proxy headers | `CSRF_TRUSTED_ORIGINS`, `SECURE_PROXY_SSL_HEADER`, `USE_X_FORWARDED_HOST` — já configurados |
 | `restart` não aplica mudanças de código | Código está na imagem Docker, não em volume | Sempre usar `docker compose build backend && docker compose up -d backend` |
-| `App does not have migrations` | Diretório `migrations/` não existia | Criar `migrations/__init__.py` em cada app e commitar |
-| Login sistema: "não encontrado" | `/api/usuarios/me/` não existe | Endpoint correto é `/api/me/` — já corrigido no frontend |
-| `docker cp` cria subdiretório `frontend/dist/frontend/` | `dist/` já existia ao copiar | Usar `rm -rf dist && mkdir dist` antes do `docker cp src/. dist/` |
-| `entrypoint.sh: permission denied` no Docker | Arquivo sem bit de execução | `chmod +x backend/entrypoint.sh` e commitar a permissão |
-| `deploy.sh` não encontra repo | Nome antigo `NosFluirSis` | Já corrigido para `NosFluir` |
-| Menu sidebar mostra só Dashboard/Relatórios/Gráficos | `UserSerializer` não retornava `is_superuser` nem `groups` | Já corrigido — serializer inclui ambos os campos |
-| nginx: "host not found in upstream backend:8000" no boot | nginx sobe antes do backend estar pronto | `depends_on: condition: service_healthy` + healthcheck socket no backend + `resolver 127.0.0.11` no nginx.conf |
-| nginx não sobe após reboot da VPS | nginx do sistema (apt) ocupa porta 80 | `systemctl disable nginx` — nginx do sistema desabilitado, apenas o Docker usa as portas |
-| PWA serve versão antiga após deploy | Service Worker em cache sem recarregar | `skipWaiting/clientsClaim` no workbox + listener `controllerchange` em `main.jsx` para auto-reload |
-| Select mostra todos os nomes concatenados | Radix Select v2.2.6 bug — nenhum item bate com o `value` atual (vazio ou undefined) | Sempre usar `value={watch('campo') \|\| '__none__'}` + `<SelectItem value="__none__">` (sem disabled) + `<SelectValue placeholder="..."/>` no trigger |
-| `parseInt('__none__')` envia `NaN`/`null` para FK obrigatória | `onSubmit` não tratava o valor sentinela `'__none__'` antes de fazer parseInt | Verificar `data.func !== '__none__'` antes de parseInt; se inválido, exibir toast e retornar |
-| Endpoints retornando 404 (API) | Prefixos errados no frontend (`/financeiro/`, `/operacional/`, `/tecnico/`) | Todos os endpoints ficam direto em `/api/` — sem prefixo de app |
+| Login sistema: "não encontrado" | `/api/usuarios/me/` não existe | Endpoint correto é `/api/me/` |
+| `entrypoint.sh: permission denied` | Arquivo sem bit de execução | `chmod +x backend/entrypoint.sh` e commitar |
+| Menu sidebar mostra só Dashboard | `UserSerializer` sem `is_superuser`/`groups` | Já corrigido — serializer inclui ambos |
+| nginx: "host not found in upstream" no boot | nginx sobe antes do backend | `depends_on: service_healthy` + healthcheck — já configurado |
+| PWA serve versão antiga após deploy | Service Worker em cache | `skipWaiting/clientsClaim` + `controllerchange` em main.jsx — já configurado |
+| Select mostra todos os nomes concatenados | Radix Select v2.2.6 — nenhum item bate com o `value` (undefined) | `value={watch('campo') \|\| '__none__'}` + sentinela sem `disabled` + `id` no serializer |
+| Endpoints retornando 404 (API) | Prefixos errados no frontend | Todos direto em `/api/` — sem prefixo de app |
+| GET /api/turmas/ retorna 500 | `filterset_fields` com campo removido do model | Remover campo do `filterset_fields` — já corrigido |
+| Agendamento do site retorna 500 | `AuditMixin` passava `AnonymousUser` como `created_by` | `AuditMixin` agora usa `None` para usuário não autenticado — já corrigido |
+| Selects não carregam / r.id undefined | Serializer sem campo `id` | Adicionar `id = serializers.IntegerField(source='pk', read_only=True)` + incluir em `fields` |
 
 ---
 
@@ -370,87 +393,55 @@ docker compose restart nginx
 - [x] JWT — autenticação por email, blacklist, refresh rotation
 - [x] Signals — ContasPagar/ContasReceber → LivroCaixa automático
 - [x] Django Admin — todos os models registrados e funcional
-- [x] Docker — Dockerfile, entrypoint.sh, docker-compose.yml
-- [x] Nginx configurado (SSL Let's Encrypt, proxy reverso)
+- [x] Docker + Nginx configurados (SSL Let's Encrypt, proxy reverso)
 - [x] BaseModel, AuditMixin, ReadCreateViewSet (LivroCaixa imutável)
-- [x] EmailBackend corrigido (aceita `email` e `username` kwargs)
-- [x] CSRF + proxy SSL configurados para admin atrás de Nginx
-- [x] Deploy realizado na VPS — banco recriado do zero (22 tabelas), sistema rodando
-- [x] VPS aponta para repo `UidSoftware/NosFluir` (removido o antigo `NosFluirSis`)
+- [x] Deploy na VPS — sistema rodando
 
 ### Fase 2 — Frontend React ✅ COMPLETO E EM PRODUÇÃO (04/04/2026)
-- [x] Estrutura completa em `frontend/` — 58 arquivos
-- [x] Login, Dashboard, Alunos, Funcionários, Turmas (+ gerenciar alunos), Agendamentos
-- [x] Finanças: Livro Caixa, Contas a Pagar, Contas a Receber, Planos, Folha, Fornecedores, Serviços
+- [x] Login, Dashboard, Alunos, Funcionários, Turmas, Agendamentos
+- [x] Finanças: Livro Caixa, Contas a Pagar/Receber, Planos, Folha, Fornecedores, Serviços
 - [x] Técnico: Exercícios, Fichas de Treino, Ministrar Aula, Reposições
-- [x] Relatórios: Frequência, Pressão Arterial, Contas a Pagar, Contas a Receber, Livro Caixa
-- [x] Gráficos: Financeiro (Line+Bar), Alunos (Bar+Pie), Frequência (Bar+Line)
+- [x] Relatórios: Frequência, Pressão Arterial, Contas a Pagar/Receber, Livro Caixa
+- [x] Gráficos: Financeiro, Alunos, Frequência
 - [x] Configuração: Usuários, Profissões
 - [x] PWA, Sidebar colapsável, Toaster, ConfirmDialog, paginação, permissões
-- [x] Deploy em produção — build via Docker multi-stage, dist servido pelo Nginx
 
-#### Fase 2.1 — Bug fixes ✅ (04/04/2026)
-- [x] `fich_nome` → `fitr_nome` em FichasTreinoPage (campo correto do serializer)
-- [x] `'presente'` → `'regular'` em MinistrarAulaPage (valor correto da API Aula)
-- [x] Filtro `turma_id` → `tur` + `ativo: true` em turma-alunos (campo correto do ViewSet)
-- [x] `page_size` removido de queries de select (5 arquivos) — backend ignora esse param
-- [x] MinistrarAulaPage reescrita: POST completo por aluno, horaInicio/Final capturados, validação P.A. regex, validação crédito reposição, toast por aluno com erro
-- [x] README corrigido: repo `NosFluirSis` → `NosFluir`
-
-#### Fase 2.2 — Responsividade mobile/tablet ✅ (04/04/2026)
-- [x] Sidebar fecha ao navegar em mobile (`window.innerWidth < 1024` → `onToggle()`)
-- [x] Grids de formulário: `grid-cols-2/3` → `grid-cols-1 sm:grid-cols-2/3` em 5 páginas
-- [x] MinistrarAulaPage: botões de presença com `min-h-[36px]`, falta grid `sm:grid-cols-2`, P.A. grid `sm:grid-cols-3`
-- [x] LivroCaixaPage: cards de saldo `grid-cols-1 sm:grid-cols-3`
+#### Fase 2.1–2.6 — Bug fixes ✅ (04–06/04/2026)
+- [x] Campos de API corrigidos em 25 arquivos (nomes de campos, prefixos de endpoint)
+- [x] Radix Select v2.2.6 — sentinela `__none__` sem `disabled`, `value='all'` em filtros
+- [x] `parseInt('__none__')` corrigido em todos os forms com FK obrigatória
+- [x] MinistrarAulaPage reescrita com POST completo por aluno + validações
 
 ### Fase 3 — Site Institucional ✅ COMPLETO E EM PRODUÇÃO (04/04/2026)
+- [x] Multi-página: index, sobre, serviços, agendamento, contato
+- [x] Componentes compartilhados: header.html + footer.html via fetch
+- [x] Identidade visual com fontes e fotos reais (Giulia + Tássia)
+- [x] Formulário de agendamento → POST /api/agendamentos-horario/ (sem auth)
+- [ ] Google Maps (aguardando cliente)
+- [ ] Endereço, e-mail, horário reais (aguardando cliente)
+- [ ] Links reais das redes sociais (aguardando cliente)
 
-#### Fase 2.3 — Site multi-página ✅ (04/04/2026)
-- [x] Refatorado de single-page para 5 páginas separadas: `index.html`, `sobre.html`, `servicos.html`, `agendamento.html`, `contato.html`
-- [x] Componentes compartilhados: `components/header.html` e `components/footer.html` (carregados via fetch assíncrono)
-- [x] `js/main.js` reescrito: `loadComponent()`, `initHeader()`, `initFooter()`, `markActiveNav()`, `initScrollAnimations()`
-- [x] CSS: fontes `Cormorant Garamond` + `Nunito` (identidade visual oficial), `.page-hero`, `.profissionais__grid`, `.estrutura__grid`, `.nav__link.active`
-- [x] Logo usa imagem real: `/static/landing/Icone-401x401-Sem-Fundo.png`
-- [x] Fotos das profissionais: `Perfil2.png` (Giulia) e `Perfil3.png` (Tássia)
-- [x] nginx: `try_files $uri $uri.html $uri/ =404` (URLs sem `.html`)
-- [x] WhatsApp + "Entrar" flutuantes em todas as páginas
-- [ ] Google Maps: substituir `<div class="mapa__placeholder">` em `contato.html` pelo iframe do Maps
-- [ ] Endereço físico completo (TODO em `agendamento.html` e `contato.html`)
-- [ ] E-mail de contato (TODO em `contato.html`)
-- [ ] Horário real de funcionamento (TODO em `agendamento.html` e `contato.html`)
-- [ ] Links reais das redes sociais no footer e em `contato.html`
+### Fase 4 — Sistema de Reposições ✅ COMPLETO E EM PRODUÇÃO (06/04/2026)
+- [x] Model CreditoReposicao com status, expiração automática (+30 dias), FIFO
+- [x] Signal `gerar_credito_reposicao` — justificada/atestado, limite 3, sem duplicata
+- [x] Signal `marcar_credito_usado` — marca crédito ao registrar reposição
+- [x] Endpoints: `/api/creditos/`, `/api/creditos/aluno/{id}/`
+- [x] Frontend: página Reposições, validação de crédito em MinistrarAulaPage
+- [ ] Uso cruzado Pilates ↔ Funcional (pendente reunião)
+- [ ] cenario3 (+48h) — pendente reunião com clientes
 
-#### Fase 2.4 — Bug fixes pós-deploy ✅ (05/04/2026)
-- [x] `UserSerializer` corrigido: agora retorna `is_superuser` e `groups` (nomes dos grupos) — sem isso o menu ficava bloqueado para todos os usuários
-- [x] PWA: `skipWaiting/clientsClaim/cleanupOutdatedCaches` explícitos no workbox + listener `controllerchange` em `main.jsx` para auto-reload após deploy
-- [x] Infra: healthcheck socket Python no backend + `depends_on: service_healthy` no nginx — evita "host not found" no boot
-- [x] Infra: `resolver 127.0.0.11` no nginx.conf para DNS dinâmico do Docker
-- [x] Infra: nginx do sistema desabilitado (`systemctl disable nginx`) — conflitava com Docker na porta 80
+### Fase 5 — Telas e Funcionalidades Restantes ✅ COMPLETO E EM PRODUÇÃO (06/04/2026)
+- [x] Turma refatorada: professor removido da Turma, adicionado na Aula (FK `func` nullable)
+- [x] MinistrarAulaPage: Select obrigatório "Professor ministrando" — professor registrado por aula
+- [x] Todos os serializers com campo `id` (source='pk') — compatibilidade com seletores do frontend
+- [x] AuditMixin corrigido para endpoints AllowAny (created_by=None para anônimo)
+- [x] 52 testes automatizados — financeiro, operacional, técnico
 
-#### Fase 2.5 — Bug fixes API + Select ✅ (06/04/2026)
-- [x] Todos os 25 arquivos do frontend corrigidos: prefixos `/financeiro/`, `/operacional/`, `/tecnico/` removidos — endpoints ficam direto em `/api/` (ex: `/api/alunos/`, `/api/turmas/`)
-- [x] `/tecnico/creditos-reposicao/` → `/creditos/` (nome registrado no router do backend)
-- [x] `/tecnico/ficha-treino-exercicios/` → `/fichas-treino-exercicios/` (plural correto)
-- [x] Radix Select v2.2.6 bug — Select de filtro: `value=""` proibido, substituído por `value="all"` em 5 arquivos (ContasPagar, ContasReceber, LivroCaixa, Reposições, Exercícios)
-- [x] Radix Select v2.2.6 bug — Select de FK: substituído `|| undefined` por `|| '__none__'` + item sentinela `disabled` em 9 arquivos (Turmas, Funcionários, FolhaPagamento, ContasPagar, ContasReceber, Planos, Exercícios, FichasTreino, MinistrarAula)
-
-#### Fase 2.6 — Bug fixes Select FK + validação ✅ (06/04/2026)
-- [x] TurmasPage: `parseInt('__none__')` = NaN enviava null para `func` (FK obrigatória) — corrigido com verificação `!== '__none__'` antes de parseInt + toast de erro
-- [x] TurmasPage: `tur_horario` sem validação obrigatória no frontend — adicionado `required` no register + mensagem de erro
-- [x] TurmasPage: `<SelectValue />` sem `placeholder` — o item sentinela `disabled` não renderizava no trigger; adicionado `placeholder="Selecionar professor..."` no `SelectValue`
-- [x] Select sentinela `__none__` com `disabled` em 9 arquivos — Radix não renderiza texto de itens disabled como valor selecionado → concatenava todos os nomes; removido `disabled` de todos os sentinelas (FolhaPagamento, MinistrarAula, ContasReceber, FichasTreino, Exercícios, Funcionários, Planos, ContasPagar, Turmas)
-
-### Fase 4 — Sistema de Reposições 🔄 EM ANDAMENTO
-- [x] Model CreditoReposicao criado
-- [x] Signal `gerar_credito_reposicao` — cria crédito ao registrar falta justificada/atestado (limite 3, sem duplicata)
-- [x] Signal `marcar_credito_usado` — marca crédito como usado ao registrar aula de reposição
-- [ ] Endpoints de créditos e solicitações
-- [ ] Telas frontend (professor aprova, admin visualiza)
-- [ ] Pendência: reunião — aviso +48h (cenario3) gera crédito ou não?
-- [ ] Pendência: reunião — mistura de níveis na aula de reposição
-
-### Fase 5 — Telas Restantes ⏳ PLANEJADA
-- Funcionários, Folha de Pagamento, Planos, Fichas de Treino, Relatórios completos, Configurações
+### Pendências técnicas identificadas pelos testes:
+- [ ] `perform_destroy` não sobrescrito — soft delete não implementado nos ViewSets
+- [ ] Permissões por perfil (Professor/Financeiro/Recepcionista) não implementadas
+- [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
+- [ ] Crédito expirado — sem job automático para atualizar status
 
 ---
 

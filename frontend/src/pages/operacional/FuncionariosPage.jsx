@@ -103,7 +103,7 @@ function FuncForm({ func, onClose }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar profissão...</SelectItem>
+              <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar profissão...</SelectItem>
               {profissoes?.map(p => (
                 <SelectItem key={p.id} value={String(p.id)}>{p.prof_nome}</SelectItem>
               ))}

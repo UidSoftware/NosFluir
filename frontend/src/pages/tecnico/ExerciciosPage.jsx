@@ -64,7 +64,7 @@ function ExercForm({ exercicio, onClose }) {
         <Select value={watch('exe_aparelho') || '__none__'} onValueChange={v => setValue('exe_aparelho', v)} disabled={busy}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar aparelho...</SelectItem>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar aparelho...</SelectItem>
             {APARELHOS.map(a => (
               <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>
             ))}

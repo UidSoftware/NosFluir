@@ -69,7 +69,7 @@ function FolhaForm({ folha, onClose }) {
         <Select value={watch('func_id') || '__none__'} onValueChange={v => setValue('func_id', v)} disabled={busy}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar funcionário...</SelectItem>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar funcionário...</SelectItem>
             {funcionarios?.map(f => (
               <SelectItem key={f.id} value={String(f.id)}>{f.func_nome}</SelectItem>
             ))}
@@ -82,7 +82,7 @@ function FolhaForm({ folha, onClose }) {
           <Select value={watch('fopa_mes') || '__none__'} onValueChange={v => setValue('fopa_mes', v)} disabled={busy}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__none__" disabled className="text-muted-foreground italic">Mês...</SelectItem>
+              <SelectItem value="__none__" className="text-muted-foreground italic">Mês...</SelectItem>
               {MESES.map((m, i) => (
                 <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
               ))}

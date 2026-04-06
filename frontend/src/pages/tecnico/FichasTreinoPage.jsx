@@ -56,7 +56,7 @@ function FichaForm({ ficha, onClose }) {
         <Select value={watch('aluno_id') || '__none__'} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar aluno...</SelectItem>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar aluno...</SelectItem>
             {alunos?.map(a => <SelectItem key={a.id} value={String(a.id)}>{a.alu_nome}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -110,7 +110,7 @@ function AddExercicioForm({ fichaId, onClose }) {
         <Select value={watch('exercicio_id') || '__none__'} onValueChange={v => setValue('exercicio_id', v)} disabled={mutation.isPending}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar exercício...</SelectItem>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar exercício...</SelectItem>
             {exercicios?.map(e => (
               <SelectItem key={e.id} value={String(e.id)}>{e.exe_nome} ({e.exe_aparelho})</SelectItem>
             ))}

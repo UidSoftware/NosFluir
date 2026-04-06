@@ -340,3 +340,64 @@ class AutenticacaoTest(TestCase):
             'refresh': str(refresh),
         })
         self.assertEqual(resp.status_code, 200)
+
+
+# ── TP010 — Filtro por status em contas-receber ───────────────────────────────
+
+class FiltroContasReceberTest(TestCase):
+    """TP010 — filtro por status, paginação."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.aluno = criar_aluno()
+        self.serv = criar_servico()
+
+    def _criar_conta(self, status):
+        return self.client.post('/api/contas-receber/', {
+            'alu': self.aluno.alu_id,
+            'serv': self.serv.serv_id,
+            'rec_data_emissao': '2026-04-01',
+            'rec_data_vencimento': '2026-04-30',
+            'rec_descricao': f'Conta {status}',
+            'rec_quantidade': 1,
+            'rec_valor_unitario': '100.00',
+            'rec_desconto': '0.00',
+            'rec_status': status,
+        })
+
+    def test_TP010_filtro_status_pendente(self):
+        """TP010: GET /api/contas-receber/?rec_status=pendente → só pendentes"""
+        self._criar_conta('pendente')
+        self._criar_conta('pendente')
+        self._criar_conta('recebido')
+        resp = self.client.get('/api/contas-receber/', {'rec_status': 'pendente'})
+        self.assertEqual(resp.status_code, 200)
+        for item in resp.data['results']:
+            self.assertEqual(item['rec_status'], 'pendente')
+
+    def test_TI004_paginacao_results(self):
+        """TI004: resposta deve ter 'results' e 'count' — nunca acessar .data direto"""
+        for i in range(3):
+            self._criar_conta('pendente')
+        resp = self.client.get('/api/contas-receber/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('results', resp.data)
+        self.assertIn('count', resp.data)
+        self.assertIn('next', resp.data)
+        self.assertIn('previous', resp.data)
+
+    def test_serializer_retorna_campo_id(self):
+        """Todos os serializers devem retornar campo 'id' para compatibilidade com frontend."""
+        self._criar_conta('pendente')
+        resp = self.client.get('/api/contas-receber/')
+        self.assertIn('id', resp.data['results'][0])
+
+        # Verifica também fornecedor e serviço
+        forn = criar_fornecedor()
+        resp2 = self.client.get('/api/fornecedores/')
+        self.assertIn('id', resp2.data['results'][0])
+
+        resp3 = self.client.get('/api/servicos-produtos/')
+        self.assertIn('id', resp3.data['results'][0])

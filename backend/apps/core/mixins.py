@@ -43,10 +43,12 @@ class AuditMixin:
     """
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(created_by=user)
 
     def perform_update(self, serializer):
-        serializer.save(updated_by=self.request.user)
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(updated_by=user)
 
 
 class ReadCreateViewSet(

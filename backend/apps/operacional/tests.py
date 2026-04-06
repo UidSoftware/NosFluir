@@ -196,3 +196,64 @@ class OperacionalAPITest(TestCase):
         resp = self.client.get('/api/turmas/')
         self.assertEqual(resp.status_code, 200)
         self.assertIn('results', resp.data)
+
+
+# ── TP016 — Agendamento sem autenticação ─────────────────────────────────────
+
+class AgendamentoSemAutenticacaoTest(TestCase):
+    """TP016 — site pode criar agendamento sem token."""
+
+    def test_TP016_agendamento_horario_sem_token(self):
+        """TP016: POST /api/agendamentos-horario/ sem token → HTTP 201"""
+        aluno = criar_aluno()
+        client = APIClient()  # sem autenticação
+        resp = client.post('/api/agendamentos-horario/', {
+            'alu': aluno.alu_id,
+            'agho_dias_disponiveis': 'seg,qua',
+            'agho_horarios_disponiveis': '07:00,17:00',
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+
+    def test_agendamento_turmas_sem_token(self):
+        """Agendamento de turmas pelo site também aceita sem token."""
+        aluno = criar_aluno()
+        client = APIClient()
+        resp = client.post('/api/agendamentos-turmas/', {
+            'alu': aluno.alu_id,
+            'agtu_dias_disponiveis': 'ter,qui',
+            'agtu_horarios_disponiveis': '08:00',
+            'agtu_nivelamento': 'iniciante',
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+
+    def test_listagem_agendamentos_requer_token(self):
+        """GET de agendamentos ainda requer autenticação."""
+        client = APIClient()
+        resp = client.get('/api/agendamentos-horario/')
+        self.assertEqual(resp.status_code, 401)
+
+
+# ── Soft delete — comportamento atual ────────────────────────────────────────
+
+class SoftDeleteComportamentoAtualTest(TestCase):
+    """
+    Documenta o estado atual do soft delete.
+    ATENÇÃO: perform_destroy não está sobrescrito — DELETE ainda é hard delete.
+    Registros deletados NÃO aparecem em listagens (queryset filtra deleted_at__isnull=True)
+    mas a deleção remove fisicamente do banco.
+    """
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_delete_remove_registro_da_listagem(self):
+        """DELETE remove registro — não aparece mais na listagem."""
+        aluno = criar_aluno()
+        resp_del = self.client.delete(f'/api/alunos/{aluno.alu_id}/')
+        self.assertEqual(resp_del.status_code, 204)
+
+        resp_list = self.client.get('/api/alunos/')
+        ids = [a['alu_id'] for a in resp_list.data['results']]
+        self.assertNotIn(aluno.alu_id, ids)

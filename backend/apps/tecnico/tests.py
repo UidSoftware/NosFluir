@@ -282,3 +282,149 @@ class IntegracaoFluxoAulaTest(TestCase):
         credito.refresh_from_db()
         self.assertEqual(credito.cred_status, 'usado')
         self.assertTrue(credito.cred_usado)
+
+
+# ── TP021 — Créditos disponíveis por aluno ───────────────────────────────────
+
+class CreditosPorAlunoTest(TestCase):
+    """TP021 — endpoint /api/creditos/aluno/{id}/ retorna disponíveis ordenados."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.aluno = criar_aluno()
+        self.turma = criar_turma()
+        criar_matricula(self.turma, self.aluno)
+
+    def test_TP021_creditos_disponiveis_ordenados(self):
+        """TP021: GET /api/creditos/aluno/{id}/ → lista ordenada por expiração (FIFO)"""
+        # Cria 2 faltas em datas diferentes → 2 créditos com expirações diferentes
+        for i, dia in enumerate(['01', '05']):
+            Aula.objects.create(
+                tur=self.turma,
+                alu=self.aluno,
+                aul_data=f'2026-04-{dia}',
+                aul_hora_inicio='07:00',
+                aul_tipo_presenca='falta',
+                aul_tipo_falta='justificada',
+            )
+        resp = self.client.get(f'/api/creditos/aluno/{self.aluno.alu_id}/')
+        self.assertEqual(resp.status_code, 200)
+        creditos = resp.data
+        self.assertEqual(len(creditos), 2)
+        # Verifica ordem FIFO — primeiro crédito expira antes
+        self.assertLessEqual(creditos[0]['cred_data_expiracao'], creditos[1]['cred_data_expiracao'])
+        for c in creditos:
+            self.assertEqual(c['cred_status'], 'disponivel')
+
+    def test_credito_filtro_por_alu_e_status(self):
+        """GET /api/creditos/?alu=X&cred_status=disponivel → filtra corretamente"""
+        Aula.objects.create(
+            tur=self.turma, alu=self.aluno,
+            aul_data='2026-04-01', aul_hora_inicio='07:00',
+            aul_tipo_presenca='falta', aul_tipo_falta='justificada',
+        )
+        resp = self.client.get('/api/creditos/', {
+            'alu': self.aluno.alu_id,
+            'cred_status': 'disponivel',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreater(resp.data['count'], 0)
+        for c in resp.data['results']:
+            self.assertEqual(c['cred_status'], 'disponivel')
+
+
+# ── TI003 — Fluxo matrícula → aula → verificação ────────────────────────────
+
+class IntegracaoMatriculaAulaTest(TestCase):
+    """TI003 — matricular aluno, registrar aula, verificar registro."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.aluno = criar_aluno()
+        self.turma = criar_turma()
+        self.func = criar_funcionario()
+
+    def test_TI003_fluxo_matricula_aula(self):
+        """TI003: matricular aluno → registrar aula → aula listada com dados corretos"""
+        # 1. Matricula
+        resp = self.client.post('/api/turma-alunos/', {
+            'tur': self.turma.tur_id,
+            'alu': self.aluno.alu_id,
+            'data_matricula': '2026-04-01',
+            'ativo': True,
+        })
+        self.assertEqual(resp.status_code, 201)
+
+        # 2. Registra aula
+        resp2 = self.client.post('/api/aulas/', {
+            'tur': self.turma.tur_id,
+            'alu': self.aluno.alu_id,
+            'func': self.func.func_id,
+            'aul_data': '2026-04-07',
+            'aul_hora_inicio': '07:00',
+            'aul_hora_final': '08:00',
+            'aul_pressao_inicio': '120/80',
+            'aul_tipo_presenca': 'regular',
+            'aul_intensidade_esforco': 7,
+        })
+        self.assertEqual(resp2.status_code, 201, resp2.data)
+
+        # 3. Verifica que aparece na listagem filtrada por turma e aluno
+        resp3 = self.client.get('/api/aulas/', {
+            'tur': self.turma.tur_id,
+            'alu': self.aluno.alu_id,
+        })
+        self.assertEqual(resp3.status_code, 200)
+        self.assertEqual(resp3.data['count'], 1)
+        aula = resp3.data['results'][0]
+        self.assertEqual(aula['aul_pressao_inicio'], '120/80')
+        self.assertEqual(aula['func'], self.func.func_id)
+        self.assertEqual(aula['func_nome'], self.func.func_nome)
+
+
+# ── Permissões por perfil — estado atual documentado ─────────────────────────
+
+class PermissoesPerfilEstadoAtualTest(TestCase):
+    """
+    TI005 — PENDENTE DE IMPLEMENTAÇÃO.
+    Estado atual: todos os endpoints usam IsAuthenticated sem distinção de grupo.
+    Qualquer usuário autenticado acessa tudo (exceto UserViewSet → IsAdminUser).
+    Este teste DOCUMENTA o comportamento atual.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        # Usuário comum sem grupos
+        self.user_comum = criar_usuario()
+        # Aluno para ter algo na listagem
+        criar_aluno()
+
+    def test_usuario_autenticado_acessa_financeiro(self):
+        """Estado atual: qualquer autenticado acessa financeiro (sem restrição de grupo)."""
+        self.client.force_authenticate(user=self.user_comum)
+        resp = self.client.get('/api/contas-pagar/')
+        # Comportamento ATUAL: 200. Quando permissões forem implementadas,
+        # este teste deve ser atualizado para 403 para usuários sem grupo Financeiro.
+        self.assertEqual(resp.status_code, 200)
+
+    def test_usuario_autenticado_acessa_operacional(self):
+        """Estado atual: qualquer autenticado acessa operacional."""
+        self.client.force_authenticate(user=self.user_comum)
+        resp = self.client.get('/api/alunos/')
+        self.assertEqual(resp.status_code, 200)
+
+    def test_user_viewset_requer_admin(self):
+        """UserViewSet usa IsAdminUser — usuário comum recebe 403."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user_nao_admin = User.objects.create_user(
+            email='comum@fluir.test',
+            password='senha123',
+        )
+        self.client.force_authenticate(user=user_nao_admin)
+        resp = self.client.get('/api/usuarios/')
+        self.assertEqual(resp.status_code, 403)

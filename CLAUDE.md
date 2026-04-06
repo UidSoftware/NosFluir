@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 05/04/2026 | Versão: 4.6
+> Última atualização: 06/04/2026 | Versão: 4.7
 
 ---
 
@@ -236,6 +236,44 @@ const dados = response.data.results
 const total = response.data.count
 ```
 
+### Select com FK — padrão obrigatório (Radix UI v2.2.6):
+```jsx
+// CORRETO — sempre com item sentinela __none__
+<Select value={watch('campo_id') || '__none__'} onValueChange={v => setValue('campo_id', v)}>
+  <SelectTrigger><SelectValue /></SelectTrigger>
+  <SelectContent>
+    <SelectItem value="__none__" disabled className="text-muted-foreground italic">
+      Selecionar...
+    </SelectItem>
+    {items?.map(i => <SelectItem key={i.id} value={String(i.id)}>{i.nome}</SelectItem>)}
+  </SelectContent>
+</Select>
+
+// ERRADO — Radix concatena todos os textos quando value não bate com nenhum item
+<Select value={watch('campo_id') || undefined} ...>   // ❌
+<Select value={watch('campo_id') || ''} ...>          // ❌
+```
+
+### Select de filtro (useState) — padrão obrigatório:
+```jsx
+// CORRETO — usar 'all' como sentinela, nunca ''
+const [filtro, setFiltro] = useState('all')
+setFilters(v && v !== 'all' ? { campo: v } : {})
+
+<Select value={filtro} onValueChange={handleChange}>
+  <SelectItem value="all">Todos</SelectItem>
+  ...
+</Select>
+```
+
+### Endpoints da API (CRÍTICO):
+```
+Todos os endpoints ficam direto em /api/ — sem prefixo de app:
+✅ /api/alunos/         ✅ /api/turmas/         ✅ /api/exercicios/
+✅ /api/creditos/       ✅ /api/fichas-treino/  ✅ /api/folha-pagamento/
+❌ /api/operacional/alunos/   ❌ /api/tecnico/exercicios/   ← ERRADO
+```
+
 ---
 
 ## 🚀 Comandos Principais
@@ -282,6 +320,7 @@ docker compose restart nginx
 - ❌ Alterar `base: '/sistema/'` no vite.config.js
 - ❌ `response.data` em listagens — sempre `response.data.results`
 - ❌ Criar outro CLAUDE.md — este é o único
+- ❌ `SelectItem value=""` — Radix UI reserva `""` para limpar seleção; usar `value="__none__"` como sentinel
 
 ---
 
@@ -307,6 +346,8 @@ docker compose restart nginx
 | nginx: "host not found in upstream backend:8000" no boot | nginx sobe antes do backend estar pronto | `depends_on: condition: service_healthy` + healthcheck socket no backend + `resolver 127.0.0.11` no nginx.conf |
 | nginx não sobe após reboot da VPS | nginx do sistema (apt) ocupa porta 80 | `systemctl disable nginx` — nginx do sistema desabilitado, apenas o Docker usa as portas |
 | PWA serve versão antiga após deploy | Service Worker em cache sem recarregar | `skipWaiting/clientsClaim` no workbox + listener `controllerchange` em `main.jsx` para auto-reload |
+| Select mostra todos os nomes concatenados | Radix Select v2.2.6 bug — nenhum item bate com o `value` atual (vazio ou undefined) | Sempre usar `value={watch('campo') \|\| '__none__'}` + `<SelectItem value="__none__" disabled>` como placeholder |
+| Endpoints retornando 404 (API) | Prefixos errados no frontend (`/financeiro/`, `/operacional/`, `/tecnico/`) | Todos os endpoints ficam direto em `/api/` — sem prefixo de app |
 
 ---
 
@@ -374,6 +415,13 @@ docker compose restart nginx
 - [x] Infra: healthcheck socket Python no backend + `depends_on: service_healthy` no nginx — evita "host not found" no boot
 - [x] Infra: `resolver 127.0.0.11` no nginx.conf para DNS dinâmico do Docker
 - [x] Infra: nginx do sistema desabilitado (`systemctl disable nginx`) — conflitava com Docker na porta 80
+
+#### Fase 2.5 — Bug fixes API + Select ✅ (06/04/2026)
+- [x] Todos os 25 arquivos do frontend corrigidos: prefixos `/financeiro/`, `/operacional/`, `/tecnico/` removidos — endpoints ficam direto em `/api/` (ex: `/api/alunos/`, `/api/turmas/`)
+- [x] `/tecnico/creditos-reposicao/` → `/creditos/` (nome registrado no router do backend)
+- [x] `/tecnico/ficha-treino-exercicios/` → `/fichas-treino-exercicios/` (plural correto)
+- [x] Radix Select v2.2.6 bug — Select de filtro: `value=""` proibido, substituído por `value="all"` em 5 arquivos (ContasPagar, ContasReceber, LivroCaixa, Reposições, Exercícios)
+- [x] Radix Select v2.2.6 bug — Select de FK: substituído `|| undefined` por `|| '__none__'` + item sentinela `disabled` em 9 arquivos (Turmas, Funcionários, FolhaPagamento, ContasPagar, ContasReceber, Planos, Exercícios, FichasTreino, MinistrarAula)
 
 ### Fase 4 — Sistema de Reposições 🔄 EM ANDAMENTO
 - [x] Model CreditoReposicao criado

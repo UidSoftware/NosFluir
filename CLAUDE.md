@@ -239,10 +239,11 @@ const total = response.data.count
 ### Select com FK — padrão obrigatório (Radix UI v2.2.6):
 ```jsx
 // CORRETO — sempre com item sentinela __none__ + placeholder no SelectValue
+// IMPORTANTE: sentinela NÃO deve ter disabled — Radix não renderiza texto de itens disabled
 <Select value={watch('campo_id') || '__none__'} onValueChange={v => setValue('campo_id', v)}>
   <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
   <SelectContent>
-    <SelectItem value="__none__" disabled className="text-muted-foreground italic">
+    <SelectItem value="__none__" className="text-muted-foreground italic">
       Selecionar...
     </SelectItem>
     {items?.map(i => <SelectItem key={i.id} value={String(i.id)}>{i.nome}</SelectItem>)}
@@ -256,6 +257,8 @@ if (!idVal) { toast({ title: 'Campo obrigatório', variant: 'destructive' }); re
 // ERRADO — Radix concatena todos os textos quando value não bate com nenhum item
 <Select value={watch('campo_id') || undefined} ...>   // ❌
 <Select value={watch('campo_id') || ''} ...>          // ❌
+// ERRADO — item sentinela com disabled: Radix não renderiza seu texto → mostra nomes concatenados
+<SelectItem value="__none__" disabled ...>            // ❌
 // ERRADO — parseInt('__none__') === NaN → serializa como null → backend rejeita campo obrigatório
 if (cleaned.campo_id) cleaned.campo_id = parseInt(cleaned.campo_id)  // ❌ não trata '__none__'
 ```
@@ -434,6 +437,7 @@ docker compose restart nginx
 - [x] TurmasPage: `parseInt('__none__')` = NaN enviava null para `func` (FK obrigatória) — corrigido com verificação `!== '__none__'` antes de parseInt + toast de erro
 - [x] TurmasPage: `tur_horario` sem validação obrigatória no frontend — adicionado `required` no register + mensagem de erro
 - [x] TurmasPage: `<SelectValue />` sem `placeholder` — o item sentinela `disabled` não renderizava no trigger; adicionado `placeholder="Selecionar professor..."` no `SelectValue`
+- [x] Select sentinela `__none__` com `disabled` em 9 arquivos — Radix não renderiza texto de itens disabled como valor selecionado → concatenava todos os nomes; removido `disabled` de todos os sentinelas (FolhaPagamento, MinistrarAula, ContasReceber, FichasTreino, Exercícios, Funcionários, Planos, ContasPagar, Turmas)
 
 ### Fase 4 — Sistema de Reposições 🔄 EM ANDAMENTO
 - [x] Model CreditoReposicao criado

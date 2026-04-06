@@ -28,7 +28,7 @@ function FuncForm({ func, onClose }) {
       func_endereco:   func.func_endereco || '',
       func_formacao:   func.func_formacao || '',
       func_salario:    func.func_salario || '',
-      prof_id:         func.prof_id ? String(func.prof_id) : '',
+      prof:            func.prof ? String(func.prof) : '',
     } : {},
   })
 
@@ -46,7 +46,7 @@ function FuncForm({ func, onClose }) {
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
-    if (cleaned.prof_id) cleaned.prof_id = parseInt(cleaned.prof_id)
+    if (cleaned.prof) cleaned.prof = parseInt(cleaned.prof)
     if (func) update.mutate({ id: func.id, data: cleaned })
     else      create.mutate(cleaned)
   }
@@ -95,8 +95,8 @@ function FuncForm({ func, onClose }) {
 
         <FormField label="Profissão" className="sm:col-span-2">
           <Select
-            value={watch('prof_id') || '__none__'}
-            onValueChange={v => setValue('prof_id', v)}
+            value={watch('prof') || '__none__'}
+            onValueChange={v => setValue('prof', v)}
             disabled={busy}
           >
             <SelectTrigger>

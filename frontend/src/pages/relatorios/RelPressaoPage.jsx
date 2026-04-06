@@ -33,8 +33,8 @@ export default function RelPressaoPage() {
     { key: 'aluno_nome',         header: 'Aluno',      render: r => r.aluno_nome || r.aluno_id },
     { key: 'aul_data',           header: 'Data',        render: r => formatDate(r.aul_data) },
     { key: 'aul_pressao_inicio', header: 'P.A. Início', render: r => r.aul_pressao_inicio || '—' },
-    { key: 'aul_pressao_fim',    header: 'P.A. Fim',    render: r => r.aul_pressao_fim || '—' },
-    { key: 'aul_intensidade',    header: 'Intensidade', render: r => r.aul_intensidade != null ? `${r.aul_intensidade}/10` : '—' },
+    { key: 'aul_pressao_final',         header: 'P.A. Fim',    render: r => r.aul_pressao_final || '—' },
+    { key: 'aul_intensidade_esforco',   header: 'Intensidade', render: r => r.aul_intensidade_esforco != null ? `${r.aul_intensidade_esforco}/10` : '—' },
   ]
 
   return (

@@ -24,7 +24,7 @@ export default function GrafAlunosPage() {
   // Alunos por turma
   const countByTurma = {}
   turmasData?.forEach(ta => {
-    const nome = ta.turma_nome || `Turma ${ta.turma_id}`
+    const nome = ta.tur_nome || `Turma ${ta.tur}`
     countByTurma[nome] = (countByTurma[nome] || 0) + 1
   })
   const turmaBarData = Object.entries(countByTurma).map(([name, value]) => ({ name, value }))

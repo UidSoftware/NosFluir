@@ -27,15 +27,15 @@ export default function RelFrequenciaPage() {
   const count      = data?.count ?? 0
   const totalPages = Math.ceil(count / 20) || 1
 
-  const totalPresentes  = items.filter(r => r.aul_presenca === 'presente').length
-  const totalFaltas     = items.filter(r => r.aul_presenca === 'falta').length
-  const totalReposicoes = items.filter(r => r.aul_presenca === 'reposicao').length
+  const totalPresentes  = items.filter(r => r.aul_tipo_presenca === 'regular').length
+  const totalFaltas     = items.filter(r => r.aul_tipo_presenca === 'falta').length
+  const totalReposicoes = items.filter(r => r.aul_tipo_presenca === 'reposicao').length
 
   const columns = [
-    { key: 'aluno_nome',   header: 'Aluno',    render: r => r.aluno_nome || r.aluno_id },
-    { key: 'turma_nome',   header: 'Turma',    render: r => r.turma_nome || '—' },
-    { key: 'aul_data',     header: 'Data',     render: r => formatDate(r.aul_data) },
-    { key: 'aul_presenca', header: 'Presença', render: r => <StatusBadge status={r.aul_presenca} /> },
+    { key: 'alu_nome',          header: 'Aluno',    render: r => r.alu_nome || r.alu },
+    { key: 'tur_nome',          header: 'Turma',    render: r => r.tur_nome || '—' },
+    { key: 'aul_data',          header: 'Data',     render: r => formatDate(r.aul_data) },
+    { key: 'aul_tipo_presenca', header: 'Presença', render: r => <StatusBadge status={r.aul_tipo_presenca} /> },
     { key: 'aul_pressao_inicio', header: 'P.A. Início', render: r => r.aul_pressao_inicio || '—' },
   ]
 

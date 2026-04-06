@@ -24,7 +24,7 @@ function TurmaForm({ turma, onClose }) {
     defaultValues: turma ? {
       tur_nome:    turma.tur_nome,
       tur_horario: turma.tur_horario || '',
-      func_id:     turma.func_id ? String(turma.func_id) : '',
+      func:        turma.func ? String(turma.func) : '',
     } : {},
   })
 
@@ -41,7 +41,7 @@ function TurmaForm({ turma, onClose }) {
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
-    if (cleaned.func_id) cleaned.func_id = parseInt(cleaned.func_id)
+    if (cleaned.func) cleaned.func = parseInt(cleaned.func)
     if (turma) update.mutate({ id: turma.id, data: cleaned })
     else       create.mutate(cleaned)
   }
@@ -58,7 +58,7 @@ function TurmaForm({ turma, onClose }) {
         </FormField>
 
         <FormField label="Professor responsável">
-          <Select value={watch('func_id') || '__none__'} onValueChange={v => setValue('func_id', v)} disabled={busy}>
+          <Select value={watch('func') || '__none__'} onValueChange={v => setValue('func', v)} disabled={busy}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar professor...</SelectItem>
@@ -86,7 +86,7 @@ function GerenciarAlunosModal({ turma, onClose }) {
 
   const { data: matriculados, isLoading: loadingM } = useQuery({
     queryKey: ['turma-alunos', turma.id],
-    queryFn: () => api.get('/turma-alunos/', { params: { turma_id: turma.id, page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get('/turma-alunos/', { params: { tur: turma.id, page_size: 100 } }).then(r => r.data.results),
     enabled: !!turma,
   })
 
@@ -95,11 +95,11 @@ function GerenciarAlunosModal({ turma, onClose }) {
     queryFn: () => api.get('/alunos/', { params: { search, page_size: 20 } }).then(r => r.data.results),
   })
 
-  const matriculadosIds = new Set(matriculados?.map(m => m.aluno_id) ?? [])
+  const matriculadosIds = new Set(matriculados?.map(m => m.alu) ?? [])
   const totalMatriculados = matriculados?.length ?? 0
 
   const addMutation = useMutation({
-    mutationFn: (aluno_id) => api.post('/turma-alunos/', { turma_id: turma.id, aluno_id }),
+    mutationFn: (aluno_id) => api.post('/turma-alunos/', { tur: turma.id, alu: aluno_id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turma-alunos', turma.id] })
       toast({ title: 'Aluno adicionado.', variant: 'success' })
@@ -118,7 +118,7 @@ function GerenciarAlunosModal({ turma, onClose }) {
     },
   })
 
-  const getMatriculaId = (aluno_id) => matriculados?.find(m => m.aluno_id === aluno_id)?.id
+  const getMatriculaId = (aluno_id) => matriculados?.find(m => m.alu === aluno_id)?.id
 
   return (
     <div className="p-5 space-y-4">

@@ -23,20 +23,20 @@ export default function GrafFrequenciaPage() {
   })
 
   // Por tipo de presença
-  const countPresenca = { presente: 0, falta: 0, reposicao: 0 }
+  const countPresenca = { regular: 0, falta: 0, reposicao: 0 }
   const byMonth = {}
   aulas?.forEach(a => {
-    if (a.aul_presenca) countPresenca[a.aul_presenca] = (countPresenca[a.aul_presenca] || 0) + 1
+    if (a.aul_tipo_presenca) countPresenca[a.aul_tipo_presenca] = (countPresenca[a.aul_tipo_presenca] || 0) + 1
     const [y, m] = (a.aul_data || '').split('-')
     if (y && m) {
       const key = `${m}/${y}`
-      if (!byMonth[key]) byMonth[key] = { mes: key, presente: 0, falta: 0, reposicao: 0 }
-      if (a.aul_presenca) byMonth[key][a.aul_presenca] = (byMonth[key][a.aul_presenca] || 0) + 1
+      if (!byMonth[key]) byMonth[key] = { mes: key, regular: 0, falta: 0, reposicao: 0 }
+      if (a.aul_tipo_presenca) byMonth[key][a.aul_tipo_presenca] = (byMonth[key][a.aul_tipo_presenca] || 0) + 1
     }
   })
 
   const barData  = [
-    { name: 'Presente',  value: countPresenca.presente,  fill: COLORS[1] },
+    { name: 'Presente',  value: countPresenca.regular,   fill: COLORS[1] },
     { name: 'Falta',     value: countPresenca.falta,     fill: COLORS[3] },
     { name: 'Reposição', value: countPresenca.reposicao, fill: COLORS[0] },
   ]
@@ -88,7 +88,7 @@ export default function GrafFrequenciaPage() {
                   <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} allowDecimals={false} />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="presente"  name="Presente"  stroke={COLORS[1]} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="regular"   name="Presente"  stroke={COLORS[1]} strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="falta"     name="Falta"     stroke={COLORS[3]} strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="reposicao" name="Reposição" stroke={COLORS[0]} strokeWidth={2} dot={false} />
                 </LineChart>

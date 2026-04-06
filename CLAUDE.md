@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 06/04/2026 | Versão: 4.8
+> Última atualização: 06/04/2026 | Versão: 4.9
 
 ---
 
@@ -330,6 +330,7 @@ docker compose restart nginx
 - ❌ `response.data` em listagens — sempre `response.data.results`
 - ❌ Criar outro CLAUDE.md — este é o único
 - ❌ `SelectItem value=""` — Radix UI reserva `""` para limpar seleção; usar `value="__none__"` como sentinel
+- ❌ `SelectItem value="__none__" disabled` — Radix não renderiza texto de itens `disabled` como valor selecionado; sentinela deve ser sem `disabled`
 
 ---
 
@@ -355,7 +356,7 @@ docker compose restart nginx
 | nginx: "host not found in upstream backend:8000" no boot | nginx sobe antes do backend estar pronto | `depends_on: condition: service_healthy` + healthcheck socket no backend + `resolver 127.0.0.11` no nginx.conf |
 | nginx não sobe após reboot da VPS | nginx do sistema (apt) ocupa porta 80 | `systemctl disable nginx` — nginx do sistema desabilitado, apenas o Docker usa as portas |
 | PWA serve versão antiga após deploy | Service Worker em cache sem recarregar | `skipWaiting/clientsClaim` no workbox + listener `controllerchange` em `main.jsx` para auto-reload |
-| Select mostra todos os nomes concatenados | Radix Select v2.2.6 bug — nenhum item bate com o `value` atual (vazio ou undefined) | Sempre usar `value={watch('campo') \|\| '__none__'}` + `<SelectItem value="__none__" disabled>` como placeholder + `<SelectValue placeholder="..."/>` no trigger |
+| Select mostra todos os nomes concatenados | Radix Select v2.2.6 bug — nenhum item bate com o `value` atual (vazio ou undefined) | Sempre usar `value={watch('campo') \|\| '__none__'}` + `<SelectItem value="__none__">` (sem disabled) + `<SelectValue placeholder="..."/>` no trigger |
 | `parseInt('__none__')` envia `NaN`/`null` para FK obrigatória | `onSubmit` não tratava o valor sentinela `'__none__'` antes de fazer parseInt | Verificar `data.func !== '__none__'` antes de parseInt; se inválido, exibir toast e retornar |
 | Endpoints retornando 404 (API) | Prefixos errados no frontend (`/financeiro/`, `/operacional/`, `/tecnico/`) | Todos os endpoints ficam direto em `/api/` — sem prefixo de app |
 

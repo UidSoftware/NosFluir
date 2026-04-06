@@ -58,9 +58,10 @@ function PlanoForm({ plano, onClose }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <FormField label="Aluno" required error={errors.aluno_id?.message}>
-        <Select value={watch('aluno_id') || undefined} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Selecionar aluno..." /></SelectTrigger>
+        <Select value={watch('aluno_id') || '__none__'} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar aluno...</SelectItem>
             {alunos?.map(a => (
               <SelectItem key={a.id} value={String(a.id)}>{a.alu_nome}</SelectItem>
             ))}
@@ -69,9 +70,10 @@ function PlanoForm({ plano, onClose }) {
       </FormField>
 
       <FormField label="Serviço/Produto" required>
-        <Select value={watch('serv_id') || undefined} onValueChange={v => setValue('serv_id', v)} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Selecionar serviço..." /></SelectTrigger>
+        <Select value={watch('serv_id') || '__none__'} onValueChange={v => setValue('serv_id', v)} disabled={busy}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar serviço...</SelectItem>
             {servicos?.map(s => (
               <SelectItem key={s.id} value={String(s.id)}>{s.serv_nome}</SelectItem>
             ))}

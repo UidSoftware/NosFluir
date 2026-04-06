@@ -356,18 +356,20 @@ export default function MinistrarAulaPage() {
         </CardHeader>
         <CardContent className="space-y-4 pb-5">
           <FormField label="Turma" required>
-            <Select value={turmaId || undefined} onValueChange={setTurmaId} disabled={loadingTurmas}>
-              <SelectTrigger><SelectValue placeholder="Selecionar turma..." /></SelectTrigger>
+            <Select value={turmaId || '__none__'} onValueChange={v => setTurmaId(v === '__none__' ? '' : v)} disabled={loadingTurmas}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar turma...</SelectItem>
                 {turmas?.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.tur_nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormField>
 
           <FormField label="Ficha de Treino (opcional)">
-            <Select value={fichaId || undefined} onValueChange={setFichaId}>
-              <SelectTrigger><SelectValue placeholder="Selecionar ficha..." /></SelectTrigger>
+            <Select value={fichaId || '__none__'} onValueChange={v => setFichaId(v === '__none__' ? '' : v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar ficha...</SelectItem>
                 {fichas?.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.fitr_nome}</SelectItem>)}
               </SelectContent>
             </Select>

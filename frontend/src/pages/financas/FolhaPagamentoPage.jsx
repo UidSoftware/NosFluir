@@ -66,9 +66,10 @@ function FolhaForm({ folha, onClose }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <FormField label="Funcionário" required>
-        <Select value={watch('func_id') || undefined} onValueChange={v => setValue('func_id', v)} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Selecionar funcionário..." /></SelectTrigger>
+        <Select value={watch('func_id') || '__none__'} onValueChange={v => setValue('func_id', v)} disabled={busy}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar funcionário...</SelectItem>
             {funcionarios?.map(f => (
               <SelectItem key={f.id} value={String(f.id)}>{f.func_nome}</SelectItem>
             ))}
@@ -78,9 +79,10 @@ function FolhaForm({ folha, onClose }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <FormField label="Mês" required>
-          <Select value={watch('fopa_mes') || undefined} onValueChange={v => setValue('fopa_mes', v)} disabled={busy}>
-            <SelectTrigger><SelectValue placeholder="Mês..." /></SelectTrigger>
+          <Select value={watch('fopa_mes') || '__none__'} onValueChange={v => setValue('fopa_mes', v)} disabled={busy}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="__none__" disabled className="text-muted-foreground italic">Mês...</SelectItem>
               {MESES.map((m, i) => (
                 <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
               ))}

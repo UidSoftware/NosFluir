@@ -58,9 +58,10 @@ function TurmaForm({ turma, onClose }) {
         </FormField>
 
         <FormField label="Professor responsável">
-          <Select value={watch('func_id') || undefined} onValueChange={v => setValue('func_id', v)} disabled={busy}>
-            <SelectTrigger><SelectValue placeholder="Selecionar professor..." /></SelectTrigger>
+          <Select value={watch('func_id') || '__none__'} onValueChange={v => setValue('func_id', v)} disabled={busy}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar professor...</SelectItem>
               {funcionarios?.map(f => (
                 <SelectItem key={f.id} value={String(f.id)}>{f.func_nome}</SelectItem>
               ))}

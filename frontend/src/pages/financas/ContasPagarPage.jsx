@@ -99,9 +99,10 @@ function ContaForm({ conta, onClose }) {
       )}
 
       <FormField label="Fornecedor">
-        <Select value={watch('for_id') || undefined} onValueChange={v => setValue('for_id', v)} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Selecionar fornecedor..." /></SelectTrigger>
+        <Select value={watch('for_id') || '__none__'} onValueChange={v => setValue('for_id', v)} disabled={busy}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar fornecedor...</SelectItem>
             {fornecedores?.map(f => (
               <SelectItem key={f.id} value={String(f.id)}>{f.for_nome}</SelectItem>
             ))}

@@ -95,14 +95,15 @@ function FuncForm({ func, onClose }) {
 
         <FormField label="Profissão" className="sm:col-span-2">
           <Select
-            value={watch('prof_id') || undefined}
+            value={watch('prof_id') || '__none__'}
             onValueChange={v => setValue('prof_id', v)}
             disabled={busy}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Selecionar profissão..." />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__none__" disabled className="text-muted-foreground italic">Selecionar profissão...</SelectItem>
               {profissoes?.map(p => (
                 <SelectItem key={p.id} value={String(p.id)}>{p.prof_nome}</SelectItem>
               ))}

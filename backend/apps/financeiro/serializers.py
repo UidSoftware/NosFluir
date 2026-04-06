@@ -9,10 +9,12 @@ from .models import (
 
 
 class FornecedorSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+
     class Meta:
         model = Fornecedor
         fields = [
-            'forn_id', 'forn_nome_empresa', 'forn_nome_dono', 'forn_cnpj',
+            'id', 'forn_id', 'forn_nome_empresa', 'forn_nome_dono', 'forn_cnpj',
             'forn_endereco', 'forn_telefone', 'forn_email', 'forn_ativo',
             'created_at', 'updated_at',
         ]
@@ -20,23 +22,26 @@ class FornecedorSerializer(serializers.ModelSerializer):
 
 
 class ServicoProdutoSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+
     class Meta:
         model = ServicoProduto
         fields = [
-            'serv_id', 'serv_nome', 'serv_descricao', 'serv_valor_base',
+            'id', 'serv_id', 'serv_nome', 'serv_descricao', 'serv_valor_base',
             'serv_tipo', 'serv_ativo', 'created_at', 'updated_at',
         ]
         read_only_fields = ['serv_id', 'created_at', 'updated_at']
 
 
 class ContasPagarSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     forn_nome = serializers.CharField(source='forn.forn_nome_empresa', read_only=True)
     serv_nome = serializers.CharField(source='serv.serv_nome', read_only=True)
 
     class Meta:
         model = ContasPagar
         fields = [
-            'pag_id', 'forn', 'forn_nome', 'serv', 'serv_nome',
+            'id', 'pag_id', 'forn', 'forn_nome', 'serv', 'serv_nome',
             'pag_data_emissao', 'pag_data_vencimento', 'pag_data_pagamento',
             'pag_descricao', 'pag_quantidade', 'pag_valor_unitario', 'pag_valor_total',
             'pag_status', 'pag_forma_pagamento', 'pag_observacoes',
@@ -61,13 +66,14 @@ class ContasPagarSerializer(serializers.ModelSerializer):
 
 
 class ContasReceberSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
     serv_nome = serializers.CharField(source='serv.serv_nome', read_only=True)
 
     class Meta:
         model = ContasReceber
         fields = [
-            'rec_id', 'alu', 'alu_nome', 'serv', 'serv_nome',
+            'id', 'rec_id', 'alu', 'alu_nome', 'serv', 'serv_nome',
             'rec_data_emissao', 'rec_data_vencimento', 'rec_data_recebimento',
             'rec_descricao', 'rec_quantidade', 'rec_valor_unitario', 'rec_desconto', 'rec_valor_total',
             'rec_status', 'rec_forma_recebimento', 'rec_plano_tipo', 'rec_observacoes',
@@ -102,13 +108,14 @@ class ContasReceberSerializer(serializers.ModelSerializer):
 
 
 class PlanosPagamentosSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
     serv_nome = serializers.CharField(source='serv.serv_nome', read_only=True)
 
     class Meta:
         model = PlanosPagamentos
         fields = [
-            'plan_id', 'alu', 'alu_nome', 'serv', 'serv_nome',
+            'id', 'plan_id', 'alu', 'alu_nome', 'serv', 'serv_nome',
             'plan_tipo_plano', 'plan_valor_plano', 'plan_data_inicio', 'plan_data_fim',
             'plan_dia_vencimento', 'plan_ativo', 'created_at', 'updated_at',
         ]
@@ -133,10 +140,12 @@ class PlanosPagamentosSerializer(serializers.ModelSerializer):
 
 
 class LivroCaixaSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+
     class Meta:
         model = LivroCaixa
         fields = [
-            'lica_id', 'lica_data_lancamento', 'lica_tipo_lancamento', 'lica_historico',
+            'id', 'lica_id', 'lica_data_lancamento', 'lica_tipo_lancamento', 'lica_historico',
             'lica_valor', 'lica_categoria', 'lica_origem_tipo', 'lica_origem_id',
             'lica_saldo_anterior', 'lica_saldo_atual', 'lica_forma_pagamento',
         ]
@@ -145,12 +154,13 @@ class LivroCaixaSerializer(serializers.ModelSerializer):
 
 
 class FolhaPagamentoSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     func_nome = serializers.CharField(source='func.func_nome', read_only=True)
 
     class Meta:
         model = FolhaPagamento
         fields = [
-            'fopa_id', 'func', 'func_nome',
+            'id', 'fopa_id', 'func', 'func_nome',
             'fopa_mes_referencia', 'fopa_ano_referencia',
             'fopa_salario_base', 'fopa_descontos', 'fopa_valor_liquido',
             'fopa_data_pagamento', 'fopa_status', 'created_at', 'updated_at',

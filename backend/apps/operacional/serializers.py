@@ -9,10 +9,12 @@ from .models import (
 
 
 class AlunoSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+
     class Meta:
         model = Aluno
         fields = [
-            'alu_id', 'alu_nome', 'alu_documento', 'alu_data_nascimento',
+            'id', 'alu_id', 'alu_nome', 'alu_documento', 'alu_data_nascimento',
             'alu_endereco', 'alu_email', 'alu_telefone',
             'alu_peso', 'alu_massa_muscular', 'alu_massa_gorda',
             'alu_porcentagem_gordura', 'alu_circunferencia_abdominal',
@@ -37,19 +39,22 @@ class AlunoSerializer(serializers.ModelSerializer):
 
 
 class ProfissaoSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+
     class Meta:
         model = Profissao
-        fields = ['prof_id', 'prof_nome', 'created_at', 'updated_at']
+        fields = ['id', 'prof_id', 'prof_nome', 'created_at', 'updated_at']
         read_only_fields = ['prof_id', 'created_at', 'updated_at']
 
 
 class FuncionarioSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     prof_nome = serializers.CharField(source='prof.prof_nome', read_only=True)
 
     class Meta:
         model = Funcionario
         fields = [
-            'func_id', 'prof', 'prof_nome', 'func_nome', 'func_documento',
+            'id', 'func_id', 'prof', 'prof_nome', 'func_nome', 'func_documento',
             'func_endereco', 'func_telefone', 'func_formacao', 'func_salario',
             'created_at', 'updated_at',
         ]
@@ -69,12 +74,13 @@ class FuncionarioSerializer(serializers.ModelSerializer):
 
 
 class TurmaSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     total_alunos = serializers.SerializerMethodField()
 
     class Meta:
         model = Turma
         fields = [
-            'tur_id', 'tur_nome', 'tur_horario',
+            'id', 'tur_id', 'tur_nome', 'tur_horario',
             'total_alunos', 'created_at', 'updated_at',
         ]
         read_only_fields = ['tur_id', 'total_alunos', 'created_at', 'updated_at']
@@ -84,13 +90,14 @@ class TurmaSerializer(serializers.ModelSerializer):
 
 
 class TurmaAlunosSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
     tur_nome = serializers.CharField(source='tur.tur_nome', read_only=True)
 
     class Meta:
         model = TurmaAlunos
         fields = [
-            'tual_id', 'tur', 'tur_nome', 'alu', 'alu_nome',
+            'id', 'tual_id', 'tur', 'tur_nome', 'alu', 'alu_nome',
             'data_matricula', 'ativo', 'created_at', 'updated_at',
         ]
         read_only_fields = ['tual_id', 'created_at', 'updated_at']
@@ -111,12 +118,13 @@ class TurmaAlunosSerializer(serializers.ModelSerializer):
 
 
 class AgendamentoHorarioSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
 
     class Meta:
         model = AgendamentoHorario
         fields = [
-            'agho_id', 'alu', 'alu_nome',
+            'id', 'agho_id', 'alu', 'alu_nome',
             'agho_dias_disponiveis', 'agho_horarios_disponiveis',
             'created_at', 'updated_at',
         ]
@@ -124,12 +132,13 @@ class AgendamentoHorarioSerializer(serializers.ModelSerializer):
 
 
 class AgendamentoTurmasSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
 
     class Meta:
         model = AgendamentoTurmas
         fields = [
-            'agtu_id', 'alu', 'alu_nome',
+            'id', 'agtu_id', 'alu', 'alu_nome',
             'agtu_dias_disponiveis', 'agtu_horarios_disponiveis', 'agtu_nivelamento',
             'created_at', 'updated_at',
         ]

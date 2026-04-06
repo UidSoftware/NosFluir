@@ -6,23 +6,26 @@ from .models import Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoE
 
 
 class ExercicioSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+
     class Meta:
         model = Exercicio
         fields = [
-            'exe_id', 'exe_nome', 'exe_aparelho', 'exe_descricao_tecnica',
+            'id', 'exe_id', 'exe_nome', 'exe_aparelho', 'exe_descricao_tecnica',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['exe_id', 'created_at', 'updated_at']
 
 
 class FichaTreinoExerciciosSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     exe_nome = serializers.CharField(source='exe.exe_nome', read_only=True)
     exe_aparelho = serializers.CharField(source='exe.exe_aparelho', read_only=True)
 
     class Meta:
         model = FichaTreinoExercicios
         fields = [
-            'ftex_id', 'fitr', 'exe', 'exe_nome', 'exe_aparelho',
+            'id', 'ftex_id', 'fitr', 'exe', 'exe_nome', 'exe_aparelho',
             'ftex_ordem', 'ftex_repeticoes', 'ftex_series', 'ftex_observacoes',
         ]
         read_only_fields = ['ftex_id']
@@ -35,17 +38,19 @@ class FichaTreinoExerciciosSerializer(serializers.ModelSerializer):
 
 
 class FichaTreinoSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     exercicios = FichaTreinoExerciciosSerializer(
         source='fichatreinoexercicios_set', many=True, read_only=True
     )
 
     class Meta:
         model = FichaTreino
-        fields = ['fitr_id', 'fitr_nome', 'exercicios', 'created_at', 'updated_at']
+        fields = ['id', 'fitr_id', 'fitr_nome', 'exercicios', 'created_at', 'updated_at']
         read_only_fields = ['fitr_id', 'created_at', 'updated_at']
 
 
 class AulaSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
     tur_nome = serializers.CharField(source='tur.tur_nome', read_only=True)
     func_nome = serializers.CharField(source='func.func_nome', read_only=True)
@@ -53,7 +58,7 @@ class AulaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aula
         fields = [
-            'aul_id', 'tur', 'tur_nome', 'alu', 'alu_nome', 'func', 'func_nome',
+            'id', 'aul_id', 'tur', 'tur_nome', 'alu', 'alu_nome', 'func', 'func_nome',
             'fitr', 'cred',
             'aul_data', 'aul_hora_inicio', 'aul_hora_final',
             'aul_pressao_inicio', 'aul_pressao_final',
@@ -119,12 +124,13 @@ class AulaSerializer(serializers.ModelSerializer):
 
 
 class CreditoReposicaoSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
 
     class Meta:
         model = CreditoReposicao
         fields = [
-            'cred_id', 'alu', 'alu_nome', 'aula_origem', 'aula_reposicao',
+            'id', 'cred_id', 'alu', 'alu_nome', 'aula_origem', 'aula_reposicao',
             'cred_data_geracao', 'cred_data_expiracao',
             'cred_usado', 'cred_status', 'created_at', 'updated_at',
         ]

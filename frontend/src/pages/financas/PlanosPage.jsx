@@ -58,7 +58,7 @@ function PlanoForm({ plano, onClose }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <FormField label="Aluno" required error={errors.aluno_id?.message}>
-        <Select value={watch('aluno_id') || ''} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
+        <Select value={watch('aluno_id') || undefined} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Selecionar aluno..." /></SelectTrigger>
           <SelectContent>
             {alunos?.map(a => (
@@ -69,7 +69,7 @@ function PlanoForm({ plano, onClose }) {
       </FormField>
 
       <FormField label="Serviço/Produto" required>
-        <Select value={watch('serv_id') || ''} onValueChange={v => setValue('serv_id', v)} disabled={busy}>
+        <Select value={watch('serv_id') || undefined} onValueChange={v => setValue('serv_id', v)} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Selecionar serviço..." /></SelectTrigger>
           <SelectContent>
             {servicos?.map(s => (

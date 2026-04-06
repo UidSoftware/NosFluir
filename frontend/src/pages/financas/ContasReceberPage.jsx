@@ -106,7 +106,7 @@ function ContaForm({ conta, onClose }) {
       )}
 
       <FormField label="Aluno">
-        <Select value={watch('aluno_id') || ''} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
+        <Select value={watch('aluno_id') || undefined} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Selecionar aluno..." /></SelectTrigger>
           <SelectContent>
             {alunos?.map(a => (

@@ -53,7 +53,7 @@ function FichaForm({ ficha, onClose }) {
         <Input {...register('fitr_nome', { required: 'Nome obrigatório' })} placeholder="Ficha A — Iniciante" disabled={busy} />
       </FormField>
       <FormField label="Aluno">
-        <Select value={watch('aluno_id') || ''} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
+        <Select value={watch('aluno_id') || undefined} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Selecionar aluno..." /></SelectTrigger>
           <SelectContent>
             {alunos?.map(a => <SelectItem key={a.id} value={String(a.id)}>{a.alu_nome}</SelectItem>)}
@@ -106,7 +106,7 @@ function AddExercicioForm({ fichaId, onClose }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <FormField label="Exercício" required>
-        <Select value={watch('exercicio_id') || ''} onValueChange={v => setValue('exercicio_id', v)} disabled={mutation.isPending}>
+        <Select value={watch('exercicio_id') || undefined} onValueChange={v => setValue('exercicio_id', v)} disabled={mutation.isPending}>
           <SelectTrigger><SelectValue placeholder="Selecionar exercício..." /></SelectTrigger>
           <SelectContent>
             {exercicios?.map(e => (

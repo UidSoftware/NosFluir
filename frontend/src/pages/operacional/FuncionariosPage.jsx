@@ -95,7 +95,7 @@ function FuncForm({ func, onClose }) {
 
         <FormField label="Profissão" className="sm:col-span-2">
           <Select
-            value={watch('prof_id') || ''}
+            value={watch('prof_id') || undefined}
             onValueChange={v => setValue('prof_id', v)}
             disabled={busy}
           >

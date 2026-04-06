@@ -356,7 +356,7 @@ export default function MinistrarAulaPage() {
         </CardHeader>
         <CardContent className="space-y-4 pb-5">
           <FormField label="Turma" required>
-            <Select value={turmaId} onValueChange={setTurmaId} disabled={loadingTurmas}>
+            <Select value={turmaId || undefined} onValueChange={setTurmaId} disabled={loadingTurmas}>
               <SelectTrigger><SelectValue placeholder="Selecionar turma..." /></SelectTrigger>
               <SelectContent>
                 {turmas?.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.tur_nome}</SelectItem>)}
@@ -365,7 +365,7 @@ export default function MinistrarAulaPage() {
           </FormField>
 
           <FormField label="Ficha de Treino (opcional)">
-            <Select value={fichaId} onValueChange={setFichaId}>
+            <Select value={fichaId || undefined} onValueChange={setFichaId}>
               <SelectTrigger><SelectValue placeholder="Selecionar ficha..." /></SelectTrigger>
               <SelectContent>
                 {fichas?.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.fitr_nome}</SelectItem>)}

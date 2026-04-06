@@ -66,7 +66,7 @@ function FolhaForm({ folha, onClose }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <FormField label="Funcionário" required>
-        <Select value={watch('func_id') || ''} onValueChange={v => setValue('func_id', v)} disabled={busy}>
+        <Select value={watch('func_id') || undefined} onValueChange={v => setValue('func_id', v)} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Selecionar funcionário..." /></SelectTrigger>
           <SelectContent>
             {funcionarios?.map(f => (
@@ -78,7 +78,7 @@ function FolhaForm({ folha, onClose }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <FormField label="Mês" required>
-          <Select value={watch('fopa_mes') || ''} onValueChange={v => setValue('fopa_mes', v)} disabled={busy}>
+          <Select value={watch('fopa_mes') || undefined} onValueChange={v => setValue('fopa_mes', v)} disabled={busy}>
             <SelectTrigger><SelectValue placeholder="Mês..." /></SelectTrigger>
             <SelectContent>
               {MESES.map((m, i) => (

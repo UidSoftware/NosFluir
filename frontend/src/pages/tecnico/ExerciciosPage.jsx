@@ -61,7 +61,7 @@ function ExercForm({ exercicio, onClose }) {
       </FormField>
 
       <FormField label="Aparelho" required error={errors.exe_aparelho?.message}>
-        <Select value={watch('exe_aparelho') || ''} onValueChange={v => setValue('exe_aparelho', v)} disabled={busy}>
+        <Select value={watch('exe_aparelho') || undefined} onValueChange={v => setValue('exe_aparelho', v)} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Selecionar aparelho..." /></SelectTrigger>
           <SelectContent>
             {APARELHOS.map(a => (

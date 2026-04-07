@@ -1,10 +1,10 @@
 # Plano de Testes — Nos Studio Fluir
 
-**Versão:** 2.0
-**Data:** 06/04/2026
+**Versão:** 3.0
+**Data:** 07/04/2026
 **Autor:** Uid Software
 
-> **Status:** 39/39 testes implementados e passando.
+> **Status:** 62/62 testes implementados e passando.
 > Arquivos: `apps/financeiro/tests.py`, `apps/operacional/tests.py`, `apps/tecnico/tests.py`
 
 ---
@@ -65,6 +65,21 @@ docker exec nosfluir-backend-1 python manage.py test apps.tecnico
 | TB022 | CreditoReposicao Signal | Registrar falta tipo `atestado` | CreditoReposicao criado automaticamente | ✅ |
 | TB023 | CreditoReposicao Signal | Registrar falta tipo `sem_aviso` | Nenhum crédito criado | ✅ |
 | TB024 | CreditoReposicao Signal | Aluno já tem 3 créditos `disponivel` | Nenhum novo crédito criado | ✅ |
+
+### Melhorias MinistrarAulaPage (07/04/2026)
+
+| ID | Módulo | Cenário | Resultado Real | Status |
+|---|---|---|---|---|
+| TB036 | TurmaAlunos | GET `/api/turma-alunos/?tur=X` retorna campo `alu_nome` | Nome real do aluno presente no response | ✅ |
+| TB036b | TurmaAlunos | GET `/api/turma-alunos/?tur=X` retorna campo `id` | `id` e `alu` presentes — compatibilidade frontend | ✅ |
+| TB037 | FichaTreinoExercicios | GET `/api/fichas-treino-exercicios/?fitr=X` retorna campos do card | `ftex_ordem`, `exe_nome`, `exe_aparelho`, `ftex_series`, `ftex_repeticoes`, `ftex_observacoes` presentes | ✅ |
+| TB038 | FichaTreinoExercicios | Response é paginado | `results` + `count` — frontend usa `.results` | ✅ |
+| TB039 | FichaTreinoExercicios | Filtro `fitr=X` retorna só exercícios da ficha | Exercícios de outra ficha não aparecem | ✅ |
+| TB040 | FichaTreinoExercicios | `ordering=ftex_ordem` ordena crescente | Lista retornada em ordem correta | ✅ |
+| TB040b | FichaTreinoExercicios | `ftex_observacoes` preenchida é retornada | Obs retornada quando presente | ✅ |
+| TB041 | Aula | POST sem P.A. e sem intensidade → HTTP 201 | Campos opcionais — não bloqueia finalizar aula | ✅ |
+| TB041b | Aula | Intensidade=0 aceita (limite inferior) | HTTP 201 | ✅ |
+| TB041c | Aula | Intensidade=10 aceita (limite superior) | HTTP 201 | ✅ |
 
 ### Mudanças de Arquitetura (Fase 2.3 — 06/04/2026)
 
@@ -139,6 +154,14 @@ docker exec nosfluir-backend-1 python manage.py test apps.tecnico
 | TI006 | Expiração de crédito | Não implementado |
 
 ---
+
+## Bugs Encontrados e Corrigidos (07/04/2026 — revisão MinistrarAulaPage)
+
+| Problema | Causa | Corrigido em |
+|---|---|---|
+| Nome do aluno mostrava "Aluno X" em vez do nome real | `ta.aluno_nome` no frontend — campo correto é `ta.alu_nome` | 07/04/2026 |
+| Card de exercícios retornava 404 | Endpoint `/api/ficha-exercicios/` não existe — correto: `/api/fichas-treino-exercicios/` | 07/04/2026 |
+| Filtro de exercícios por ficha não funcionava | Query param `fitr_id` não existe no filterset — correto: `fitr` | 07/04/2026 |
 
 ## Descobertas dos Testes (bugs identificados e corrigidos)
 

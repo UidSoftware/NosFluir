@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Activity, Play, Square } from 'lucide-react'
+import { Activity, Play, Square, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp, ClipboardList } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -12,9 +12,9 @@ import { cn } from '@/lib/utils'
 import api from '@/services/api'
 
 const PRESENCA_OPTS = [
-  { value: 'regular',   label: 'Presente' },
-  { value: 'falta',     label: 'Falta' },
-  { value: 'reposicao', label: 'Reposição' },
+  { value: 'regular',   label: 'Presente',   Icon: CheckCircle },
+  { value: 'falta',     label: 'Falta',      Icon: XCircle },
+  { value: 'reposicao', label: 'Reposição',  Icon: RefreshCw },
 ]
 
 const FALTA_TIPOS = [
@@ -61,9 +61,10 @@ function AlunoRow({ aluno, state, onUpdate }) {
           {PRESENCA_OPTS.map(o => (
             <button
               key={o.value}
+              title={o.label}
               onClick={() => onUpdate(aluno.id, { presenca: o.value })}
               className={cn(
-                'px-3 py-2 rounded-md text-xs font-medium transition-colors min-h-[36px]',
+                'p-2 rounded-md transition-colors min-h-[36px]',
                 presenca === o.value
                   ? o.value === 'regular'
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -73,7 +74,7 @@ function AlunoRow({ aluno, state, onUpdate }) {
                   : 'bg-fluir-dark-3 text-muted-foreground hover:text-foreground'
               )}
             >
-              {o.label}
+              <o.Icon size={18} />
             </button>
           ))}
         </div>
@@ -118,31 +119,35 @@ function AlunoRow({ aluno, state, onUpdate }) {
 
       {/* P.A. e intensidade */}
       {presenca === 'regular' && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <FormField label="P.A. Inicial">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-1">
+          <div>
+            <label className="text-xs text-gray-400">P.A. Inicial</label>
             <Input
               value={pressaoI}
               onChange={e => onUpdate(aluno.id, { pressaoI: e.target.value })}
               placeholder="120/80"
-              className={cn('text-xs', pressaoI && !PRESSAO_REGEX.test(pressaoI) ? 'border-red-500' : '')}
+              className={cn('w-full text-sm px-2 py-1 mt-0.5', pressaoI && !PRESSAO_REGEX.test(pressaoI) ? 'border-red-500' : '')}
             />
-          </FormField>
-          <FormField label="P.A. Final">
+          </div>
+          <div>
+            <label className="text-xs text-gray-400">P.A. Final</label>
             <Input
               value={pressaoF}
               onChange={e => onUpdate(aluno.id, { pressaoF: e.target.value })}
               placeholder="120/80"
-              className={cn('text-xs', pressaoF && !PRESSAO_REGEX.test(pressaoF) ? 'border-red-500' : '')}
+              className={cn('w-full text-sm px-2 py-1 mt-0.5', pressaoF && !PRESSAO_REGEX.test(pressaoF) ? 'border-red-500' : '')}
             />
-          </FormField>
-          <FormField label="Intensidade (0-10)">
+          </div>
+          <div>
+            <label className="text-xs text-gray-400">Intensidade (0-10)</label>
             <Input
               type="number" min="0" max="10"
               value={intensidade}
               onChange={e => onUpdate(aluno.id, { intensidade: e.target.value })}
               placeholder="7"
+              className="w-full text-sm px-2 py-1 mt-0.5"
             />
-          </FormField>
+          </div>
         </div>
       )}
     </div>
@@ -180,6 +185,15 @@ export default function MinistrarAulaPage() {
       .then(r => r.data.results),
     enabled: !!turmaId,
   })
+
+  const { data: exerciciosFicha } = useQuery({
+    queryKey: ['ficha-exercicios-aula', fichaId],
+    queryFn: () => api.get('/fichas-treino-exercicios/', { params: { fitr: fichaId, ordering: 'ftex_ordem' } })
+      .then(r => r.data.results),
+    enabled: !!fichaId && step === 'aula',
+  })
+
+  const [fichaExpandida, setFichaExpandida] = useState(true)
 
   // Inicializa states quando a lista de alunos carrega
   useEffect(() => {
@@ -313,6 +327,51 @@ export default function MinistrarAulaPage() {
           }
         />
 
+        {/* Card de exercícios da ficha */}
+        {fichaId && (
+          <Card>
+            <CardHeader className="py-3 px-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <ClipboardList className="w-4 h-4 text-fluir-cyan" />
+                  {fichas?.find(f => String(f.fitr_id) === fichaId)?.fitr_nome || 'Ficha de Treino'}
+                </CardTitle>
+                <button
+                  onClick={() => setFichaExpandida(v => !v)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {fichaExpandida ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+              </div>
+            </CardHeader>
+            {fichaExpandida && (
+              <CardContent className="pt-0 pb-3 px-4">
+                {!exerciciosFicha ? (
+                  <div className="flex justify-center py-3"><Spinner /></div>
+                ) : exerciciosFicha.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nenhum exercício cadastrado nesta ficha.</p>
+                ) : (
+                  <ol className="space-y-1.5">
+                    {exerciciosFicha.map(ex => (
+                      <li key={ex.id || ex.ftex_id} className="text-sm">
+                        <span className="text-muted-foreground">{ex.ftex_ordem}.</span>{' '}
+                        <span className="font-medium">{ex.exe_nome}</span>
+                        {ex.exe_aparelho && <span className="text-muted-foreground"> — {ex.exe_aparelho}</span>}
+                        {(ex.ftex_series || ex.ftex_repeticoes) && (
+                          <span className="text-muted-foreground"> — {ex.ftex_series}x{ex.ftex_repeticoes}</span>
+                        )}
+                        {ex.ftex_observacoes && (
+                          <p className="text-xs text-muted-foreground italic ml-3">{ex.ftex_observacoes}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </CardContent>
+            )}
+          </Card>
+        )}
+
         <div className="space-y-3">
           {loadingAlunos ? (
             <div className="flex justify-center py-8"><Spinner /></div>
@@ -320,7 +379,7 @@ export default function MinistrarAulaPage() {
             alunosTurma.map(ta => (
               <AlunoRow
                 key={ta.alu}
-                aluno={{ id: ta.alu, alu_nome: ta.aluno_nome || `Aluno ${ta.alu}` }}
+                aluno={{ id: ta.alu, alu_nome: ta.alu_nome || `Aluno ${ta.alu}` }}
                 state={alunoStates[ta.alu]}
                 onUpdate={updateAluno}
               />

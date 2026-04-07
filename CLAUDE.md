@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 06/04/2026 | Versão: 6.0
+> Última atualização: 07/04/2026 | Versão: 6.1
 
 ---
 
@@ -419,6 +419,9 @@ git pull origin main && docker compose restart nginx
 | "Matrícula" no Admin não existe no código | `TurmaAlunos` usa `verbose_name = 'Matrícula'` | São a mesma coisa: Admin=Matrícula, código=TurmaAlunos, banco=turma_alunos, API=/api/turma-alunos/, PK=tual_id |
 | update.mutate com id errado (403/404) | `update.mutate({ id: r.id })` — campo `.id` não existe no DRF padrão | Usar o PK nomeado: `{ id: r.func_id }`, `{ id: r.alu_id }` etc. |
 | Saldo LivroCaixa errado após pagamentos simultâneos | Race condition no signal sem transação | Já corrigido — signals usam `select_for_update()` + `transaction.atomic()` |
+| MinistrarAula mostra "Aluno 1", "Aluno 2" em vez do nome | `ta.aluno_nome` não existe — campo correto é `ta.alu_nome` | Corrigido 07/04/2026 |
+| Card de exercícios da ficha retorna 404 | Endpoint errado: `/api/ficha-exercicios/` | Correto: `/api/fichas-treino-exercicios/` |
+| Exercícios da ficha não filtram por ficha | Query param `fitr_id` não existe no filterset | Correto: `?fitr=X` (sem sufixo `_id`) |
 
 ---
 
@@ -475,6 +478,15 @@ git pull origin main && docker compose restart nginx
 - [x] Todos os serializers com campo `id` (source='pk') — compatibilidade com seletores do frontend
 - [x] AuditMixin corrigido para endpoints AllowAny (created_by=None para anônimo)
 - [x] 52 testes automatizados — financeiro, operacional, técnico
+
+### Fase 5.1 — Melhorias MinistrarAulaPage ✅ EM PRODUÇÃO (07/04/2026)
+- [x] Ícones nos botões de presença: `CheckCircle` / `XCircle` / `RefreshCw` (lucide-react) com `title` tooltip
+- [x] Grid compacto `md:grid-cols-3` — P.A. Inicial, P.A. Final e Intensidade na mesma linha no desktop
+- [x] Nome real do aluno corrigido: `ta.alu_nome` (bug: estava `ta.aluno_nome` — caia no fallback "Aluno X")
+- [x] Card colapsável de exercícios da ficha — expandido por padrão, mostra ordem/nome/aparelho/séries/obs
+- [x] Estado local durante aula — nada vai ao banco antes de "Finalizar Aula" (já estava implementado)
+- [x] Bugs corrigidos: endpoint `/api/ficha-exercicios/` → `/api/fichas-treino-exercicios/`; filtro `fitr_id` → `fitr`
+- [x] 10 novos testes (TB036–TB041c) — total: 66 testes passando
 
 ### Fase 6 — Auditoria Backend e Hardening ✅ (06/04/2026)
 - [x] Soft delete implementado — `AuditMixin.perform_destroy` seta `deleted_at`/`deleted_by` em todos os ViewSets

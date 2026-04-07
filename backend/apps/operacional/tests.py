@@ -233,6 +233,44 @@ class AgendamentoSemAutenticacaoTest(TestCase):
         self.assertEqual(resp.status_code, 401)
 
 
+# ── TB036 — Nome real do aluno em TurmaAlunos ────────────────────────────────
+
+class TurmaAlunosNomeRealTest(TestCase):
+    """TB036 — GET /api/turma-alunos/?tur=X retorna alu_nome (melhoria MinistrarAulaPage)."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.turma = criar_turma()
+        self.aluno = criar_aluno(nome='Maria Clara')
+        resp = self.client.post('/api/turma-alunos/', {
+            'tur': self.turma.tur_id,
+            'alu': self.aluno.alu_id,
+            'data_matricula': '2026-04-07',
+            'ativo': True,
+        })
+        self.assertEqual(resp.status_code, 201)
+
+    def test_TB036_turma_alunos_retorna_alu_nome(self):
+        """TB036: GET /api/turma-alunos/?tur=X → results com campo alu_nome preenchido"""
+        resp = self.client.get('/api/turma-alunos/', {'tur': self.turma.tur_id})
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('results', resp.data)
+        self.assertGreater(len(resp.data['results']), 0)
+        matricula = resp.data['results'][0]
+        self.assertIn('alu_nome', matricula)
+        self.assertEqual(matricula['alu_nome'], 'Maria Clara')
+
+    def test_TB036b_turma_alunos_retorna_campo_id(self):
+        """TB036b: TurmaAlunos serializer deve retornar campo id (compatibilidade frontend)"""
+        resp = self.client.get('/api/turma-alunos/', {'tur': self.turma.tur_id})
+        self.assertEqual(resp.status_code, 200)
+        matricula = resp.data['results'][0]
+        self.assertIn('id', matricula)
+        self.assertIn('alu', matricula)
+
+
 # ── Soft delete — comportamento atual ────────────────────────────────────────
 
 class SoftDeleteComportamentoAtualTest(TestCase):

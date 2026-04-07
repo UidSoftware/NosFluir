@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 
 from apps.operacional.models import Aluno, Funcionario, Profissao, Turma, TurmaAlunos
-from .models import Aula, CreditoReposicao
+from .models import Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
 
 User = get_user_model()
 
@@ -282,6 +282,148 @@ class IntegracaoFluxoAulaTest(TestCase):
         credito.refresh_from_db()
         self.assertEqual(credito.cred_status, 'usado')
         self.assertTrue(credito.cred_usado)
+
+
+# ── TB037–TB041 — Melhorias MinistrarAulaPage ────────────────────────────────
+
+def criar_exercicio(nome='Hundred', aparelho='reformer'):
+    return Exercicio.objects.create(
+        exe_nome=nome,
+        exe_aparelho=aparelho,
+    )
+
+
+def criar_ficha(nome='Fortalecimento Core'):
+    return FichaTreino.objects.create(fitr_nome=nome)
+
+
+def criar_ficha_exercicio(ficha, exercicio, ordem=1, series=3, reps=10, obs=''):
+    return FichaTreinoExercicios.objects.create(
+        fitr=ficha,
+        exe=exercicio,
+        ftex_ordem=ordem,
+        ftex_series=series,
+        ftex_repeticoes=reps,
+        ftex_observacoes=obs,
+    )
+
+
+class FichaExerciciosCardTest(TestCase):
+    """TB037–TB040 — endpoint /api/fichas-treino-exercicios/ para card da aula."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.ficha = criar_ficha()
+        self.ex1 = criar_exercicio('Hundred', 'reformer')
+        self.ex2 = criar_exercicio('Single Leg Stretch', 'solo')
+        criar_ficha_exercicio(self.ficha, self.ex1, ordem=1, series=3, reps=10, obs='manter lombar')
+        criar_ficha_exercicio(self.ficha, self.ex2, ordem=2, series=3, reps=12)
+
+    def test_TB037_retorna_campos_obrigatorios(self):
+        """TB037: GET /api/fichas-treino-exercicios/?fitr=X → campos necessários para o card"""
+        resp = self.client.get('/api/fichas-treino-exercicios/', {'fitr': self.ficha.fitr_id})
+        self.assertEqual(resp.status_code, 200)
+        ex = resp.data['results'][0]
+        for campo in ['id', 'ftex_ordem', 'exe_nome', 'exe_aparelho', 'ftex_series', 'ftex_repeticoes', 'ftex_observacoes']:
+            self.assertIn(campo, ex, f'Campo {campo} ausente no serializer')
+
+    def test_TB038_retorna_paginado(self):
+        """TB038: resposta deve ser paginada (results + count) — frontend usa .results"""
+        resp = self.client.get('/api/fichas-treino-exercicios/', {'fitr': self.ficha.fitr_id})
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('results', resp.data)
+        self.assertIn('count', resp.data)
+
+    def test_TB039_filtra_por_ficha(self):
+        """TB039: filtro fitr=X retorna só exercícios da ficha correta"""
+        outra_ficha = criar_ficha('Outra Ficha')
+        outro_ex = criar_exercicio('Roll Up', 'cadillac')
+        criar_ficha_exercicio(outra_ficha, outro_ex, ordem=1)
+
+        resp = self.client.get('/api/fichas-treino-exercicios/', {'fitr': self.ficha.fitr_id})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['count'], 2)
+        nomes = [e['exe_nome'] for e in resp.data['results']]
+        self.assertNotIn('Roll Up', nomes)
+
+    def test_TB040_ordena_por_ftex_ordem(self):
+        """TB040: ordering=ftex_ordem → exercícios retornados em ordem crescente"""
+        resp = self.client.get('/api/fichas-treino-exercicios/', {
+            'fitr': self.ficha.fitr_id,
+            'ordering': 'ftex_ordem',
+        })
+        self.assertEqual(resp.status_code, 200)
+        ordens = [e['ftex_ordem'] for e in resp.data['results']]
+        self.assertEqual(ordens, sorted(ordens))
+
+    def test_TB040b_obs_retornada_quando_preenchida(self):
+        """TB040b: ftex_observacoes preenchida é retornada no response"""
+        resp = self.client.get('/api/fichas-treino-exercicios/', {
+            'fitr': self.ficha.fitr_id,
+            'ordering': 'ftex_ordem',
+        })
+        primeiro = resp.data['results'][0]
+        self.assertEqual(primeiro['ftex_observacoes'], 'manter lombar')
+
+
+class CamposOpcionaisAulaTest(TestCase):
+    """TB041 — P.A. e intensidade são opcionais no POST de aula."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.aluno = criar_aluno()
+        self.func = criar_funcionario()
+        self.turma = criar_turma()
+        criar_matricula(self.turma, self.aluno)
+
+    def test_TB041_presenca_sem_pa_e_intensidade(self):
+        """TB041: POST aula sem P.A. e sem intensidade → HTTP 201 (campos opcionais)"""
+        resp = self.client.post('/api/aulas/', {
+            'tur': self.turma.tur_id,
+            'alu': self.aluno.alu_id,
+            'func': self.func.func_id,
+            'aul_data': '2026-04-07',
+            'aul_hora_inicio': '07:00',
+            'aul_hora_final': '08:00',
+            'aul_tipo_presenca': 'regular',
+            # sem aul_pressao_inicio, aul_pressao_final, aul_intensidade_esforco
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertIsNone(resp.data['aul_pressao_inicio'])
+        self.assertIsNone(resp.data['aul_pressao_final'])
+        self.assertIsNone(resp.data['aul_intensidade_esforco'])
+
+    def test_TB041b_intensidade_zero_aceita(self):
+        """TB041b: intensidade=0 é válida (limite inferior do range 0-10)"""
+        resp = self.client.post('/api/aulas/', {
+            'tur': self.turma.tur_id,
+            'alu': self.aluno.alu_id,
+            'func': self.func.func_id,
+            'aul_data': '2026-04-07',
+            'aul_hora_inicio': '07:00',
+            'aul_hora_final': '08:00',
+            'aul_tipo_presenca': 'regular',
+            'aul_intensidade_esforco': 0,
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+
+    def test_TB041c_intensidade_10_aceita(self):
+        """TB041c: intensidade=10 é válida (limite superior do range 0-10)"""
+        resp = self.client.post('/api/aulas/', {
+            'tur': self.turma.tur_id,
+            'alu': self.aluno.alu_id,
+            'func': self.func.func_id,
+            'aul_data': '2026-04-07',
+            'aul_hora_inicio': '07:00',
+            'aul_hora_final': '08:00',
+            'aul_tipo_presenca': 'regular',
+            'aul_intensidade_esforco': 10,
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
 
 
 # ── TP021 — Créditos disponíveis por aluno ───────────────────────────────────

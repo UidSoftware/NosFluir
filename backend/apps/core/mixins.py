@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 
@@ -49,6 +50,12 @@ class AuditMixin:
     def perform_update(self, serializer):
         user = self.request.user if self.request.user.is_authenticated else None
         serializer.save(updated_by=user)
+
+    def perform_destroy(self, instance):
+        user = self.request.user if self.request.user.is_authenticated else None
+        instance.deleted_at = timezone.now()
+        instance.deleted_by = user
+        instance.save(update_fields=['deleted_at', 'deleted_by'])
 
 
 class ReadCreateViewSet(

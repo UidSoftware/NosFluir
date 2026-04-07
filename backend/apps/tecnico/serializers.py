@@ -27,8 +27,9 @@ class FichaTreinoExerciciosSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'ftex_id', 'fitr', 'exe', 'exe_nome', 'exe_aparelho',
             'ftex_ordem', 'ftex_repeticoes', 'ftex_series', 'ftex_observacoes',
+            'created_at', 'updated_at',
         ]
-        read_only_fields = ['ftex_id']
+        read_only_fields = ['ftex_id', 'created_at', 'updated_at']
 
     def validate_ftex_repeticoes(self, value):
         # RN-FTEX-02
@@ -134,4 +135,4 @@ class CreditoReposicaoSerializer(serializers.ModelSerializer):
             'cred_data_geracao', 'cred_data_expiracao',
             'cred_usado', 'cred_status', 'created_at', 'updated_at',
         ]
-        read_only_fields = ['cred_id', 'cred_data_expiracao', 'created_at', 'updated_at']
+        read_only_fields = ['cred_id', 'cred_data_geracao', 'cred_data_expiracao', 'created_at', 'updated_at']

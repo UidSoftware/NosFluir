@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+from django.db import transaction
 from rest_framework.viewsets import ModelViewSet
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -72,22 +75,18 @@ class LivroCaixaViewSet(AuditMixin, ReadCreateViewSet):
     ordering_fields = ['lica_id', 'lica_data_lancamento', 'lica_valor']
 
     def perform_create(self, serializer):
-        from decimal import Decimal
-        from .models import LivroCaixa as LC
-        # Calcula saldo no momento da criação manual
-        ultimo = LC.objects.order_by('-lica_id').first()
-        saldo_anterior = ultimo.lica_saldo_atual if ultimo else Decimal('0.00')
-        tipo = serializer.validated_data.get('lica_tipo_lancamento')
-        valor = serializer.validated_data.get('lica_valor')
-        if tipo == 'entrada':
-            saldo_atual = saldo_anterior + valor
-        else:
-            saldo_atual = saldo_anterior - valor
-        serializer.save(
-            created_by=self.request.user,
-            lica_saldo_anterior=saldo_anterior,
-            lica_saldo_atual=saldo_atual,
-        )
+        with transaction.atomic():
+            # Lock do último registro para serializar criações manuais concorrentes
+            ultimo = LivroCaixa.objects.select_for_update().order_by('-lica_id').first()
+            saldo_anterior = ultimo.lica_saldo_atual if ultimo else Decimal('0.00')
+            tipo = serializer.validated_data.get('lica_tipo_lancamento')
+            valor = serializer.validated_data.get('lica_valor')
+            saldo_atual = saldo_anterior + valor if tipo == 'entrada' else saldo_anterior - valor
+            serializer.save(
+                created_by=self.request.user,
+                lica_saldo_anterior=saldo_anterior,
+                lica_saldo_atual=saldo_atual,
+            )
 
 
 class FolhaPagamentoViewSet(AuditMixin, ModelViewSet):

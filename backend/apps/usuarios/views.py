@@ -4,6 +4,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -47,6 +48,7 @@ class UserViewSet(ModelViewSet):
     """CRUD de usuários — apenas Administradores."""
     queryset = User.objects.filter(is_active=True).order_by('email')
     permission_classes = [IsAdminUser]
+    filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['email', 'first_name', 'last_name']
     ordering_fields = ['email', 'date_joined']
 

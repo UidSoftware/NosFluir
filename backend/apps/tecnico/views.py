@@ -42,7 +42,7 @@ class AulaViewSet(AuditMixin, ModelViewSet):
     queryset = Aula.objects.filter(deleted_at__isnull=True).order_by('-aul_data', '-aul_hora_inicio')
     serializer_class = AulaSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['tur', 'alu', 'aul_tipo_presenca', 'aul_data']
+    filterset_fields = ['tur', 'alu', 'func', 'aul_tipo_presenca', 'aul_data']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
     ordering_fields = ['aul_data', 'aul_hora_inicio']
 
@@ -64,5 +64,9 @@ class CreditoReposicaoViewSet(AuditMixin, ModelViewSet):
             alu_id=alu_id,
             cred_status='disponivel',
         ).order_by('cred_data_expiracao')
+        page = self.paginate_queryset(creditos)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(creditos, many=True)
         return Response(serializer.data)

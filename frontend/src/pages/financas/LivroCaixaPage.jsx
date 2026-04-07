@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { BookOpen, Plus, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
-import { useList, useCreate } from '@/hooks/useApi'
-import { useForm } from 'react-hook-form'
+import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
+import { useList } from '@/hooks/useApi'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SearchFilter } from '@/components/shared/SearchFilter'
 import { StatusBadge } from '@/components/shared/StatusBadge'
@@ -9,8 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Input, FormField } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -18,61 +15,7 @@ import { cn } from '@/lib/utils'
 const ENDPOINT = '/livro-caixa/'
 const KEY      = 'livro-caixa'
 
-function LancamentoForm({ onClose }) {
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
-    defaultValues: { lica_tipo_lancamento: 'entrada' },
-  })
-
-  const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
-
-  const onSubmit = (data) => {
-    const cleaned = Object.fromEntries(
-      Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
-    )
-    create.mutate(cleaned)
-  }
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
-      <FormField label="Tipo" required>
-        <Select value={watch('lica_tipo_lancamento')} onValueChange={v => setValue('lica_tipo_lancamento', v)} disabled={create.isPending}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="entrada">Entrada</SelectItem>
-            <SelectItem value="saida">Saída</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
-
-      <FormField label="Histórico" required error={errors.lica_historico?.message}>
-        <Input {...register('lica_historico', { required: 'Histórico obrigatório' })} placeholder="Descrição do lançamento" disabled={create.isPending} />
-      </FormField>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <FormField label="Valor (R$)" required error={errors.lica_valor?.message}>
-          <Input type="number" step="0.01" {...register('lica_valor', { required: 'Valor obrigatório' })} placeholder="0.00" disabled={create.isPending} />
-        </FormField>
-        <FormField label="Categoria">
-          <Input {...register('lica_categoria')} placeholder="Ex: Aluguel, Mensalidade..." disabled={create.isPending} />
-        </FormField>
-      </div>
-
-      <FormField label="Forma de Pagamento">
-        <Input {...register('lica_forma_pagamento')} placeholder="Dinheiro, Pix, Cartão..." disabled={create.isPending} />
-      </FormField>
-
-      <DialogFooter>
-        <Button type="button" variant="ghost" onClick={onClose} disabled={create.isPending}>Cancelar</Button>
-        <Button type="submit" disabled={create.isPending}>
-          {create.isPending ? 'Salvando...' : 'Registrar Lançamento'}
-        </Button>
-      </DialogFooter>
-    </form>
-  )
-}
-
 export default function LivroCaixaPage() {
-  const [modalOpen, setModalOpen]   = useState(false)
   const [tipoFilter, setTipoFilter] = useState('all')
 
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
@@ -104,21 +47,15 @@ export default function LivroCaixaPage() {
         </span>
       ),
     },
-    { key: 'lica_saldo_atual',       header: 'Saldo',  render: r => formatCurrency(r.lica_saldo_atual) },
-    { key: 'lica_data_lancamento',   header: 'Data',   render: r => formatDate(r.lica_data_lancamento) },
+    { key: 'lica_saldo_atual',     header: 'Saldo', render: r => formatCurrency(r.lica_saldo_atual) },
+    { key: 'lica_data_lancamento', header: 'Data',  render: r => formatDate(r.lica_data_lancamento) },
   ]
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Livro Caixa"
-        description="Registro imutável de todas as movimentações financeiras"
-        actions={
-          <Button onClick={() => setModalOpen(true)}>
-            <Plus className="w-4 h-4" />
-            Novo Lançamento
-          </Button>
-        }
+        description="Registro automático de todas as movimentações financeiras"
       />
 
       {/* Resumo */}
@@ -177,18 +114,6 @@ export default function LivroCaixaPage() {
           <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
         </CardContent>
       </Card>
-
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-fluir-purple" />
-              Novo Lançamento Manual
-            </DialogTitle>
-          </DialogHeader>
-          <LancamentoForm onClose={() => setModalOpen(false)} />
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

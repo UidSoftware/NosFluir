@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Banknote, Plus, Pencil, Trash2, AlertCircle } from 'lucide-react'
+import { Banknote, Plus, Pencil, Trash2 } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -139,17 +139,6 @@ function FolhaForm({ folha, onClose }) {
         </FormField>
       )}
 
-      {isPago && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-xs font-medium text-amber-400">Lembre-se!</p>
-            <p className="text-xs text-amber-300/80 mt-0.5">
-              Após confirmar, crie manualmente o lançamento de saída no Livro Caixa.
-            </p>
-          </div>
-        </div>
-      )}
 
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
@@ -194,13 +183,6 @@ export default function FolhaPagamentoPage() {
         actions={<Button onClick={() => { setSelected(null); setModalOpen(true) }}><Plus className="w-4 h-4" />Novo Registro</Button>}
       />
 
-      <div className="rounded-lg border border-amber-500/30 bg-amber-500/8 px-4 py-3 flex items-center gap-2">
-        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-        <p className="text-xs text-amber-300/80">
-          <strong className="text-amber-400">Atenção:</strong> A folha de pagamento <strong>não gera lançamento automático</strong> no Livro Caixa.
-          Ao marcar como pago, crie o lançamento manual de saída.
-        </p>
-      </div>
 
       <Card>
         <CardContent className="p-5 space-y-4">

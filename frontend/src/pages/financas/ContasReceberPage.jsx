@@ -118,6 +118,7 @@ function ContaForm({ conta, onClose }) {
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="pendente">Pendente</SelectItem>
+            <SelectItem value="vencido">Vencido</SelectItem>
             <SelectItem value="recebido">Recebido</SelectItem>
             <SelectItem value="cancelado">Cancelado</SelectItem>
           </SelectContent>
@@ -125,9 +126,14 @@ function ContaForm({ conta, onClose }) {
       </FormField>
 
       {status === 'recebido' && (
-        <FormField label="Data do Recebimento" required>
-          <Input type="date" {...register('rec_data_recebimento', { required: status === 'recebido' })} disabled={busy} />
-        </FormField>
+        <>
+          <FormField label="Data do Recebimento" required>
+            <Input type="date" {...register('rec_data_recebimento', { required: true })} disabled={busy} />
+          </FormField>
+          <FormField label="Forma de Recebimento">
+            <Input {...register('rec_forma_recebimento')} placeholder="Pix, Dinheiro, Cartão..." disabled={busy} />
+          </FormField>
+        </>
       )}
 
       <FormField label="Aluno" required>
@@ -154,22 +160,17 @@ function ContaForm({ conta, onClose }) {
         </Select>
       </FormField>
 
-      <div className="grid grid-cols-2 gap-3">
-        <FormField label="Forma de Recebimento">
-          <Input {...register('rec_forma_recebimento')} placeholder="Pix, Dinheiro, Cartão..." disabled={busy} />
-        </FormField>
-        <FormField label="Tipo de Plano">
-          <Select value={watch('rec_plano_tipo') || '__none__'} onValueChange={v => setValue('rec_plano_tipo', v)} disabled={busy}>
-            <SelectTrigger><SelectValue placeholder="Tipo de plano..." /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
-              <SelectItem value="mensal">Mensal</SelectItem>
-              <SelectItem value="trimestral">Trimestral</SelectItem>
-              <SelectItem value="semestral">Semestral</SelectItem>
-            </SelectContent>
-          </Select>
-        </FormField>
-      </div>
+      <FormField label="Tipo de Plano">
+        <Select value={watch('rec_plano_tipo') || '__none__'} onValueChange={v => setValue('rec_plano_tipo', v)} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Tipo de plano..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
+            <SelectItem value="mensal">Mensal</SelectItem>
+            <SelectItem value="trimestral">Trimestral</SelectItem>
+            <SelectItem value="semestral">Semestral</SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
 
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>

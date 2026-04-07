@@ -109,6 +109,7 @@ function ContaForm({ conta, onClose }) {
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="pendente">Pendente</SelectItem>
+            <SelectItem value="vencido">Vencido</SelectItem>
             <SelectItem value="pago">Pago</SelectItem>
             <SelectItem value="cancelado">Cancelado</SelectItem>
           </SelectContent>
@@ -116,9 +117,14 @@ function ContaForm({ conta, onClose }) {
       </FormField>
 
       {status === 'pago' && (
-        <FormField label="Data do Pagamento" required error={errors.pag_data_pagamento?.message}>
-          <Input type="date" {...register('pag_data_pagamento', { required: status === 'pago' ? 'Data obrigatória ao marcar como pago' : false })} disabled={busy} />
-        </FormField>
+        <>
+          <FormField label="Data do Pagamento" required error={errors.pag_data_pagamento?.message}>
+            <Input type="date" {...register('pag_data_pagamento', { required: 'Data obrigatória ao marcar como pago' })} disabled={busy} />
+          </FormField>
+          <FormField label="Forma de Pagamento">
+            <Input {...register('pag_forma_pagamento')} placeholder="Dinheiro, Pix, Cartão..." disabled={busy} />
+          </FormField>
+        </>
       )}
 
       <FormField label="Fornecedor" required>
@@ -143,10 +149,6 @@ function ContaForm({ conta, onClose }) {
             ))}
           </SelectContent>
         </Select>
-      </FormField>
-
-      <FormField label="Forma de Pagamento">
-        <Input {...register('pag_forma_pagamento')} placeholder="Dinheiro, Pix, Cartão..." disabled={busy} />
       </FormField>
 
       <FormField label="Observações">

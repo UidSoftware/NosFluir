@@ -158,7 +158,7 @@ created_at = models.DateTimeField(...)
 | Profissao | profissao | catálogo |
 | Funcionario | funcionario | CPF único |
 | Turma | turma | max 15 alunos — **sem campo professor** (professor fica na Aula) |
-| TurmaAlunos | turma_alunos | N:N unique: turma+aluno |
+| TurmaAlunos | turma_alunos | N:N unique: turma+aluno — **no Admin aparece como "Matrícula/Matrículas"** |
 | AgendamentoHorario | agendamento_horario | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 | AgendamentoTurmas | agendamento_turmas | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 
@@ -416,6 +416,7 @@ git pull origin main && docker compose restart nginx
 | Agendamento do site retorna 500 | `AuditMixin` passava `AnonymousUser` como `created_by` | `AuditMixin` agora usa `None` para usuário não autenticado — já corrigido |
 | Selects não carregam / r.id undefined | Serializer sem campo `id` | Adicionar `id = serializers.IntegerField(source='pk', read_only=True)` + incluir em `fields` |
 | Select usa `f.id` mas retorna undefined | Frontend usando `.id` genérico em vez do PK nomeado | Usar `f.func_id`, `t.tur_id`, `a.alu_id` etc. conforme tabela de PKs acima |
+| "Matrícula" no Admin não existe no código | `TurmaAlunos` usa `verbose_name = 'Matrícula'` | São a mesma coisa: Admin=Matrícula, código=TurmaAlunos, banco=turma_alunos, API=/api/turma-alunos/, PK=tual_id |
 | update.mutate com id errado (403/404) | `update.mutate({ id: r.id })` — campo `.id` não existe no DRF padrão | Usar o PK nomeado: `{ id: r.func_id }`, `{ id: r.alu_id }` etc. |
 | Saldo LivroCaixa errado após pagamentos simultâneos | Race condition no signal sem transação | Já corrigido — signals usam `select_for_update()` + `transaction.atomic()` |
 

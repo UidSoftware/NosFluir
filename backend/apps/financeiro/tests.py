@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -420,8 +421,8 @@ class StatusVencidoAutomaticoTest(TestCase):
         """TP019a: ContasPagar pendente com vencimento no passado → vencido ao listar."""
         ContasPagar.objects.create(
             forn=self.forn,
-            pag_data_emissao='2026-01-01',
-            pag_data_vencimento='2026-01-15',  # passado
+            pag_data_emissao=timezone.now() - timezone.timedelta(days=90),
+            pag_data_vencimento=timezone.now() - timezone.timedelta(days=30),  # passado
             pag_descricao='Conta vencida teste',
             pag_quantidade=1,
             pag_valor_unitario=Decimal('100.00'),
@@ -437,8 +438,8 @@ class StatusVencidoAutomaticoTest(TestCase):
         """TP019b: ContasPagar com status 'pago' não deve ser alterada para vencido."""
         ContasPagar.objects.create(
             forn=self.forn,
-            pag_data_emissao='2026-01-01',
-            pag_data_vencimento='2026-01-15',  # passado
+            pag_data_emissao=timezone.now() - timezone.timedelta(days=90),
+            pag_data_vencimento=timezone.now() - timezone.timedelta(days=30),  # passado
             pag_descricao='Conta paga teste',
             pag_quantidade=1,
             pag_valor_unitario=Decimal('100.00'),
@@ -454,8 +455,8 @@ class StatusVencidoAutomaticoTest(TestCase):
         """TP019c: ContasReceber pendente com vencimento no passado → vencido ao listar."""
         ContasReceber.objects.create(
             alu=self.aluno,
-            rec_data_emissao='2026-01-01',
-            rec_data_vencimento='2026-01-15',  # passado
+            rec_data_emissao=timezone.now() - timezone.timedelta(days=90),
+            rec_data_vencimento=timezone.now() - timezone.timedelta(days=30),  # passado
             rec_descricao='Receber vencida teste',
             rec_quantidade=1,
             rec_valor_unitario=Decimal('150.00'),
@@ -472,8 +473,8 @@ class StatusVencidoAutomaticoTest(TestCase):
         """TP019d: ContasReceber com status 'recebido' não deve ser alterada para vencido."""
         ContasReceber.objects.create(
             alu=self.aluno,
-            rec_data_emissao='2026-01-01',
-            rec_data_vencimento='2026-01-15',  # passado
+            rec_data_emissao=timezone.now() - timezone.timedelta(days=90),
+            rec_data_vencimento=timezone.now() - timezone.timedelta(days=30),  # passado
             rec_descricao='Receber já recebida',
             rec_quantidade=1,
             rec_valor_unitario=Decimal('150.00'),

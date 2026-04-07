@@ -42,7 +42,7 @@ function AlunoForm({ aluno, onClose }) {
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
-    if (aluno) update.mutate({ id: aluno.id, data: cleaned })
+    if (aluno) update.mutate({ id: aluno.alu_id, data: cleaned })
     else       create.mutate(cleaned)
   }
 
@@ -191,7 +191,7 @@ export default function AlunosPage() {
           <Button variant="ghost" size="icon-sm" onClick={() => openEdit(r)} title="Editar">
             <Pencil className="w-3.5 h-3.5" />
           </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} title="Excluir" className="text-red-400 hover:text-red-300">
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.alu_id)} title="Excluir" className="text-red-400 hover:text-red-300">
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
         </div>

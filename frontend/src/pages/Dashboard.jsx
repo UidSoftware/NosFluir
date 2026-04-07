@@ -149,11 +149,11 @@ export default function Dashboard() {
                 livroCaixa.results.map(item => (
                   <RecentItem
                     key={item.id}
-                    label={item.lica_descricao || 'Lançamento'}
-                    date={item.lica_data}
+                    label={item.lica_historico || 'Lançamento'}
+                    date={item.lica_data_lancamento}
                     value={
-                      <span className={item.lica_tipo === 'entrada' ? 'text-emerald-400' : 'text-red-400'}>
-                        {item.lica_tipo === 'entrada' ? '+' : '-'}{formatCurrency(item.lica_valor)}
+                      <span className={item.lica_tipo_lancamento === 'entrada' ? 'text-emerald-400' : 'text-red-400'}>
+                        {item.lica_tipo_lancamento === 'entrada' ? '+' : '-'}{formatCurrency(item.lica_valor)}
                       </span>
                     }
                   />

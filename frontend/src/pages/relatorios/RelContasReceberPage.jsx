@@ -28,7 +28,7 @@ export default function RelContasReceberPage() {
 
   const columns = [
     { key: 'rec_descricao',       header: 'Descrição',  render: r => r.rec_descricao },
-    { key: 'aluno_nome',          header: 'Aluno',       render: r => r.aluno_nome || '—' },
+    { key: 'alu_nome',             header: 'Aluno',       render: r => r.alu_nome || '—' },
     { key: 'rec_valor_total',     header: 'Total',       render: r => formatCurrency(r.rec_valor_total) },
     { key: 'rec_data_vencimento', header: 'Vencimento',  render: r => formatDate(r.rec_data_vencimento) },
     { key: 'rec_status',          header: 'Status',      render: r => <StatusBadge status={r.rec_status} /> },

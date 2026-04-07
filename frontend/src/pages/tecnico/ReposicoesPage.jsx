@@ -35,8 +35,8 @@ export default function ReposicoesPage() {
 
   const columns = [
     {
-      key: 'aluno_nome', header: 'Aluno',
-      render: r => <span className="font-medium">{r.aluno_nome || r.aluno_id}</span>,
+      key: 'alu_nome', header: 'Aluno',
+      render: r => <span className="font-medium">{r.alu_nome || '—'}</span>,
     },
     {
       key: 'cred_data_geracao', header: 'Gerado em',
@@ -62,8 +62,8 @@ export default function ReposicoesPage() {
       render: r => <StatusBadge status={r.cred_status} />,
     },
     {
-      key: 'aula_reposicao', header: 'Usado em',
-      render: r => r.cred_status === 'usado' ? formatDate(r.aula_reposicao_data) : '—',
+      key: 'aula_reposicao', header: 'Reposição',
+      render: r => r.cred_status === 'usado' ? `Aula #${r.aula_reposicao}` : '—',
     },
   ]
 

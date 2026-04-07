@@ -12,6 +12,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input, FormField, Spinner, Badge } from '@/components/ui/primitives'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
@@ -19,11 +20,17 @@ const ENDPOINT = '/turmas/'
 const KEY      = 'turmas'
 
 function TurmaForm({ turma, onClose }) {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm({
     defaultValues: turma ? {
       tur_nome:    turma.tur_nome,
       tur_horario: turma.tur_horario || '',
+      func:        turma.func ? String(turma.func) : '__none__',
     } : {},
+  })
+
+  const { data: funcionarios } = useQuery({
+    queryKey: ['funcionarios-select'],
+    queryFn: () => api.get('/funcionarios/').then(r => r.data.results),
   })
 
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
@@ -31,8 +38,14 @@ function TurmaForm({ turma, onClose }) {
   const busy   = create.isPending || update.isPending
 
   const onSubmit = (data) => {
-    if (turma) update.mutate({ id: turma.id, data })
-    else       create.mutate(data)
+    const funcId = data.func && data.func !== '__none__' ? parseInt(data.func) : null
+    if (!funcId) {
+      toast({ title: 'Selecione o professor responsável.', variant: 'destructive' })
+      return
+    }
+    const cleaned = { ...data, func: funcId }
+    if (turma) update.mutate({ id: turma.tur_id, data: cleaned })
+    else       create.mutate(cleaned)
   }
 
   return (
@@ -44,6 +57,18 @@ function TurmaForm({ turma, onClose }) {
 
         <FormField label="Horário" required error={errors.tur_horario?.message}>
           <Input {...register('tur_horario', { required: 'Horário obrigatório' })} placeholder="Seg/Qua/Sex 07:00" disabled={busy} />
+        </FormField>
+
+        <FormField label="Professor responsável" required>
+          <Select value={watch('func') || '__none__'} onValueChange={v => setValue('func', v)} disabled={busy}>
+            <SelectTrigger><SelectValue placeholder="Selecionar professor..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar professor...</SelectItem>
+              {funcionarios?.map(f => (
+                <SelectItem key={f.func_id} value={String(f.func_id)}>{f.func_nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </FormField>
       </div>
 
@@ -62,8 +87,8 @@ function GerenciarAlunosModal({ turma, onClose }) {
   const [search, setSearch] = useState('')
 
   const { data: matriculados, isLoading: loadingM } = useQuery({
-    queryKey: ['turma-alunos', turma.id],
-    queryFn: () => api.get('/turma-alunos/', { params: { tur: turma.id, page_size: 100 } }).then(r => r.data.results),
+    queryKey: ['turma-alunos', turma.tur_id],
+    queryFn: () => api.get('/turma-alunos/', { params: { tur: turma.tur_id } }).then(r => r.data.results),
     enabled: !!turma,
   })
 
@@ -76,9 +101,9 @@ function GerenciarAlunosModal({ turma, onClose }) {
   const totalMatriculados = matriculados?.length ?? 0
 
   const addMutation = useMutation({
-    mutationFn: (aluno_id) => api.post('/turma-alunos/', { tur: turma.id, alu: aluno_id }),
+    mutationFn: (aluno_id) => api.post('/turma-alunos/', { tur: turma.tur_id, alu: aluno_id, data_matricula: new Date().toISOString().split('T')[0] }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['turma-alunos', turma.id] })
+      queryClient.invalidateQueries({ queryKey: ['turma-alunos', turma.tur_id] })
       toast({ title: 'Aluno adicionado.', variant: 'success' })
     },
     onError: (err) => {
@@ -90,12 +115,12 @@ function GerenciarAlunosModal({ turma, onClose }) {
   const removeMutation = useMutation({
     mutationFn: (id) => api.delete(`/turma-alunos/${id}/`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['turma-alunos', turma.id] })
+      queryClient.invalidateQueries({ queryKey: ['turma-alunos', turma.tur_id] })
       toast({ title: 'Aluno removido.', variant: 'success' })
     },
   })
 
-  const getMatriculaId = (aluno_id) => matriculados?.find(m => m.alu === aluno_id)?.id
+  const getMatriculaId = (aluno_id) => matriculados?.find(m => m.alu === aluno_id)?.tual_id
 
   return (
     <div className="p-5 space-y-4">
@@ -115,10 +140,10 @@ function GerenciarAlunosModal({ turma, onClose }) {
           <div className="flex justify-center py-4"><Spinner /></div>
         ) : (
           todosAlunos?.map(aluno => {
-            const isIn = matriculadosIds.has(aluno.id)
-            const mId  = getMatriculaId(aluno.id)
+            const isIn = matriculadosIds.has(aluno.alu_id)
+            const mId  = getMatriculaId(aluno.alu_id)
             return (
-              <div key={aluno.id} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-fluir-dark-3">
+              <div key={aluno.alu_id} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-fluir-dark-3">
                 <span className="text-sm">{aluno.alu_nome}</span>
                 {isIn ? (
                   <Button
@@ -135,7 +160,7 @@ function GerenciarAlunosModal({ turma, onClose }) {
                     variant="ghost"
                     size="icon-sm"
                     className="text-fluir-cyan hover:text-fluir-cyan/80"
-                    onClick={() => addMutation.mutate(aluno.id)}
+                    onClick={() => addMutation.mutate(aluno.alu_id)}
                     disabled={addMutation.isPending || totalMatriculados >= 15}
                   >
                     <UserPlus className="w-3.5 h-3.5" />
@@ -179,7 +204,7 @@ export default function TurmasPage() {
           <Button variant="ghost" size="icon-sm" onClick={() => openDetail(r)} title="Detalhes"><Eye className="w-3.5 h-3.5" /></Button>
           <Button variant="ghost" size="icon-sm" onClick={() => openAlunos(r)} title="Gerenciar alunos"><Users className="w-3.5 h-3.5" /></Button>
           <Button variant="ghost" size="icon-sm" onClick={() => openEdit(r)} title="Editar"><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300">
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.tur_id)} className="text-red-400 hover:text-red-300">
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
         </div>

@@ -20,7 +20,7 @@ const KEY      = 'livro-caixa'
 
 function LancamentoForm({ onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
-    defaultValues: { lica_tipo: 'entrada', lica_data: new Date().toISOString().split('T')[0] },
+    defaultValues: { lica_tipo_lancamento: 'entrada' },
   })
 
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
@@ -35,7 +35,7 @@ function LancamentoForm({ onClose }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <FormField label="Tipo" required>
-        <Select value={watch('lica_tipo')} onValueChange={v => setValue('lica_tipo', v)} disabled={create.isPending}>
+        <Select value={watch('lica_tipo_lancamento')} onValueChange={v => setValue('lica_tipo_lancamento', v)} disabled={create.isPending}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="entrada">Entrada</SelectItem>
@@ -44,21 +44,21 @@ function LancamentoForm({ onClose }) {
         </Select>
       </FormField>
 
-      <FormField label="Descrição" required error={errors.lica_descricao?.message}>
-        <Input {...register('lica_descricao', { required: 'Descrição obrigatória' })} placeholder="Descrição do lançamento" disabled={create.isPending} />
+      <FormField label="Histórico" required error={errors.lica_historico?.message}>
+        <Input {...register('lica_historico', { required: 'Histórico obrigatório' })} placeholder="Descrição do lançamento" disabled={create.isPending} />
       </FormField>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <FormField label="Valor (R$)" required error={errors.lica_valor?.message}>
           <Input type="number" step="0.01" {...register('lica_valor', { required: 'Valor obrigatório' })} placeholder="0.00" disabled={create.isPending} />
         </FormField>
-        <FormField label="Data" required>
-          <Input type="date" {...register('lica_data', { required: true })} disabled={create.isPending} />
+        <FormField label="Categoria">
+          <Input {...register('lica_categoria')} placeholder="Ex: Aluguel, Mensalidade..." disabled={create.isPending} />
         </FormField>
       </div>
 
-      <FormField label="Observações">
-        <Input {...register('lica_observacoes')} placeholder="Observações opcionais" disabled={create.isPending} />
+      <FormField label="Forma de Pagamento">
+        <Input {...register('lica_forma_pagamento')} placeholder="Dinheiro, Pix, Cartão..." disabled={create.isPending} />
       </FormField>
 
       <DialogFooter>
@@ -77,34 +77,35 @@ export default function LivroCaixaPage() {
 
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
 
-  const totalEntradas = data.reduce((s, r) => r.lica_tipo === 'entrada' ? s + parseFloat(r.lica_valor || 0) : s, 0)
-  const totalSaidas   = data.reduce((s, r) => r.lica_tipo === 'saida'   ? s + parseFloat(r.lica_valor || 0) : s, 0)
-  const saldo         = totalEntradas - totalSaidas
+  const totalEntradas = data.reduce((s, r) => r.lica_tipo_lancamento === 'entrada' ? s + parseFloat(r.lica_valor || 0) : s, 0)
+  const totalSaidas   = data.reduce((s, r) => r.lica_tipo_lancamento === 'saida'   ? s + parseFloat(r.lica_valor || 0) : s, 0)
+  const saldoAtual    = data.length > 0 ? parseFloat(data[data.length - 1]?.lica_saldo_atual || 0) : 0
 
   const handleTipoChange = (v) => {
     setTipoFilter(v)
-    setFilters(v && v !== 'all' ? { lica_tipo: v } : {})
+    setFilters(v && v !== 'all' ? { lica_tipo_lancamento: v } : {})
   }
 
   const columns = [
     {
-      key: 'lica_tipo', header: 'Tipo', cellClassName: 'w-28',
-      render: r => <StatusBadge status={r.lica_tipo} />,
+      key: 'lica_tipo_lancamento', header: 'Tipo', cellClassName: 'w-28',
+      render: r => <StatusBadge status={r.lica_tipo_lancamento} />,
     },
     {
-      key: 'lica_descricao', header: 'Descrição',
-      render: r => <span className="font-medium">{r.lica_descricao}</span>,
+      key: 'lica_historico', header: 'Histórico',
+      render: r => <span className="font-medium">{r.lica_historico}</span>,
     },
+    { key: 'lica_categoria', header: 'Categoria', render: r => r.lica_categoria || '—' },
     {
       key: 'lica_valor', header: 'Valor',
       render: r => (
-        <span className={cn('font-medium', r.lica_tipo === 'entrada' ? 'text-emerald-400' : 'text-red-400')}>
-          {r.lica_tipo === 'entrada' ? '+' : '-'}{formatCurrency(r.lica_valor)}
+        <span className={cn('font-medium', r.lica_tipo_lancamento === 'entrada' ? 'text-emerald-400' : 'text-red-400')}>
+          {r.lica_tipo_lancamento === 'entrada' ? '+' : '-'}{formatCurrency(r.lica_valor)}
         </span>
       ),
     },
-    { key: 'lica_data', header: 'Data', render: r => formatDate(r.lica_data) },
-    { key: 'lica_observacoes', header: 'Obs.', render: r => r.lica_observacoes || '—' },
+    { key: 'lica_saldo_atual',       header: 'Saldo',  render: r => formatCurrency(r.lica_saldo_atual) },
+    { key: 'lica_data_lancamento',   header: 'Data',   render: r => formatDate(r.lica_data_lancamento) },
   ]
 
   return (
@@ -150,9 +151,9 @@ export default function LivroCaixaPage() {
               <DollarSign className="w-4 h-4 text-fluir-purple" />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase">Saldo</p>
-              <p className={cn('text-sm font-semibold', saldo >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                {formatCurrency(saldo)}
+              <p className="text-[10px] text-muted-foreground uppercase">Saldo Atual</p>
+              <p className={cn('text-sm font-semibold', saldoAtual >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                {formatCurrency(saldoAtual)}
               </p>
             </div>
           </CardContent>
@@ -161,7 +162,7 @@ export default function LivroCaixaPage() {
 
       <Card>
         <CardContent className="p-5 space-y-4">
-          <SearchFilter placeholder="Buscar por descrição..." onSearch={q => setFilters(q ? { search: q } : {})}>
+          <SearchFilter placeholder="Buscar por histórico..." onSearch={q => setFilters(q ? { search: q } : {})}>
             <Select value={tipoFilter} onValueChange={handleTipoChange}>
               <SelectTrigger className="w-32"><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>

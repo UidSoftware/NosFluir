@@ -23,15 +23,20 @@ const KEY      = 'contas-receber'
 function ContaForm({ conta, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: conta ? {
-      rec_descricao:      conta.rec_descricao,
-      rec_valor_unitario: conta.rec_valor_unitario || '',
-      rec_quantidade:     conta.rec_quantidade || 1,
-      rec_desconto:       conta.rec_desconto || '',
-      rec_data_vencimento: conta.rec_data_vencimento || '',
-      rec_data_recebimento: conta.rec_data_recebimento || '',
-      rec_status:         conta.rec_status || 'pendente',
-      aluno_id:           conta.aluno_id ? String(conta.aluno_id) : '',
-    } : { rec_quantidade: 1, rec_status: 'pendente' },
+      rec_descricao:       conta.rec_descricao,
+      rec_valor_unitario:  conta.rec_valor_unitario || '',
+      rec_quantidade:      conta.rec_quantidade || 1,
+      rec_desconto:        conta.rec_desconto || '',
+      rec_data_emissao:    conta.rec_data_emissao ? conta.rec_data_emissao.split('T')[0] : '',
+      rec_data_vencimento: conta.rec_data_vencimento ? conta.rec_data_vencimento.split('T')[0] : '',
+      rec_data_recebimento: conta.rec_data_recebimento ? conta.rec_data_recebimento.split('T')[0] : '',
+      rec_status:          conta.rec_status || 'pendente',
+      alu:                 conta.alu ? String(conta.alu) : '',
+    } : {
+      rec_quantidade: 1,
+      rec_status: 'pendente',
+      rec_data_emissao: new Date().toISOString().split('T')[0],
+    },
   })
 
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
@@ -40,22 +45,23 @@ function ContaForm({ conta, onClose }) {
   const status = watch('rec_status')
 
   // Total em tempo real: (qtd × unit) - desconto
-  const qtd     = parseFloat(watch('rec_quantidade') || 1)
-  const unit    = parseFloat(watch('rec_valor_unitario') || 0)
-  const desc    = parseFloat(watch('rec_desconto') || 0)
-  const total   = Math.max(0, qtd * unit - desc)
+  const qtd   = parseFloat(watch('rec_quantidade') || 1)
+  const unit  = parseFloat(watch('rec_valor_unitario') || 0)
+  const desc  = parseFloat(watch('rec_desconto') || 0)
+  const total = Math.max(0, qtd * unit - desc)
 
   const { data: alunos } = useQuery({
     queryKey: ['alunos-select'],
-    queryFn: () => api.get('/alunos/', { params: { page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get('/alunos/').then(r => r.data.results),
   })
 
   const onSubmit = (data) => {
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
-    if (cleaned.aluno_id) cleaned.aluno_id = parseInt(cleaned.aluno_id)
-    if (conta) update.mutate({ id: conta.id, data: cleaned })
+    const aluId = cleaned.alu && cleaned.alu !== '__none__' ? parseInt(cleaned.alu) : null
+    cleaned.alu = aluId
+    if (conta) update.mutate({ id: conta.rec_id, data: cleaned })
     else       create.mutate(cleaned)
   }
 
@@ -84,20 +90,24 @@ function ContaForm({ conta, onClose }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        <FormField label="Emissão" required>
+          <Input type="date" {...register('rec_data_emissao', { required: true })} disabled={busy} />
+        </FormField>
         <FormField label="Vencimento" required>
           <Input type="date" {...register('rec_data_vencimento', { required: true })} disabled={busy} />
         </FormField>
-        <FormField label="Status">
-          <Select value={watch('rec_status')} onValueChange={v => setValue('rec_status', v)} disabled={busy}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pendente">Pendente</SelectItem>
-              <SelectItem value="recebido">Recebido</SelectItem>
-              <SelectItem value="cancelado">Cancelado</SelectItem>
-            </SelectContent>
-          </Select>
-        </FormField>
       </div>
+
+      <FormField label="Status">
+        <Select value={watch('rec_status')} onValueChange={v => setValue('rec_status', v)} disabled={busy}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pendente">Pendente</SelectItem>
+            <SelectItem value="recebido">Recebido</SelectItem>
+            <SelectItem value="cancelado">Cancelado</SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
 
       {status === 'recebido' && (
         <FormField label="Data do Recebimento" required>
@@ -106,12 +116,12 @@ function ContaForm({ conta, onClose }) {
       )}
 
       <FormField label="Aluno">
-        <Select value={watch('aluno_id') || '__none__'} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+        <Select value={watch('alu') || '__none__'} onValueChange={v => setValue('alu', v)} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Selecionar aluno..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar aluno...</SelectItem>
             {alunos?.map(a => (
-              <SelectItem key={a.id} value={String(a.id)}>{a.alu_nome}</SelectItem>
+              <SelectItem key={a.alu_id} value={String(a.alu_id)}>{a.alu_nome}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -154,15 +164,16 @@ export default function ContasReceberPage() {
         </div>
       ),
     },
-    { key: 'rec_valor_total',      header: 'Total',      render: r => formatCurrency(r.rec_valor_total) },
-    { key: 'rec_data_vencimento',  header: 'Vencimento', render: r => formatDate(r.rec_data_vencimento) },
-    { key: 'rec_status',           header: 'Status',     render: r => <StatusBadge status={r.rec_status} /> },
+    { key: 'alu_nome',            header: 'Aluno',      render: r => r.alu_nome || '—' },
+    { key: 'rec_valor_total',     header: 'Total',      render: r => formatCurrency(r.rec_valor_total) },
+    { key: 'rec_data_vencimento', header: 'Vencimento', render: r => formatDate(r.rec_data_vencimento) },
+    { key: 'rec_status',          header: 'Status',     render: r => <StatusBadge status={r.rec_status} /> },
     {
       key: 'acoes', header: '', cellClassName: 'w-20',
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
           <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.rec_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
         </div>
       ),
     },

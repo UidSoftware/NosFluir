@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { formatDate, formatDateTime } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
 const TABS = [
@@ -55,18 +55,18 @@ function TabContent({ endpoint, keyName, columns, emptyMessage }) {
 }
 
 const HORARIOS_COLS = [
-  { key: 'nome',     header: 'Nome',     render: r => <span className="font-medium">{r.nome || r.agh_nome || '—'}</span> },
-  { key: 'email',    header: 'E-mail',   render: r => r.email || r.agh_email || '—' },
-  { key: 'telefone', header: 'Telefone', render: r => r.telefone || r.agh_telefone || '—' },
-  { key: 'horario',  header: 'Horário',  render: r => r.horario || r.agh_horario || '—' },
-  { key: 'created',  header: 'Enviado em', render: r => formatDateTime(r.created_at) },
+  { key: 'alu_nome',                  header: 'Aluno',      render: r => <span className="font-medium">{r.alu_nome || '—'}</span> },
+  { key: 'agho_dias_disponiveis',     header: 'Dias',       render: r => r.agho_dias_disponiveis || '—' },
+  { key: 'agho_horarios_disponiveis', header: 'Horários',   render: r => r.agho_horarios_disponiveis || '—' },
+  { key: 'created',                   header: 'Enviado em', render: r => formatDateTime(r.created_at) },
 ]
 
 const TURMAS_COLS = [
-  { key: 'nome',    header: 'Nome',    render: r => <span className="font-medium">{r.nome || r.agt_nome || '—'}</span> },
-  { key: 'email',   header: 'E-mail',  render: r => r.email || r.agt_email || '—' },
-  { key: 'turma',   header: 'Turma',   render: r => r.turma || r.agt_turma || '—' },
-  { key: 'created', header: 'Enviado em', render: r => formatDateTime(r.created_at) },
+  { key: 'alu_nome',                  header: 'Aluno',      render: r => <span className="font-medium">{r.alu_nome || '—'}</span> },
+  { key: 'agtu_dias_disponiveis',     header: 'Dias',       render: r => r.agtu_dias_disponiveis || '—' },
+  { key: 'agtu_horarios_disponiveis', header: 'Horários',   render: r => r.agtu_horarios_disponiveis || '—' },
+  { key: 'agtu_nivelamento',          header: 'Nível',      render: r => r.agtu_nivelamento || '—' },
+  { key: 'created',                   header: 'Enviado em', render: r => formatDateTime(r.created_at) },
 ]
 
 export default function AgendamentosPage() {

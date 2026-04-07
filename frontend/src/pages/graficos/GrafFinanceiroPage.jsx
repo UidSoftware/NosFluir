@@ -35,12 +35,12 @@ export default function GrafFinanceiroPage() {
   // Agrupar por mês
   const byMonth = {}
   caixa?.forEach(item => {
-    const [y, m] = (item.lica_data || '').split('-')
+    const [y, m] = (item.lica_data_lancamento || '').split('-')
     if (!y || !m) return
     const key = `${m}/${y}`
     if (!byMonth[key]) byMonth[key] = { mes: key, entradas: 0, saidas: 0 }
     const val = parseFloat(item.lica_valor || 0)
-    if (item.lica_tipo === 'entrada') byMonth[key].entradas += val
+    if (item.lica_tipo_lancamento === 'entrada') byMonth[key].entradas += val
     else byMonth[key].saidas += val
   })
   const lineData = Object.values(byMonth).slice(-6)

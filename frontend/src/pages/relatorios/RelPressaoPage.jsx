@@ -30,7 +30,7 @@ export default function RelPressaoPage() {
   const totalPages = Math.ceil(count / 20) || 1
 
   const columns = [
-    { key: 'aluno_nome',         header: 'Aluno',      render: r => r.aluno_nome || r.aluno_id },
+    { key: 'alu_nome',            header: 'Aluno',      render: r => r.alu_nome || `Aluno ${r.alu}` },
     { key: 'aul_data',           header: 'Data',        render: r => formatDate(r.aul_data) },
     { key: 'aul_pressao_inicio', header: 'P.A. Início', render: r => r.aul_pressao_inicio || '—' },
     { key: 'aul_pressao_final',         header: 'P.A. Fim',    render: r => r.aul_pressao_final || '—' },

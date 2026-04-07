@@ -26,22 +26,22 @@ export default function RelLivroCaixaPage() {
   const count      = data?.count ?? 0
   const totalPages = Math.ceil(count / 20) || 1
 
-  const totalEntradas = items.filter(r => r.lica_tipo === 'entrada').reduce((s, r) => s + parseFloat(r.lica_valor || 0), 0)
-  const totalSaidas   = items.filter(r => r.lica_tipo === 'saida').reduce((s, r) => s + parseFloat(r.lica_valor || 0), 0)
+  const totalEntradas = items.filter(r => r.lica_tipo_lancamento === 'entrada').reduce((s, r) => s + parseFloat(r.lica_valor || 0), 0)
+  const totalSaidas   = items.filter(r => r.lica_tipo_lancamento === 'saida').reduce((s, r) => s + parseFloat(r.lica_valor || 0), 0)
   const saldo         = totalEntradas - totalSaidas
 
   const columns = [
-    { key: 'lica_tipo',       header: 'Tipo',        render: r => <StatusBadge status={r.lica_tipo} /> },
-    { key: 'lica_descricao',  header: 'Descrição',   render: r => r.lica_descricao },
+    { key: 'lica_tipo_lancamento', header: 'Tipo',      render: r => <StatusBadge status={r.lica_tipo_lancamento} /> },
+    { key: 'lica_historico',       header: 'Histórico', render: r => r.lica_historico },
     {
       key: 'lica_valor', header: 'Valor',
       render: r => (
-        <span className={r.lica_tipo === 'entrada' ? 'text-emerald-400' : 'text-red-400'}>
-          {r.lica_tipo === 'entrada' ? '+' : '-'}{formatCurrency(r.lica_valor)}
+        <span className={r.lica_tipo_lancamento === 'entrada' ? 'text-emerald-400' : 'text-red-400'}>
+          {r.lica_tipo_lancamento === 'entrada' ? '+' : '-'}{formatCurrency(r.lica_valor)}
         </span>
       ),
     },
-    { key: 'lica_data', header: 'Data', render: r => formatDate(r.lica_data) },
+    { key: 'lica_data_lancamento', header: 'Data', render: r => formatDate(r.lica_data_lancamento) },
   ]
 
   return (

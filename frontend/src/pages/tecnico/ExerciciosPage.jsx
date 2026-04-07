@@ -38,7 +38,7 @@ function ExercForm({ exercicio, onClose }) {
     defaultValues: exercicio ? {
       exe_nome:      exercicio.exe_nome,
       exe_aparelho:  exercicio.exe_aparelho || '',
-      exe_descricao: exercicio.exe_descricao || '',
+      exe_descricao_tecnica: exercicio.exe_descricao_tecnica || '',
     } : {},
   })
 
@@ -50,7 +50,7 @@ function ExercForm({ exercicio, onClose }) {
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
-    if (exercicio) update.mutate({ id: exercicio.id, data: cleaned })
+    if (exercicio) update.mutate({ id: exercicio.exe_id, data: cleaned })
     else           create.mutate(cleaned)
   }
 
@@ -73,7 +73,7 @@ function ExercForm({ exercicio, onClose }) {
       </FormField>
 
       <FormField label="Descrição">
-        <Textarea {...register('exe_descricao')} placeholder="Descrição e observações do exercício..." disabled={busy} rows={3} />
+        <Textarea {...register('exe_descricao_tecnica')} placeholder="Descrição e observações do exercício..." disabled={busy} rows={3} />
       </FormField>
 
       <DialogFooter>
@@ -110,15 +110,15 @@ export default function ExerciciosPage() {
         </Badge>
       ) : '—',
     },
-    { key: 'exe_descricao', header: 'Descrição', render: r => r.exe_descricao ? (
-      <span className="text-muted-foreground text-xs line-clamp-1">{r.exe_descricao}</span>
+    { key: 'exe_descricao_tecnica', header: 'Descrição', render: r => r.exe_descricao_tecnica ? (
+      <span className="text-muted-foreground text-xs line-clamp-1">{r.exe_descricao_tecnica}</span>
     ) : '—' },
     {
       key: 'acoes', header: '', cellClassName: 'w-20',
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
           <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.exe_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
         </div>
       ),
     },

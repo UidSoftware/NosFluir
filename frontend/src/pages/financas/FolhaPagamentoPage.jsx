@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Banknote, Plus, Pencil, Trash2, AlertCircle, BookOpen } from 'lucide-react'
+import { Banknote, Plus, Pencil, Trash2, AlertCircle } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input, FormField } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils'
+import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
 const ENDPOINT = '/folha-pagamento/'
@@ -28,20 +29,20 @@ const MESES = [
 function FolhaForm({ folha, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: folha ? {
-      func_id:          folha.func_id ? String(folha.func_id) : '',
-      fopa_mes:         folha.fopa_mes ? String(folha.fopa_mes) : '',
-      fopa_ano:         folha.fopa_ano || new Date().getFullYear(),
-      fopa_salario_base: folha.fopa_salario_base || '',
-      fopa_descontos:   folha.fopa_descontos || '',
-      fopa_status:      folha.fopa_status || 'pendente',
-    } : { fopa_ano: new Date().getFullYear(), fopa_status: 'pendente' },
+      func:                   folha.func ? String(folha.func) : '',
+      fopa_mes_referencia:    folha.fopa_mes_referencia ? String(folha.fopa_mes_referencia) : '',
+      fopa_ano_referencia:    folha.fopa_ano_referencia || new Date().getFullYear(),
+      fopa_salario_base:      folha.fopa_salario_base || '',
+      fopa_descontos:         folha.fopa_descontos || '',
+      fopa_status:            folha.fopa_status || 'pendente',
+    } : { fopa_ano_referencia: new Date().getFullYear(), fopa_status: 'pendente' },
   })
 
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
   const update = useUpdate(KEY, ENDPOINT, { onSuccess: onClose })
   const busy   = create.isPending || update.isPending
 
-  const salBase  = parseFloat(watch('fopa_salario_base') || 0)
+  const salBase   = parseFloat(watch('fopa_salario_base') || 0)
   const descontos = parseFloat(watch('fopa_descontos') || 0)
   const liquido   = Math.max(0, salBase - descontos)
 
@@ -51,13 +52,24 @@ function FolhaForm({ folha, onClose }) {
   })
 
   const onSubmit = (data) => {
+    const funcId = data.func && data.func !== '__none__' ? parseInt(data.func) : null
+    if (!funcId) {
+      toast({ title: 'Selecione o funcionário.', variant: 'destructive' })
+      return
+    }
+    const mesId = data.fopa_mes_referencia && data.fopa_mes_referencia !== '__none__' ? parseInt(data.fopa_mes_referencia) : null
+    if (!mesId) {
+      toast({ title: 'Selecione o mês de referência.', variant: 'destructive' })
+      return
+    }
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
-    if (cleaned.func_id) cleaned.func_id = parseInt(cleaned.func_id)
-    if (cleaned.fopa_mes) cleaned.fopa_mes = parseInt(cleaned.fopa_mes)
+    cleaned.func = funcId
+    cleaned.fopa_mes_referencia = mesId
+    if (cleaned.fopa_ano_referencia) cleaned.fopa_ano_referencia = parseInt(cleaned.fopa_ano_referencia)
     cleaned.fopa_valor_liquido = liquido
-    if (folha) update.mutate({ id: folha.id, data: cleaned })
+    if (folha) update.mutate({ id: folha.fopa_id, data: cleaned })
     else       create.mutate(cleaned)
   }
 
@@ -66,12 +78,12 @@ function FolhaForm({ folha, onClose }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <FormField label="Funcionário" required>
-        <Select value={watch('func_id') || '__none__'} onValueChange={v => setValue('func_id', v)} disabled={busy}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+        <Select value={watch('func') || '__none__'} onValueChange={v => setValue('func', v)} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Selecionar funcionário..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar funcionário...</SelectItem>
             {funcionarios?.map(f => (
-              <SelectItem key={f.id} value={String(f.id)}>{f.func_nome}</SelectItem>
+              <SelectItem key={f.func_id} value={String(f.func_id)}>{f.func_nome}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -79,8 +91,8 @@ function FolhaForm({ folha, onClose }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <FormField label="Mês" required>
-          <Select value={watch('fopa_mes') || '__none__'} onValueChange={v => setValue('fopa_mes', v)} disabled={busy}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+          <Select value={watch('fopa_mes_referencia') || '__none__'} onValueChange={v => setValue('fopa_mes_referencia', v)} disabled={busy}>
+            <SelectTrigger><SelectValue placeholder="Mês..." /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__" className="text-muted-foreground italic">Mês...</SelectItem>
               {MESES.map((m, i) => (
@@ -90,7 +102,7 @@ function FolhaForm({ folha, onClose }) {
           </Select>
         </FormField>
         <FormField label="Ano" required>
-          <Input type="number" {...register('fopa_ano', { required: true })} placeholder="2026" disabled={busy} />
+          <Input type="number" {...register('fopa_ano_referencia', { required: true })} placeholder="2026" disabled={busy} />
         </FormField>
       </div>
 
@@ -114,6 +126,7 @@ function FolhaForm({ folha, onClose }) {
           <SelectContent>
             <SelectItem value="pendente">Pendente</SelectItem>
             <SelectItem value="pago">Pago</SelectItem>
+            <SelectItem value="cancelado">Cancelado</SelectItem>
           </SelectContent>
         </Select>
       </FormField>
@@ -149,8 +162,8 @@ export default function FolhaPagamentoPage() {
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Registro excluído.' })
 
   const columns = [
-    { key: 'func_nome',          header: 'Funcionário',  render: r => <span className="font-medium">{r.func_nome || r.func_id}</span> },
-    { key: 'fopa_mes_ano',       header: 'Competência',  render: r => `${MESES[(r.fopa_mes || 1) - 1]}/${r.fopa_ano}` },
+    { key: 'func_nome',          header: 'Funcionário',  render: r => <span className="font-medium">{r.func_nome || '—'}</span> },
+    { key: 'fopa_competencia',   header: 'Competência',  render: r => `${MESES[(r.fopa_mes_referencia || 1) - 1]}/${r.fopa_ano_referencia}` },
     { key: 'fopa_salario_base',  header: 'Salário Base', render: r => formatCurrency(r.fopa_salario_base) },
     { key: 'fopa_valor_liquido', header: 'Líquido',      render: r => formatCurrency(r.fopa_valor_liquido) },
     { key: 'fopa_status',        header: 'Status',       render: r => <StatusBadge status={r.fopa_status} /> },
@@ -159,7 +172,7 @@ export default function FolhaPagamentoPage() {
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
           <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.fopa_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
         </div>
       ),
     },

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileText, Plus, Pencil, Trash2, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react'
+import { FileText, Plus, Pencil, Trash2, ChevronRight } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -11,58 +11,33 @@ import { DataTable } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Input, FormField, Textarea, Spinner } from '@/components/ui/primitives'
+import { Input, FormField, Spinner } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
-const ENDPOINT     = '/fichas-treino/'
-const KEY          = 'fichas-treino'
+const ENDPOINT      = '/fichas-treino/'
+const KEY           = 'fichas-treino'
 const EXER_ENDPOINT = '/fichas-treino-exercicios/'
 
 function FichaForm({ ficha, onClose }) {
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
-    defaultValues: ficha ? {
-      fitr_nome:     ficha.fitr_nome,
-      aluno_id:      ficha.aluno_id ? String(ficha.aluno_id) : '',
-      fitr_descricao: ficha.fitr_descricao || '',
-    } : {},
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    defaultValues: ficha ? { fitr_nome: ficha.fitr_nome } : {},
   })
 
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
   const update = useUpdate(KEY, ENDPOINT, { onSuccess: onClose })
   const busy   = create.isPending || update.isPending
 
-  const { data: alunos } = useQuery({
-    queryKey: ['alunos-select'],
-    queryFn: () => api.get('/alunos/').then(r => r.data.results),
-  })
-
   const onSubmit = (data) => {
-    const cleaned = Object.fromEntries(
-      Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
-    )
-    if (cleaned.aluno_id) cleaned.aluno_id = parseInt(cleaned.aluno_id)
-    if (ficha) update.mutate({ id: ficha.id, data: cleaned })
-    else       create.mutate(cleaned)
+    if (ficha) update.mutate({ id: ficha.fitr_id, data })
+    else       create.mutate(data)
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <FormField label="Nome da Ficha" required error={errors.fitr_nome?.message}>
         <Input {...register('fitr_nome', { required: 'Nome obrigatório' })} placeholder="Ficha A — Iniciante" disabled={busy} />
-      </FormField>
-      <FormField label="Aluno">
-        <Select value={watch('aluno_id') || '__none__'} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar aluno...</SelectItem>
-            {alunos?.map(a => <SelectItem key={a.id} value={String(a.id)}>{a.alu_nome}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </FormField>
-      <FormField label="Descrição">
-        <Textarea {...register('fitr_descricao')} placeholder="Observações da ficha..." rows={2} disabled={busy} />
       </FormField>
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
@@ -75,7 +50,7 @@ function FichaForm({ ficha, onClose }) {
 function AddExercicioForm({ fichaId, onClose }) {
   const queryClient = useQueryClient()
   const { register, handleSubmit, setValue, watch } = useForm({
-    defaultValues: { ordem: 1, fte_series: 3, fte_repeticoes: 12 },
+    defaultValues: { ftex_ordem: 1, ftex_series: 3, ftex_repeticoes: 12 },
   })
 
   const { data: exercicios } = useQuery({
@@ -94,36 +69,41 @@ function AddExercicioForm({ fichaId, onClose }) {
   })
 
   const onSubmit = (data) => {
+    const exeId = data.exe && data.exe !== '__none__' ? parseInt(data.exe) : null
+    if (!exeId) {
+      toast({ title: 'Selecione o exercício.', variant: 'destructive' })
+      return
+    }
     mutation.mutate({
-      ficha_treino_id: fichaId,
-      exercicio_id: parseInt(data.exercicio_id),
-      fte_ordem: parseInt(data.ordem),
-      fte_series: parseInt(data.fte_series),
-      fte_repeticoes: parseInt(data.fte_repeticoes),
-      fte_observacoes: data.fte_observacoes || null,
+      fitr:             fichaId,
+      exe:              exeId,
+      ftex_ordem:       parseInt(data.ftex_ordem),
+      ftex_series:      parseInt(data.ftex_series),
+      ftex_repeticoes:  parseInt(data.ftex_repeticoes),
+      ftex_observacoes: data.ftex_observacoes || null,
     })
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <FormField label="Exercício" required>
-        <Select value={watch('exercicio_id') || '__none__'} onValueChange={v => setValue('exercicio_id', v)} disabled={mutation.isPending}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+        <Select value={watch('exe') || '__none__'} onValueChange={v => setValue('exe', v)} disabled={mutation.isPending}>
+          <SelectTrigger><SelectValue placeholder="Selecionar exercício..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar exercício...</SelectItem>
             {exercicios?.map(e => (
-              <SelectItem key={e.id} value={String(e.id)}>{e.exe_nome} ({e.exe_aparelho})</SelectItem>
+              <SelectItem key={e.exe_id} value={String(e.exe_id)}>{e.exe_nome} ({e.exe_aparelho})</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </FormField>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <FormField label="Ordem"><Input type="number" {...register('ordem')} disabled={mutation.isPending} /></FormField>
-        <FormField label="Séries"><Input type="number" {...register('fte_series')} disabled={mutation.isPending} /></FormField>
-        <FormField label="Repetições"><Input type="number" {...register('fte_repeticoes')} disabled={mutation.isPending} /></FormField>
+        <FormField label="Ordem"><Input type="number" {...register('ftex_ordem')} disabled={mutation.isPending} /></FormField>
+        <FormField label="Séries"><Input type="number" {...register('ftex_series')} disabled={mutation.isPending} /></FormField>
+        <FormField label="Repetições"><Input type="number" {...register('ftex_repeticoes')} disabled={mutation.isPending} /></FormField>
       </div>
       <FormField label="Observações">
-        <Input {...register('fte_observacoes')} placeholder="Carga, observações..." disabled={mutation.isPending} />
+        <Input {...register('ftex_observacoes')} placeholder="Carga, observações..." disabled={mutation.isPending} />
       </FormField>
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>Cancelar</Button>
@@ -145,22 +125,21 @@ export default function FichasTreinoPage() {
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Ficha excluída.' })
 
   const { data: exerciciosFicha, isLoading: loadingExerc } = useQuery({
-    queryKey: ['ficha-exercicios', fichaDetalhe?.id],
-    queryFn: () => api.get(EXER_ENDPOINT, { params: { ficha_treino_id: fichaDetalhe.id } }).then(r => r.data.results),
+    queryKey: ['ficha-exercicios', fichaDetalhe?.fitr_id],
+    queryFn: () => api.get(EXER_ENDPOINT, { params: { fitr: fichaDetalhe.fitr_id } }).then(r => r.data.results),
     enabled: !!fichaDetalhe,
   })
 
   const removeExerc = useMutation({
     mutationFn: (id) => api.delete(`${EXER_ENDPOINT}${id}/`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ficha-exercicios', fichaDetalhe?.id] })
+      queryClient.invalidateQueries({ queryKey: ['ficha-exercicios', fichaDetalhe?.fitr_id] })
       toast({ title: 'Exercício removido.', variant: 'success' })
     },
   })
 
   const fichasCols = [
-    { key: 'fitr_nome',  header: 'Ficha',  render: r => <span className="font-medium">{r.fitr_nome}</span> },
-    { key: 'aluno_nome', header: 'Aluno',  render: r => r.aluno_nome || '—' },
+    { key: 'fitr_nome', header: 'Ficha', render: r => <span className="font-medium">{r.fitr_nome}</span> },
     {
       key: 'acoes', header: '', cellClassName: 'w-32',
       render: (r) => (
@@ -169,22 +148,23 @@ export default function FichasTreinoPage() {
             <ChevronRight className="w-3.5 h-3.5" />
           </Button>
           <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.fitr_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
         </div>
       ),
     },
   ]
 
   const exercCols = [
-    { key: 'fte_ordem',      header: '#',           cellClassName: 'w-10' },
-    { key: 'exercicio_nome', header: 'Exercício',   render: r => <span className="font-medium">{r.exercicio_nome || r.exercicio_id}</span> },
-    { key: 'fte_series',     header: 'Séries' },
-    { key: 'fte_repeticoes', header: 'Reps' },
-    { key: 'fte_observacoes',header: 'Obs.',        render: r => r.fte_observacoes || '—' },
+    { key: 'ftex_ordem',      header: '#',         cellClassName: 'w-10' },
+    { key: 'exe_nome',        header: 'Exercício', render: r => <span className="font-medium">{r.exe_nome}</span> },
+    { key: 'exe_aparelho',    header: 'Aparelho',  render: r => r.exe_aparelho || '—' },
+    { key: 'ftex_series',     header: 'Séries' },
+    { key: 'ftex_repeticoes', header: 'Reps' },
+    { key: 'ftex_observacoes',header: 'Obs.',      render: r => r.ftex_observacoes || '—' },
     {
       key: 'acoes', header: '', cellClassName: 'w-16',
       render: (r) => (
-        <Button variant="ghost" size="icon-sm" onClick={() => removeExerc.mutate(r.id)} className="text-red-400 hover:text-red-300">
+        <Button variant="ghost" size="icon-sm" onClick={() => removeExerc.mutate(r.ftex_id)} className="text-red-400 hover:text-red-300">
           <Trash2 className="w-3.5 h-3.5" />
         </Button>
       ),
@@ -202,7 +182,7 @@ export default function FichasTreinoPage() {
       <div className={fichaDetalhe ? 'grid grid-cols-1 lg:grid-cols-2 gap-4' : ''}>
         <Card>
           <CardContent className="p-5 space-y-4">
-            <SearchFilter placeholder="Buscar por nome ou aluno..." onSearch={q => setFilters(q ? { search: q } : {})} />
+            <SearchFilter placeholder="Buscar por nome..." onSearch={q => setFilters(q ? { search: q } : {})} />
             <DataTable columns={fichasCols} data={data} isLoading={isLoading} emptyMessage="Nenhuma ficha cadastrada." />
             <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
           </CardContent>
@@ -226,7 +206,7 @@ export default function FichasTreinoPage() {
               ) : (
                 <DataTable
                   columns={exercCols}
-                  data={exerciciosFicha?.sort((a, b) => a.fte_ordem - b.fte_ordem) || []}
+                  data={exerciciosFicha?.sort((a, b) => a.ftex_ordem - b.ftex_ordem) || []}
                   emptyMessage="Nenhum exercício nesta ficha."
                 />
               )}
@@ -245,7 +225,7 @@ export default function FichasTreinoPage() {
       <Dialog open={addExerOpen} onOpenChange={setAddExerOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Adicionar Exercício</DialogTitle></DialogHeader>
-          {fichaDetalhe && <AddExercicioForm fichaId={fichaDetalhe.id} onClose={() => setAddExerOpen(false)} />}
+          {fichaDetalhe && <AddExercicioForm fichaId={fichaDetalhe.fitr_id} onClose={() => setAddExerOpen(false)} />}
         </DialogContent>
       </Dialog>
 

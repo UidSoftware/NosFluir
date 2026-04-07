@@ -25,7 +25,7 @@ function ProfForm({ prof, onClose }) {
   const busy   = create.isPending || update.isPending
 
   const onSubmit = (data) => {
-    if (prof) update.mutate({ id: prof.id, data })
+    if (prof) update.mutate({ id: prof.prof_id, data })
     else      create.mutate(data)
   }
 
@@ -64,7 +64,7 @@ export default function ProfissoesPage() {
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
           <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.prof_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
         </div>
       ),
     },

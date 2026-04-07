@@ -47,7 +47,7 @@ function FuncForm({ func, onClose }) {
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
     if (cleaned.prof) cleaned.prof = parseInt(cleaned.prof)
-    if (func) update.mutate({ id: func.id, data: cleaned })
+    if (func) update.mutate({ id: func.func_id, data: cleaned })
     else      create.mutate(cleaned)
   }
 
@@ -105,7 +105,7 @@ function FuncForm({ func, onClose }) {
             <SelectContent>
               <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar profissão...</SelectItem>
               {profissoes?.map(p => (
-                <SelectItem key={p.id} value={String(p.id)}>{p.prof_nome}</SelectItem>
+                <SelectItem key={p.prof_id} value={String(p.prof_id)}>{p.prof_nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -171,7 +171,7 @@ export default function FuncionariosPage() {
         <div className="flex items-center gap-1 justify-end">
           <Button variant="ghost" size="icon-sm" onClick={() => openDetail(r)}><Eye className="w-3.5 h-3.5" /></Button>
           <Button variant="ghost" size="icon-sm" onClick={() => openEdit(r)}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300">
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.func_id)} className="text-red-400 hover:text-red-300">
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
         </div>

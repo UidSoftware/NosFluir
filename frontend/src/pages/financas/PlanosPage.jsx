@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input, FormField } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
 const ENDPOINT = '/planos-pagamentos/'
@@ -22,9 +23,10 @@ const KEY      = 'planos'
 function PlanoForm({ plano, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: plano ? {
-      aluno_id:            plano.aluno_id ? String(plano.aluno_id) : '',
-      serv_id:             plano.serv_id ? String(plano.serv_id) : '',
-      plan_valor:          plano.plan_valor || '',
+      alu:                 plano.alu ? String(plano.alu) : '',
+      serv:                plano.serv ? String(plano.serv) : '',
+      plan_tipo_plano:     plano.plan_tipo_plano || '',
+      plan_valor_plano:    plano.plan_valor_plano || '',
       plan_dia_vencimento: plano.plan_dia_vencimento || '',
       plan_data_inicio:    plano.plan_data_inicio || '',
       plan_data_fim:       plano.plan_data_fim || '',
@@ -46,44 +48,66 @@ function PlanoForm({ plano, onClose }) {
   })
 
   const onSubmit = (data) => {
+    const aluId = data.alu && data.alu !== '__none__' ? parseInt(data.alu) : null
+    if (!aluId) {
+      toast({ title: 'Selecione o aluno.', variant: 'destructive' })
+      return
+    }
+    const servId = data.serv && data.serv !== '__none__' ? parseInt(data.serv) : null
+    if (!servId) {
+      toast({ title: 'Selecione o serviço/produto.', variant: 'destructive' })
+      return
+    }
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
-    if (cleaned.aluno_id) cleaned.aluno_id = parseInt(cleaned.aluno_id)
-    if (cleaned.serv_id)  cleaned.serv_id  = parseInt(cleaned.serv_id)
-    if (plano) update.mutate({ id: plano.id, data: cleaned })
+    cleaned.alu  = aluId
+    cleaned.serv = servId
+    if (plano) update.mutate({ id: plano.plan_id, data: cleaned })
     else       create.mutate(cleaned)
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
-      <FormField label="Aluno" required error={errors.aluno_id?.message}>
-        <Select value={watch('aluno_id') || '__none__'} onValueChange={v => setValue('aluno_id', v)} disabled={busy}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+      <FormField label="Aluno" required error={errors.alu?.message}>
+        <Select value={watch('alu') || '__none__'} onValueChange={v => setValue('alu', v)} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Selecionar aluno..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar aluno...</SelectItem>
             {alunos?.map(a => (
-              <SelectItem key={a.id} value={String(a.id)}>{a.alu_nome}</SelectItem>
+              <SelectItem key={a.alu_id} value={String(a.alu_id)}>{a.alu_nome}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </FormField>
 
       <FormField label="Serviço/Produto" required>
-        <Select value={watch('serv_id') || '__none__'} onValueChange={v => setValue('serv_id', v)} disabled={busy}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+        <Select value={watch('serv') || '__none__'} onValueChange={v => setValue('serv', v)} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Selecionar serviço..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar serviço...</SelectItem>
             {servicos?.map(s => (
-              <SelectItem key={s.id} value={String(s.id)}>{s.serv_nome}</SelectItem>
+              <SelectItem key={s.serv_id} value={String(s.serv_id)}>{s.serv_nome}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </FormField>
 
+      <FormField label="Tipo de Plano" required>
+        <Select value={watch('plan_tipo_plano') || '__none__'} onValueChange={v => setValue('plan_tipo_plano', v)} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Selecionar tipo..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar tipo...</SelectItem>
+            <SelectItem value="mensal">Mensal</SelectItem>
+            <SelectItem value="trimestral">Trimestral</SelectItem>
+            <SelectItem value="semestral">Semestral</SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <FormField label="Valor (R$)" required>
-          <Input type="number" step="0.01" {...register('plan_valor', { required: true })} placeholder="350.00" disabled={busy} />
+        <FormField label="Valor Mensal (R$)" required>
+          <Input type="number" step="0.01" {...register('plan_valor_plano', { required: true })} placeholder="350.00" disabled={busy} />
         </FormField>
         <FormField label="Dia de Vencimento">
           <Input type="number" min="1" max="31" {...register('plan_dia_vencimento')} placeholder="10" disabled={busy} />
@@ -117,18 +141,21 @@ export default function PlanosPage() {
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Plano excluído.' })
 
+  const TIPO_LABEL = { mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral' }
+
   const columns = [
-    { key: 'aluno_nome',         header: 'Aluno',       render: r => <span className="font-medium">{r.aluno_nome || r.aluno_id}</span> },
-    { key: 'servico_nome',       header: 'Serviço',     render: r => r.servico_nome || r.serv_id || '—' },
-    { key: 'plan_valor',         header: 'Valor',       render: r => formatCurrency(r.plan_valor) },
-    { key: 'plan_dia_vencimento',header: 'Venc. dia',   render: r => r.plan_dia_vencimento ? `dia ${r.plan_dia_vencimento}` : '—' },
-    { key: 'plan_data_inicio',   header: 'Início',      render: r => formatDate(r.plan_data_inicio) },
+    { key: 'alu_nome',           header: 'Aluno',      render: r => <span className="font-medium">{r.alu_nome || '—'}</span> },
+    { key: 'serv_nome',          header: 'Serviço',    render: r => r.serv_nome || '—' },
+    { key: 'plan_tipo_plano',    header: 'Tipo',       render: r => TIPO_LABEL[r.plan_tipo_plano] || r.plan_tipo_plano || '—' },
+    { key: 'plan_valor_plano',   header: 'Valor',      render: r => formatCurrency(r.plan_valor_plano) },
+    { key: 'plan_dia_vencimento',header: 'Venc. dia',  render: r => r.plan_dia_vencimento ? `dia ${r.plan_dia_vencimento}` : '—' },
+    { key: 'plan_data_inicio',   header: 'Início',     render: r => formatDate(r.plan_data_inicio) },
     {
       key: 'acoes', header: '', cellClassName: 'w-20',
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
           <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.plan_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
         </div>
       ),
     },

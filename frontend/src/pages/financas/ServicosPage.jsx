@@ -11,6 +11,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input, FormField } from '@/components/ui/primitives'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { BooleanBadge } from '@/components/shared/StatusBadge'
 import { formatCurrency } from '@/lib/utils'
 
@@ -18,12 +19,13 @@ const ENDPOINT = '/servicos-produtos/'
 const KEY      = 'servicos'
 
 function ServicoForm({ servico, onClose }) {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: servico ? {
-      serv_nome:     servico.serv_nome,
-      serv_descricao: servico.serv_descricao || '',
-      serv_preco:    servico.serv_preco || '',
-      serv_ativo:    servico.serv_ativo !== false,
+      serv_nome:        servico.serv_nome,
+      serv_descricao:   servico.serv_descricao || '',
+      serv_valor_base:  servico.serv_valor_base || '',
+      serv_tipo:        servico.serv_tipo || '',
+      serv_ativo:       servico.serv_ativo !== false,
     } : { serv_ativo: true },
   })
 
@@ -35,7 +37,7 @@ function ServicoForm({ servico, onClose }) {
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
-    if (servico) update.mutate({ id: servico.id, data: cleaned })
+    if (servico) update.mutate({ id: servico.serv_id, data: cleaned })
     else         create.mutate(cleaned)
   }
 
@@ -44,11 +46,21 @@ function ServicoForm({ servico, onClose }) {
       <FormField label="Nome do Serviço/Produto" required error={errors.serv_nome?.message}>
         <Input {...register('serv_nome', { required: 'Nome obrigatório' })} placeholder="Mensalidade Pilates" disabled={busy} />
       </FormField>
+      <FormField label="Tipo" required error={errors.serv_tipo?.message}>
+        <Select value={watch('serv_tipo') || '__none__'} onValueChange={v => setValue('serv_tipo', v)} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Selecionar tipo..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar tipo...</SelectItem>
+            <SelectItem value="servico">Serviço</SelectItem>
+            <SelectItem value="produto">Produto</SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
       <FormField label="Descrição">
         <Input {...register('serv_descricao')} placeholder="Descrição opcional" disabled={busy} />
       </FormField>
-      <FormField label="Preço (R$)">
-        <Input type="number" step="0.01" {...register('serv_preco')} placeholder="350.00" disabled={busy} />
+      <FormField label="Valor Base (R$)" required error={errors.serv_valor_base?.message}>
+        <Input type="number" step="0.01" {...register('serv_valor_base', { required: 'Valor obrigatório' })} placeholder="350.00" disabled={busy} />
       </FormField>
       <FormField label="Ativo">
         <label className="flex items-center gap-2 cursor-pointer">
@@ -76,16 +88,17 @@ export default function ServicosPage() {
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Serviço excluído.' })
 
   const columns = [
-    { key: 'serv_nome',     header: 'Nome',   render: r => <span className="font-medium">{r.serv_nome}</span> },
-    { key: 'serv_descricao', header: 'Descrição', render: r => r.serv_descricao || '—' },
-    { key: 'serv_preco',    header: 'Preço',  render: r => formatCurrency(r.serv_preco) },
-    { key: 'serv_ativo',    header: 'Ativo',  render: r => <BooleanBadge value={r.serv_ativo} /> },
+    { key: 'serv_nome',       header: 'Nome',      render: r => <span className="font-medium">{r.serv_nome}</span> },
+    { key: 'serv_tipo',       header: 'Tipo',      render: r => r.serv_tipo === 'servico' ? 'Serviço' : r.serv_tipo === 'produto' ? 'Produto' : '—' },
+    { key: 'serv_descricao',  header: 'Descrição', render: r => r.serv_descricao || '—' },
+    { key: 'serv_valor_base', header: 'Valor',     render: r => formatCurrency(r.serv_valor_base) },
+    { key: 'serv_ativo',      header: 'Ativo',     render: r => <BooleanBadge value={r.serv_ativo} /> },
     {
       key: 'acoes', header: '', cellClassName: 'w-20',
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
           <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.serv_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
         </div>
       ),
     },

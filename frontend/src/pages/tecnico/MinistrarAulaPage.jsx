@@ -48,9 +48,9 @@ function AlunoRow({ aluno, state, onUpdate }) {
   useEffect(() => { onUpdateRef.current = onUpdate })
   useEffect(() => {
     if (presenca === 'reposicao') {
-      onUpdateRef.current(aluno.id, { creditoId: proximoCredito?.id ?? null })
+      onUpdateRef.current(aluno.id, { creditoId: proximoCredito?.cred_id ?? null })
     }
-  }, [proximoCredito?.id, presenca, aluno.id])
+  }, [proximoCredito?.cred_id, presenca, aluno.id])
 
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
@@ -227,7 +227,7 @@ export default function MinistrarAulaPage() {
     for (const ta of alunos) {
       const d = alunoStates[ta.alu]
       if (!d) continue
-      const nome = ta.aluno_nome || `Aluno ${ta.alu}`
+      const nome = ta.alu_nome || `Aluno ${ta.alu}`
 
       if (d.presenca === 'regular') {
         if (d.pressaoI && !PRESSAO_REGEX.test(d.pressaoI)) {
@@ -280,7 +280,7 @@ export default function MinistrarAulaPage() {
         await api.post('/aulas/', payload)
       } catch (err) {
         erros++
-        const nome = ta.aluno_nome || `Aluno ${ta.alu}`
+        const nome = ta.alu_nome || `Aluno ${ta.alu}`
         const detalhe = err.response?.data?.detail || JSON.stringify(err.response?.data) || 'erro desconhecido'
         toast({ title: `Erro ao salvar ${nome}: ${detalhe}`, variant: 'destructive' })
       }
@@ -305,7 +305,7 @@ export default function MinistrarAulaPage() {
       <div className="space-y-5">
         <PageHeader
           title="Ministrar Aula"
-          description={`${turmas?.find(t => t.id === parseInt(turmaId))?.tur_nome || ''} — ${formatDate(data)}`}
+          description={`${turmas?.find(t => t.tur_id === parseInt(turmaId))?.tur_nome || ''} — ${formatDate(data)}`}
           actions={
             <Button variant="outline" onClick={() => setStep('configurar')} disabled={finalizando}>
               Voltar
@@ -372,7 +372,7 @@ export default function MinistrarAulaPage() {
               <SelectTrigger><SelectValue placeholder="Selecionar turma..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar turma...</SelectItem>
-                {turmas?.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.tur_nome}</SelectItem>)}
+                {turmas?.map(t => <SelectItem key={t.tur_id} value={String(t.tur_id)}>{t.tur_nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormField>
@@ -382,7 +382,7 @@ export default function MinistrarAulaPage() {
               <SelectTrigger><SelectValue placeholder="Selecionar professor..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar professor...</SelectItem>
-                {funcionarios?.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.func_nome}</SelectItem>)}
+                {funcionarios?.map(f => <SelectItem key={f.func_id} value={String(f.func_id)}>{f.func_nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormField>
@@ -392,7 +392,7 @@ export default function MinistrarAulaPage() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar ficha...</SelectItem>
-                {fichas?.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.fitr_nome}</SelectItem>)}
+                {fichas?.map(f => <SelectItem key={f.fitr_id} value={String(f.fitr_id)}>{f.fitr_nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormField>

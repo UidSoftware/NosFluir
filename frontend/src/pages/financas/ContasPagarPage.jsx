@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CreditCard, Plus, Pencil, Trash2, Eye, AlertTriangle } from 'lucide-react'
+import { CreditCard, Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -31,15 +31,20 @@ const STATUS_OPTS = [
 function ContaForm({ conta, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: conta ? {
-      pag_descricao:      conta.pag_descricao,
-      pag_valor_unitario: conta.pag_valor_unitario || '',
-      pag_quantidade:     conta.pag_quantidade || 1,
-      pag_data_vencimento: conta.pag_data_vencimento || '',
-      pag_data_pagamento:  conta.pag_data_pagamento || '',
-      pag_status:         conta.pag_status || 'pendente',
-      for_id:             conta.for_id ? String(conta.for_id) : '',
-      pag_observacoes:    conta.pag_observacoes || '',
-    } : { pag_quantidade: 1, pag_status: 'pendente' },
+      pag_descricao:       conta.pag_descricao,
+      pag_valor_unitario:  conta.pag_valor_unitario || '',
+      pag_quantidade:      conta.pag_quantidade || 1,
+      pag_data_emissao:    conta.pag_data_emissao ? conta.pag_data_emissao.split('T')[0] : '',
+      pag_data_vencimento: conta.pag_data_vencimento ? conta.pag_data_vencimento.split('T')[0] : '',
+      pag_data_pagamento:  conta.pag_data_pagamento ? conta.pag_data_pagamento.split('T')[0] : '',
+      pag_status:          conta.pag_status || 'pendente',
+      forn:                conta.forn ? String(conta.forn) : '',
+      pag_observacoes:     conta.pag_observacoes || '',
+    } : {
+      pag_quantidade: 1,
+      pag_status: 'pendente',
+      pag_data_emissao: new Date().toISOString().split('T')[0],
+    },
   })
 
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
@@ -49,15 +54,20 @@ function ContaForm({ conta, onClose }) {
 
   const { data: fornecedores } = useQuery({
     queryKey: ['fornecedores-select'],
-    queryFn: () => api.get('/fornecedores/', { params: { page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => api.get('/fornecedores/').then(r => r.data.results),
   })
 
   const onSubmit = (data) => {
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
-    if (cleaned.for_id) cleaned.for_id = parseInt(cleaned.for_id)
-    if (conta) update.mutate({ id: conta.id, data: cleaned })
+    const fornId = cleaned.forn && cleaned.forn !== '__none__' ? parseInt(cleaned.forn) : null
+    if (!fornId) {
+      cleaned.forn = null
+    } else {
+      cleaned.forn = fornId
+    }
+    if (conta) update.mutate({ id: conta.pag_id, data: cleaned })
     else       create.mutate(cleaned)
   }
 
@@ -77,20 +87,24 @@ function ContaForm({ conta, onClose }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        <FormField label="Emissão" required error={errors.pag_data_emissao?.message}>
+          <Input type="date" {...register('pag_data_emissao', { required: 'Data obrigatória' })} disabled={busy} />
+        </FormField>
         <FormField label="Vencimento" required error={errors.pag_data_vencimento?.message}>
           <Input type="date" {...register('pag_data_vencimento', { required: 'Data obrigatória' })} disabled={busy} />
         </FormField>
-        <FormField label="Status">
-          <Select value={watch('pag_status')} onValueChange={v => setValue('pag_status', v)} disabled={busy}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pendente">Pendente</SelectItem>
-              <SelectItem value="pago">Pago</SelectItem>
-              <SelectItem value="cancelado">Cancelado</SelectItem>
-            </SelectContent>
-          </Select>
-        </FormField>
       </div>
+
+      <FormField label="Status">
+        <Select value={watch('pag_status')} onValueChange={v => setValue('pag_status', v)} disabled={busy}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pendente">Pendente</SelectItem>
+            <SelectItem value="pago">Pago</SelectItem>
+            <SelectItem value="cancelado">Cancelado</SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
 
       {status === 'pago' && (
         <FormField label="Data do Pagamento" required error={errors.pag_data_pagamento?.message}>
@@ -99,12 +113,12 @@ function ContaForm({ conta, onClose }) {
       )}
 
       <FormField label="Fornecedor">
-        <Select value={watch('for_id') || '__none__'} onValueChange={v => setValue('for_id', v)} disabled={busy}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+        <Select value={watch('forn') || '__none__'} onValueChange={v => setValue('forn', v)} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Selecionar fornecedor..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar fornecedor...</SelectItem>
             {fornecedores?.map(f => (
-              <SelectItem key={f.id} value={String(f.id)}>{f.for_nome}</SelectItem>
+              <SelectItem key={f.forn_id} value={String(f.forn_id)}>{f.forn_nome_empresa}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -136,7 +150,7 @@ export default function ContasPagarPage() {
   const handleSearch = (q) => {
     const f = {}
     if (q) f.search = q
-    if (statusFilter) f.status = statusFilter
+    if (statusFilter && statusFilter !== 'all') f.pag_status = statusFilter
     setFilters(f)
   }
 
@@ -158,15 +172,16 @@ export default function ContasPagarPage() {
         </div>
       ),
     },
-    { key: 'pag_valor_total',     header: 'Valor',       render: r => formatCurrency(r.pag_valor_total) },
-    { key: 'pag_data_vencimento', header: 'Vencimento',  render: r => formatDate(r.pag_data_vencimento) },
-    { key: 'pag_status',          header: 'Status',      render: r => <StatusBadge status={r.pag_status} /> },
+    { key: 'forn_nome',           header: 'Fornecedor', render: r => r.forn_nome || '—' },
+    { key: 'pag_valor_total',     header: 'Valor',      render: r => formatCurrency(r.pag_valor_total) },
+    { key: 'pag_data_vencimento', header: 'Vencimento', render: r => formatDate(r.pag_data_vencimento) },
+    { key: 'pag_status',          header: 'Status',     render: r => <StatusBadge status={r.pag_status} /> },
     {
       key: 'acoes', header: '', cellClassName: 'w-20',
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
           <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.pag_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
         </div>
       ),
     },

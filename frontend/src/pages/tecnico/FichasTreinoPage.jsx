@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileText, Plus, Pencil, Trash2, ChevronRight } from 'lucide-react'
+import { FileText, Plus, Pencil, Trash2, Dumbbell } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -145,7 +145,7 @@ export default function FichasTreinoPage() {
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
           <Button variant="ghost" size="icon-sm" onClick={() => setFichaDetalhe(r)} title="Ver exercícios">
-            <ChevronRight className="w-3.5 h-3.5" />
+            <Dumbbell className="w-3.5 h-3.5" />
           </Button>
           <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
           <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.fitr_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>

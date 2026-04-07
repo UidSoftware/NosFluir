@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 06/04/2026 | Versão: 5.0
+> Última atualização: 06/04/2026 | Versão: 6.0
 
 ---
 
@@ -86,10 +86,10 @@ NosFluir/
 │   │   └── wsgi.py
 │   └── apps/
 │       ├── core/
-│       │   └── mixins.py              ← BaseModel, AuditMixin, ReadCreateViewSet
+│       │   └── mixins.py              ← BaseModel, AuditMixin (soft delete), ReadCreateViewSet
 │       ├── usuarios/
 │       ├── financeiro/
-│       │   ├── signals.py             ← lançamentos automáticos LivroCaixa
+│       │   ├── signals.py             ← lançamentos automáticos LivroCaixa (com transaction.atomic)
 │       │   └── tests.py               ← 18 testes
 │       ├── operacional/
 │       │   └── tests.py               ← 16 testes
@@ -119,9 +119,8 @@ NosFluir/
 2. **Auditoria:** todos os models herdam `BaseModel` (abstract):
    - `created_at`, `updated_at`, `deleted_at`
    - `created_by`, `updated_by`, `deleted_by`
-3. **Soft Delete:** NUNCA `objeto.delete()` — sempre setar `deleted_at` + `deleted_by`
-   - ⚠️ `perform_destroy` ainda **não sobrescrito** nos ViewSets — DELETE atual é hard delete
-4. **CPF/CNPJ:** String (preserva zeros à esquerda)
+3. **Soft Delete:** NUNCA `objeto.delete()` — `AuditMixin.perform_destroy` seta `deleted_at` + `deleted_by` automaticamente em todos os ViewSets
+4. **CPF/CNPJ:** String (preserva zeros à esquerda) — validador normaliza para dígitos apenas
 5. **ENUMs:** usar choices do Django
 
 ### Convenção de nomenclatura:
@@ -146,11 +145,11 @@ created_at = models.DateTimeField(...)
 |---|---|---|
 | Fornecedor | fornecedor | |
 | ServicoProduto | servico_produto | endpoint: `/api/servicos-produtos/` |
-| ContasPagar | contas_pagar | signal → LivroCaixa ao pagar |
-| ContasReceber | contas_receber | signal → LivroCaixa ao receber |
+| ContasPagar | contas_pagar | signal → LivroCaixa ao pagar (com select_for_update) |
+| ContasReceber | contas_receber | signal → LivroCaixa ao receber (com select_for_update) |
 | PlanosPagamentos | planos_pagamentos | |
 | LivroCaixa | livro_caixa | **IMUTÁVEL** via ReadCreateViewSet (405 em update/delete) |
-| FolhaPagamento | folha_pagamento | unique: func+mes+ano |
+| FolhaPagamento | folha_pagamento | unique: func+mes+ano; **NÃO** gera lançamento no caixa |
 
 ### App `operacional` — 7 models
 | Model | Tabela | Observação |
@@ -160,17 +159,17 @@ created_at = models.DateTimeField(...)
 | Funcionario | funcionario | CPF único |
 | Turma | turma | max 15 alunos — **sem campo professor** (professor fica na Aula) |
 | TurmaAlunos | turma_alunos | N:N unique: turma+aluno |
-| AgendamentoHorario | agendamento_horario | pré-cadastro do site — aceita POST sem auth |
-| AgendamentoTurmas | agendamento_turmas | pré-cadastro do site — aceita POST sem auth |
+| AgendamentoHorario | agendamento_horario | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
+| AgendamentoTurmas | agendamento_turmas | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 
 ### App `tecnico` — 5 models
 | Model | Tabela | Observação |
 |---|---|---|
 | Exercicio | exercicios | aparelhos: solo/reformer/cadillac/chair/barrel |
-| FichaTreino | ficha_treino | |
+| FichaTreino | ficha_treino | apenas `fitr_id` e `fitr_nome` — sem FK aluno |
 | FichaTreinoExercicios | ficha_treino_exercicios | N:N com ordem+séries+reps |
 | Aula | aulas | 1 linha = 1 aluno em 1 aula; **`func` (FK Funcionario, nullable)** — professor que ministrou |
-| CreditoReposicao | creditos_reposicao | gerado por signal ao registrar falta |
+| CreditoReposicao | creditos_reposicao | gerado por signal ao registrar falta; `cred_data_geracao` é read-only |
 
 ### App `usuarios` — 1 model
 | Model | Tabela | Observação |
@@ -215,13 +214,13 @@ created_at = models.DateTimeField(...)
 ```python
 STATUS: 'disponivel' | 'usado' | 'expirado'
 Campos: aluno (FK), aula_origem (FK), aula_reposicao (FK nullable),
-        cred_data_geracao, cred_data_expiracao (+30 dias auto),
+        cred_data_geracao (read-only), cred_data_expiracao (+30 dias auto),
         cred_usado (boolean), cred_status
 ```
 
 ### Endpoint créditos por aluno:
 ```
-GET /api/creditos/aluno/{alu_id}/   → créditos disponíveis ordenados por expiração (FIFO)
+GET /api/creditos/aluno/{alu_id}/   → créditos disponíveis ordenados por expiração (FIFO) — paginado
 GET /api/creditos/?alu=X&cred_status=disponivel  → filtro padrão
 ```
 
@@ -239,15 +238,16 @@ GET /api/creditos/?alu=X&cred_status=disponivel  → filtro padrão
 - `valor_liquido = salario_base - descontos`
 - LivroCaixa: **NUNCA** editar/deletar — criar estorno se necessário
 - LivroCaixa: update/delete retornam **405** (ReadCreateViewSet) — não 403
-- ContasPagar pago → signal cria lançamento **saída** automático
-- ContasReceber recebido → signal cria lançamento **entrada** automático
-- FolhaPagamento: **NÃO** gera lançamento automático
+- ContasPagar pago → signal cria lançamento **saída** automático com `transaction.atomic()` + `select_for_update()`
+- ContasReceber recebido → signal cria lançamento **entrada** automático com `transaction.atomic()` + `select_for_update()`
+- FolhaPagamento: **NÃO** gera lançamento automático — marcar como "pago" NÃO registra no caixa
 
 ### Técnico:
 - Pressão arterial: formato "120/80" — regex `^\d{2,3}/\d{2}$`
 - Intensidade de esforço: 0-10
 - Mesmo exercício com aparelhos diferentes = registros independentes
 - **Professor fica na Aula** (não na Turma) — turma tem só nome e horário
+- `FichaTreino` tem apenas `fitr_id` e `fitr_nome` — sem FK aluno, sem descrição
 
 ### Serializers — campo `id` obrigatório (CRÍTICO):
 ```python
@@ -260,16 +260,26 @@ class MeuSerializer(serializers.ModelSerializer):
 ```
 > Se criar um novo serializer sem `id`, **selects e operações CRUD vão quebrar** no frontend.
 
-### AuditMixin — usuário anônimo:
+### Campos read-only obrigatórios (CRÍTICO):
 ```python
-# perform_create e perform_update tratam AnonymousUser → created_by=None
-# Necessário para endpoints AllowAny (agendamentos do site)
-# NUNCA reverter isso — quebraria POST de agendamento sem autenticação
+# Sempre incluir em read_only_fields para evitar manipulação via API:
+# - cred_data_geracao, cred_data_expiracao (CreditoReposicao)
+# - lica_data_lancamento, lica_saldo_anterior, lica_saldo_atual (LivroCaixa)
+# - pag_valor_total (ContasPagar — calculado automaticamente)
+# - rec_valor_total (ContasReceber — calculado automaticamente)
+```
+
+### AuditMixin — comportamento completo:
+```python
+# perform_create → created_by=user (None para AnonymousUser)
+# perform_update → updated_by=user
+# perform_destroy → soft delete: deleted_at=now(), deleted_by=user
+# NUNCA reverter o tratamento de AnonymousUser — quebraria agendamentos do site
 ```
 
 ### Paginação (CRÍTICO para o frontend):
 ```javascript
-// SEMPRE usar .results — nunca .data direto
+// SEMPRE usar .results — nunca .data direto (inclusive em /api/creditos/aluno/{id}/)
 const dados = response.data.results
 const total = response.data.count
 ```
@@ -278,13 +288,14 @@ const total = response.data.count
 ```jsx
 // CORRETO — sempre com item sentinela __none__ + placeholder no SelectValue
 // IMPORTANTE: sentinela NÃO deve ter disabled — Radix não renderiza texto de itens disabled
+// IMPORTANTE: usar o PK nomeado do serializer (ex: f.func_id, t.tur_id), NUNCA f.id genérico
 <Select value={watch('campo_id') || '__none__'} onValueChange={v => setValue('campo_id', v)}>
   <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
   <SelectContent>
     <SelectItem value="__none__" className="text-muted-foreground italic">
       Selecionar...
     </SelectItem>
-    {items?.map(i => <SelectItem key={i.id} value={String(i.id)}>{i.nome}</SelectItem>)}
+    {items?.map(i => <SelectItem key={i.model_id} value={String(i.model_id)}>{i.nome}</SelectItem>)}
   </SelectContent>
 </Select>
 
@@ -300,6 +311,24 @@ const [filtro, setFiltro] = useState('all')
 setFilters(v && v !== 'all' ? { campo: v } : {})
 ```
 
+### PKs dos models — referência rápida (CRÍTICO para o frontend):
+```
+Aluno       → alu_id      Funcionario  → func_id     Turma        → tur_id
+TurmaAlunos → tual_id     Fornecedor   → forn_id      ServicoProduto → serv_id
+ContasPagar → pag_id      ContasReceber → rec_id      Planos       → plan_id
+FolhaPag    → fopa_id     Profissao    → prof_id      Exercicio    → exe_id
+FichaTreino → fitr_id     FichaTreinoEx → ftex_id     Aula         → aul_id
+Credito     → cred_id     User         → id (padrão Django)
+```
+
+### FKs no payload (CRÍTICO — sem sufixo `_id`):
+```python
+# Campos FK no model Django → nome sem _id no payload da API:
+alu   (não alu_id)    func  (não func_id)    tur   (não tur_id)
+forn  (não forn_id)   serv  (não serv_id)    fitr  (não fitr_id)
+exe   (não exe_id)    cred  (não cred_id)    prof  (não prof_id)
+```
+
 ### Endpoints da API (CRÍTICO):
 ```
 Todos os endpoints ficam direto em /api/ — sem prefixo de app:
@@ -307,6 +336,7 @@ Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/creditos/            ✅ /api/fichas-treino/    ✅ /api/folha-pagamento/
 ✅ /api/servicos-produtos/   ✅ /api/fornecedores/     ✅ /api/aulas/
 ✅ /api/logout/              ✅ /api/me/               ✅ /api/agendamentos-horario/
+✅ /api/agendamentos-turmas/ ✅ /api/fichas-treino-exercicios/
 ❌ /api/operacional/alunos/  ❌ /api/tecnico/exercicios/  ← ERRADO
 ❌ /api/servicos/            ← ERRADO (correto: /api/servicos-produtos/)
 ```
@@ -343,7 +373,7 @@ git pull origin main && docker compose restart nginx
 ## ⚠️ O que NÃO fazer
 
 - ❌ Float/Double para dinheiro
-- ❌ `objeto.delete()` — usar soft delete (mas atenção: `perform_destroy` ainda não sobrescrito)
+- ❌ `objeto.delete()` — usar soft delete via API (DELETE chama `AuditMixin.perform_destroy`)
 - ❌ Editar/deletar LivroCaixa
 - ❌ Lançamento automático para FolhaPagamento
 - ❌ CPF/CNPJ como número (perde zeros à esquerda)
@@ -357,6 +387,9 @@ git pull origin main && docker compose restart nginx
 - ❌ Serializer sem campo `id` — todos devem ter `id = serializers.IntegerField(source='pk', read_only=True)`
 - ❌ `filterset_fields` referenciando campo que não existe no model — causa 500 em toda listagem
 - ❌ Professor no model Turma — professor fica no model Aula (`func` FK Funcionario)
+- ❌ Usar `.id` genérico no frontend para PKs — usar o PK nomeado (`alu_id`, `func_id`, `tur_id`, etc.)
+- ❌ Usar `forn_id`, `alu_id` como nome do campo FK no payload — usar `forn`, `alu`, `func` (sem `_id`)
+- ❌ `bulk_create` em models que herdam `BaseModel` — `save()` não é chamado, campos auto-calculados ficam NULL
 
 ---
 
@@ -366,7 +399,7 @@ git pull origin main && docker compose restart nginx
 |---|---|---|
 | "decimal places not allowed" | Float em vez de Decimal | `Decimal('150.00')` |
 | "duplicate key violates unique" | Registro duplicado | Verificar `unique_together` |
-| Lançamento duplicado LivroCaixa | Signal chamado 2x | Signals já checam existência — não remover |
+| Lançamento duplicado LivroCaixa | Signal chamado 2x | Signals já checam existência com `select_for_update` — não remover |
 | 405 no update/delete LivroCaixa | ReadCreateViewSet por design | Criar estorno (POST) |
 | Frontend 404 em /sistema/ | base não configurado | Verificar `base: '/sistema/'` no vite |
 | Login não funciona | Tentando auth por username | Verificar `USERNAME_FIELD = 'email'` no model User |
@@ -377,11 +410,14 @@ git pull origin main && docker compose restart nginx
 | Menu sidebar mostra só Dashboard | `UserSerializer` sem `is_superuser`/`groups` | Já corrigido — serializer inclui ambos |
 | nginx: "host not found in upstream" no boot | nginx sobe antes do backend | `depends_on: service_healthy` + healthcheck — já configurado |
 | PWA serve versão antiga após deploy | Service Worker em cache | `skipWaiting/clientsClaim` + `controllerchange` em main.jsx — já configurado |
-| Select mostra todos os nomes concatenados | Radix Select v2.2.6 — nenhum item bate com o `value` (undefined) | `value={watch('campo') \|\| '__none__'}` + sentinela sem `disabled` + `id` no serializer |
+| Select mostra todos os nomes concatenados | Radix Select v2.2.6 — nenhum item bate com o `value` | `value={watch('campo') \|\| '__none__'}` + sentinela sem `disabled` + `id` no serializer |
 | Endpoints retornando 404 (API) | Prefixos errados no frontend | Todos direto em `/api/` — sem prefixo de app |
 | GET /api/turmas/ retorna 500 | `filterset_fields` com campo removido do model | Remover campo do `filterset_fields` — já corrigido |
 | Agendamento do site retorna 500 | `AuditMixin` passava `AnonymousUser` como `created_by` | `AuditMixin` agora usa `None` para usuário não autenticado — já corrigido |
 | Selects não carregam / r.id undefined | Serializer sem campo `id` | Adicionar `id = serializers.IntegerField(source='pk', read_only=True)` + incluir em `fields` |
+| Select usa `f.id` mas retorna undefined | Frontend usando `.id` genérico em vez do PK nomeado | Usar `f.func_id`, `t.tur_id`, `a.alu_id` etc. conforme tabela de PKs acima |
+| update.mutate com id errado (403/404) | `update.mutate({ id: r.id })` — campo `.id` não existe no DRF padrão | Usar o PK nomeado: `{ id: r.func_id }`, `{ id: r.alu_id }` etc. |
+| Saldo LivroCaixa errado após pagamentos simultâneos | Race condition no signal sem transação | Já corrigido — signals usam `select_for_update()` + `transaction.atomic()` |
 
 ---
 
@@ -406,11 +442,13 @@ git pull origin main && docker compose restart nginx
 - [x] Configuração: Usuários, Profissões
 - [x] PWA, Sidebar colapsável, Toaster, ConfirmDialog, paginação, permissões
 
-#### Fase 2.1–2.6 — Bug fixes ✅ (04–06/04/2026)
-- [x] Campos de API corrigidos em 25 arquivos (nomes de campos, prefixos de endpoint)
-- [x] Radix Select v2.2.6 — sentinela `__none__` sem `disabled`, `value='all'` em filtros
-- [x] `parseInt('__none__')` corrigido em todos os forms com FK obrigatória
-- [x] MinistrarAulaPage reescrita com POST completo por aluno + validações
+#### Fase 2.7 — Auditoria e correção de inconsistências ✅ (06/04/2026)
+- [x] Todos os PKs nomeados corrigidos no frontend (alu_id, func_id, tur_id, etc.)
+- [x] Todos os nomes de campos FK corrigidos no payload (alu, func, forn — sem _id)
+- [x] Todos os nomes de campos do model corrigidos (lica_historico, lica_tipo_lancamento, etc.)
+- [x] Campos obrigatórios ausentes adicionados (pag_data_emissao, rec_data_emissao, serv_tipo, plan_tipo_plano)
+- [x] Campos inexistentes removidos (aluno_id e fitr_descricao em FichasTreinoPage)
+- [x] 21 arquivos frontend corrigidos — todas as telas funcionais
 
 ### Fase 3 — Site Institucional ✅ COMPLETO E EM PRODUÇÃO (04/04/2026)
 - [x] Multi-página: index, sobre, serviços, agendamento, contato
@@ -425,7 +463,7 @@ git pull origin main && docker compose restart nginx
 - [x] Model CreditoReposicao com status, expiração automática (+30 dias), FIFO
 - [x] Signal `gerar_credito_reposicao` — justificada/atestado, limite 3, sem duplicata
 - [x] Signal `marcar_credito_usado` — marca crédito ao registrar reposição
-- [x] Endpoints: `/api/creditos/`, `/api/creditos/aluno/{id}/`
+- [x] Endpoints: `/api/creditos/`, `/api/creditos/aluno/{id}/` (paginado)
 - [x] Frontend: página Reposições, validação de crédito em MinistrarAulaPage
 - [ ] Uso cruzado Pilates ↔ Funcional (pendente reunião)
 - [ ] cenario3 (+48h) — pendente reunião com clientes
@@ -437,11 +475,21 @@ git pull origin main && docker compose restart nginx
 - [x] AuditMixin corrigido para endpoints AllowAny (created_by=None para anônimo)
 - [x] 52 testes automatizados — financeiro, operacional, técnico
 
-### Pendências técnicas identificadas pelos testes:
-- [ ] `perform_destroy` não sobrescrito — soft delete não implementado nos ViewSets
+### Fase 6 — Auditoria Backend e Hardening ✅ (06/04/2026)
+- [x] Soft delete implementado — `AuditMixin.perform_destroy` seta `deleted_at`/`deleted_by` em todos os ViewSets
+- [x] Race condition no LivroCaixa corrigida — `transaction.atomic()` + `select_for_update()` nos signals e na view
+- [x] `cred_data_geracao` protegido como `read_only` no serializer
+- [x] `FichaTreinoExerciciosSerializer` com `created_at`/`updated_at`
+- [x] `AulaViewSet` com filtro por `func` (professor)
+- [x] `CreditoReposicaoViewSet.por_aluno` paginado
+- [x] `UserViewSet` com `filter_backends` configurado
+- [x] Banco vs models auditado — 100% consistente, sem campos órfãos
+
+### Pendências técnicas restantes:
 - [ ] Permissões por perfil (Professor/Financeiro/Recepcionista) não implementadas
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
 - [ ] Crédito expirado — sem job automático para atualizar status
+- [ ] Agendamentos do site exigem Aluno pré-existente — design a revisar com clientes
 
 ---
 

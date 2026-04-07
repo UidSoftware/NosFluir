@@ -311,7 +311,7 @@ class CreditosPorAlunoTest(TestCase):
             )
         resp = self.client.get(f'/api/creditos/aluno/{self.aluno.alu_id}/')
         self.assertEqual(resp.status_code, 200)
-        creditos = resp.data
+        creditos = resp.data['results']
         self.assertEqual(len(creditos), 2)
         # Verifica ordem FIFO — primeiro crédito expira antes
         self.assertLessEqual(creditos[0]['cred_data_expiracao'], creditos[1]['cred_data_expiracao'])

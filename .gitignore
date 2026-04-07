@@ -22,6 +22,7 @@ local_settings.py
 db.sqlite3
 media/
 staticfiles/
+backend/static/
 
 # Node / Frontend
 node_modules/

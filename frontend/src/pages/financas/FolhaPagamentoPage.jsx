@@ -35,6 +35,7 @@ function FolhaForm({ folha, onClose }) {
       fopa_salario_base:      folha.fopa_salario_base || '',
       fopa_descontos:         folha.fopa_descontos || '',
       fopa_status:            folha.fopa_status || 'pendente',
+      fopa_data_pagamento:    folha.fopa_data_pagamento || '',
     } : { fopa_ano_referencia: new Date().getFullYear(), fopa_status: 'pendente' },
   })
 
@@ -69,6 +70,7 @@ function FolhaForm({ folha, onClose }) {
     cleaned.fopa_mes_referencia = mesId
     if (cleaned.fopa_ano_referencia) cleaned.fopa_ano_referencia = parseInt(cleaned.fopa_ano_referencia)
     cleaned.fopa_valor_liquido = liquido
+    if (!cleaned.fopa_data_pagamento) cleaned.fopa_data_pagamento = null
     if (folha) update.mutate({ id: folha.fopa_id, data: cleaned })
     else       create.mutate(cleaned)
   }
@@ -130,6 +132,12 @@ function FolhaForm({ folha, onClose }) {
           </SelectContent>
         </Select>
       </FormField>
+
+      {isPago && (
+        <FormField label="Data de Pagamento">
+          <Input type="date" {...register('fopa_data_pagamento')} disabled={busy} />
+        </FormField>
+      )}
 
       {isPago && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-2">

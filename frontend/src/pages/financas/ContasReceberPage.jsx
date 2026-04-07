@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input, FormField } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
 const ENDPOINT = '/contas-receber/'
@@ -23,15 +24,18 @@ const KEY      = 'contas-receber'
 function ContaForm({ conta, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: conta ? {
-      rec_descricao:       conta.rec_descricao,
-      rec_valor_unitario:  conta.rec_valor_unitario || '',
-      rec_quantidade:      conta.rec_quantidade || 1,
-      rec_desconto:        conta.rec_desconto || '',
-      rec_data_emissao:    conta.rec_data_emissao ? conta.rec_data_emissao.split('T')[0] : '',
-      rec_data_vencimento: conta.rec_data_vencimento ? conta.rec_data_vencimento.split('T')[0] : '',
+      rec_descricao:        conta.rec_descricao,
+      rec_valor_unitario:   conta.rec_valor_unitario || '',
+      rec_quantidade:       conta.rec_quantidade || 1,
+      rec_desconto:         conta.rec_desconto || '',
+      rec_data_emissao:     conta.rec_data_emissao ? conta.rec_data_emissao.split('T')[0] : '',
+      rec_data_vencimento:  conta.rec_data_vencimento ? conta.rec_data_vencimento.split('T')[0] : '',
       rec_data_recebimento: conta.rec_data_recebimento ? conta.rec_data_recebimento.split('T')[0] : '',
-      rec_status:          conta.rec_status || 'pendente',
-      alu:                 conta.alu ? String(conta.alu) : '',
+      rec_status:           conta.rec_status || 'pendente',
+      alu:                  conta.alu ? String(conta.alu) : '',
+      serv:                 conta.serv ? String(conta.serv) : '',
+      rec_forma_recebimento: conta.rec_forma_recebimento || '',
+      rec_plano_tipo:       conta.rec_plano_tipo || '',
     } : {
       rec_quantidade: 1,
       rec_status: 'pendente',
@@ -55,12 +59,23 @@ function ContaForm({ conta, onClose }) {
     queryFn: () => api.get('/alunos/').then(r => r.data.results),
   })
 
+  const { data: servicos } = useQuery({
+    queryKey: ['servicos-select'],
+    queryFn: () => api.get('/servicos-produtos/', { params: { serv_ativo: true } }).then(r => r.data.results),
+  })
+
   const onSubmit = (data) => {
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
     const aluId = cleaned.alu && cleaned.alu !== '__none__' ? parseInt(cleaned.alu) : null
-    cleaned.alu = aluId
+    if (!aluId) {
+      toast({ title: 'Selecione o aluno.', variant: 'destructive' })
+      return
+    }
+    cleaned.alu  = aluId
+    cleaned.serv = cleaned.serv && cleaned.serv !== '__none__' ? parseInt(cleaned.serv) : null
+    cleaned.rec_plano_tipo = cleaned.rec_plano_tipo && cleaned.rec_plano_tipo !== '__none__' ? cleaned.rec_plano_tipo : null
     if (conta) update.mutate({ id: conta.rec_id, data: cleaned })
     else       create.mutate(cleaned)
   }
@@ -115,7 +130,7 @@ function ContaForm({ conta, onClose }) {
         </FormField>
       )}
 
-      <FormField label="Aluno">
+      <FormField label="Aluno" required>
         <Select value={watch('alu') || '__none__'} onValueChange={v => setValue('alu', v)} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Selecionar aluno..." /></SelectTrigger>
           <SelectContent>
@@ -126,6 +141,35 @@ function ContaForm({ conta, onClose }) {
           </SelectContent>
         </Select>
       </FormField>
+
+      <FormField label="Serviço/Produto">
+        <Select value={watch('serv') || '__none__'} onValueChange={v => setValue('serv', v)} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Selecionar serviço (opcional)..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
+            {servicos?.map(s => (
+              <SelectItem key={s.serv_id} value={String(s.serv_id)}>{s.serv_nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <div className="grid grid-cols-2 gap-3">
+        <FormField label="Forma de Recebimento">
+          <Input {...register('rec_forma_recebimento')} placeholder="Pix, Dinheiro, Cartão..." disabled={busy} />
+        </FormField>
+        <FormField label="Tipo de Plano">
+          <Select value={watch('rec_plano_tipo') || '__none__'} onValueChange={v => setValue('rec_plano_tipo', v)} disabled={busy}>
+            <SelectTrigger><SelectValue placeholder="Tipo de plano..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
+              <SelectItem value="mensal">Mensal</SelectItem>
+              <SelectItem value="trimestral">Trimestral</SelectItem>
+              <SelectItem value="semestral">Semestral</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+      </div>
 
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>

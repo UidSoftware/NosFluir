@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input, FormField } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
 const ENDPOINT = '/contas-pagar/'
@@ -39,6 +40,8 @@ function ContaForm({ conta, onClose }) {
       pag_data_pagamento:  conta.pag_data_pagamento ? conta.pag_data_pagamento.split('T')[0] : '',
       pag_status:          conta.pag_status || 'pendente',
       forn:                conta.forn ? String(conta.forn) : '',
+      serv:                conta.serv ? String(conta.serv) : '',
+      pag_forma_pagamento: conta.pag_forma_pagamento || '',
       pag_observacoes:     conta.pag_observacoes || '',
     } : {
       pag_quantidade: 1,
@@ -57,16 +60,22 @@ function ContaForm({ conta, onClose }) {
     queryFn: () => api.get('/fornecedores/').then(r => r.data.results),
   })
 
+  const { data: servicos } = useQuery({
+    queryKey: ['servicos-select'],
+    queryFn: () => api.get('/servicos-produtos/', { params: { serv_ativo: true } }).then(r => r.data.results),
+  })
+
   const onSubmit = (data) => {
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
     const fornId = cleaned.forn && cleaned.forn !== '__none__' ? parseInt(cleaned.forn) : null
     if (!fornId) {
-      cleaned.forn = null
-    } else {
-      cleaned.forn = fornId
+      toast({ title: 'Selecione o fornecedor.', variant: 'destructive' })
+      return
     }
+    cleaned.forn = fornId
+    cleaned.serv = cleaned.serv && cleaned.serv !== '__none__' ? parseInt(cleaned.serv) : null
     if (conta) update.mutate({ id: conta.pag_id, data: cleaned })
     else       create.mutate(cleaned)
   }
@@ -112,7 +121,7 @@ function ContaForm({ conta, onClose }) {
         </FormField>
       )}
 
-      <FormField label="Fornecedor">
+      <FormField label="Fornecedor" required>
         <Select value={watch('forn') || '__none__'} onValueChange={v => setValue('forn', v)} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Selecionar fornecedor..." /></SelectTrigger>
           <SelectContent>
@@ -122,6 +131,22 @@ function ContaForm({ conta, onClose }) {
             ))}
           </SelectContent>
         </Select>
+      </FormField>
+
+      <FormField label="Serviço/Produto">
+        <Select value={watch('serv') || '__none__'} onValueChange={v => setValue('serv', v)} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Selecionar serviço (opcional)..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
+            {servicos?.map(s => (
+              <SelectItem key={s.serv_id} value={String(s.serv_id)}>{s.serv_nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField label="Forma de Pagamento">
+        <Input {...register('pag_forma_pagamento')} placeholder="Dinheiro, Pix, Cartão..." disabled={busy} />
       </FormField>
 
       <FormField label="Observações">

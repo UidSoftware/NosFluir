@@ -40,7 +40,6 @@ function ContaForm({ conta, onClose }) {
       pag_data_pagamento:  conta.pag_data_pagamento ? conta.pag_data_pagamento.split('T')[0] : '',
       pag_status:          conta.pag_status || 'pendente',
       forn:                conta.forn ? String(conta.forn) : '',
-      serv:                conta.serv ? String(conta.serv) : '',
       pag_forma_pagamento: conta.pag_forma_pagamento || '',
       pag_observacoes:     conta.pag_observacoes || '',
     } : {
@@ -60,11 +59,6 @@ function ContaForm({ conta, onClose }) {
     queryFn: () => api.get('/fornecedores/').then(r => r.data.results),
   })
 
-  const { data: servicos } = useQuery({
-    queryKey: ['servicos-select'],
-    queryFn: () => api.get('/servicos-produtos/', { params: { serv_ativo: true } }).then(r => r.data.results),
-  })
-
   const onSubmit = (data) => {
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
@@ -75,7 +69,6 @@ function ContaForm({ conta, onClose }) {
       return
     }
     cleaned.forn = fornId
-    cleaned.serv = cleaned.serv && cleaned.serv !== '__none__' ? parseInt(cleaned.serv) : null
     if (conta) update.mutate({ id: conta.pag_id, data: cleaned })
     else       create.mutate(cleaned)
   }
@@ -134,18 +127,6 @@ function ContaForm({ conta, onClose }) {
             <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar fornecedor...</SelectItem>
             {fornecedores?.map(f => (
               <SelectItem key={f.forn_id} value={String(f.forn_id)}>{f.forn_nome_empresa}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
-
-      <FormField label="Serviço/Produto">
-        <Select value={watch('serv') || '__none__'} onValueChange={v => setValue('serv', v)} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Selecionar serviço (opcional)..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
-            {servicos?.map(s => (
-              <SelectItem key={s.serv_id} value={String(s.serv_id)}>{s.serv_nome}</SelectItem>
             ))}
           </SelectContent>
         </Select>

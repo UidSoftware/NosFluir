@@ -401,3 +401,87 @@ class FiltroContasReceberTest(TestCase):
 
         resp3 = self.client.get('/api/servicos-produtos/')
         self.assertIn('id', resp3.data['results'][0])
+
+
+# ── TP019 — RN010: Status vencido automático ──────────────────────────────────
+
+class StatusVencidoAutomaticoTest(TestCase):
+    """TP019 — RN010: contas pendentes com vencimento passado → vencido ao listar."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.forn = criar_fornecedor()
+        self.aluno = criar_aluno()
+        self.serv = criar_servico()
+
+    def test_TP019a_contas_pagar_vencido_automatico(self):
+        """TP019a: ContasPagar pendente com vencimento no passado → vencido ao listar."""
+        ContasPagar.objects.create(
+            forn=self.forn,
+            pag_data_emissao='2026-01-01',
+            pag_data_vencimento='2026-01-15',  # passado
+            pag_descricao='Conta vencida teste',
+            pag_quantidade=1,
+            pag_valor_unitario=Decimal('100.00'),
+            pag_valor_total=Decimal('100.00'),
+            pag_status='pendente',
+        )
+        resp = self.client.get('/api/contas-pagar/')
+        self.assertEqual(resp.status_code, 200)
+        item = resp.data['results'][0]
+        self.assertEqual(item['pag_status'], 'vencido')
+
+    def test_TP019b_contas_pagar_nao_altera_pago(self):
+        """TP019b: ContasPagar com status 'pago' não deve ser alterada para vencido."""
+        ContasPagar.objects.create(
+            forn=self.forn,
+            pag_data_emissao='2026-01-01',
+            pag_data_vencimento='2026-01-15',  # passado
+            pag_descricao='Conta paga teste',
+            pag_quantidade=1,
+            pag_valor_unitario=Decimal('100.00'),
+            pag_valor_total=Decimal('100.00'),
+            pag_status='pago',
+        )
+        resp = self.client.get('/api/contas-pagar/')
+        self.assertEqual(resp.status_code, 200)
+        item = resp.data['results'][0]
+        self.assertEqual(item['pag_status'], 'pago')
+
+    def test_TP019c_contas_receber_vencido_automatico(self):
+        """TP019c: ContasReceber pendente com vencimento no passado → vencido ao listar."""
+        ContasReceber.objects.create(
+            alu=self.aluno,
+            rec_data_emissao='2026-01-01',
+            rec_data_vencimento='2026-01-15',  # passado
+            rec_descricao='Receber vencida teste',
+            rec_quantidade=1,
+            rec_valor_unitario=Decimal('150.00'),
+            rec_desconto=Decimal('0.00'),
+            rec_valor_total=Decimal('150.00'),
+            rec_status='pendente',
+        )
+        resp = self.client.get('/api/contas-receber/')
+        self.assertEqual(resp.status_code, 200)
+        item = resp.data['results'][0]
+        self.assertEqual(item['rec_status'], 'vencido')
+
+    def test_TP019d_contas_receber_nao_altera_recebido(self):
+        """TP019d: ContasReceber com status 'recebido' não deve ser alterada para vencido."""
+        ContasReceber.objects.create(
+            alu=self.aluno,
+            rec_data_emissao='2026-01-01',
+            rec_data_vencimento='2026-01-15',  # passado
+            rec_descricao='Receber já recebida',
+            rec_quantidade=1,
+            rec_valor_unitario=Decimal('150.00'),
+            rec_desconto=Decimal('0.00'),
+            rec_valor_total=Decimal('150.00'),
+            rec_status='recebido',
+        )
+        resp = self.client.get('/api/contas-receber/')
+        self.assertEqual(resp.status_code, 200)
+        item = resp.data['results'][0]
+        self.assertEqual(item['rec_status'], 'recebido')

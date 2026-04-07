@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.db import transaction
+from django.utils import timezone
 from rest_framework.viewsets import ModelViewSet
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -44,6 +45,15 @@ class ContasPagarViewSet(AuditMixin, ModelViewSet):
     search_fields = ['pag_descricao']
     ordering_fields = ['pag_data_vencimento', 'pag_valor_total']
 
+    def list(self, request, *args, **kwargs):
+        # RN010: atualiza status para 'vencido' antes de listar
+        ContasPagar.objects.filter(
+            pag_status='pendente',
+            pag_data_vencimento__lt=timezone.now(),
+            deleted_at__isnull=True,
+        ).update(pag_status='vencido', updated_at=timezone.now())
+        return super().list(request, *args, **kwargs)
+
 
 class ContasReceberViewSet(AuditMixin, ModelViewSet):
     queryset = ContasReceber.objects.filter(deleted_at__isnull=True).order_by('rec_data_vencimento')
@@ -52,6 +62,15 @@ class ContasReceberViewSet(AuditMixin, ModelViewSet):
     filterset_fields = ['rec_status', 'alu', 'rec_plano_tipo']
     search_fields = ['rec_descricao']
     ordering_fields = ['rec_data_vencimento', 'rec_valor_total']
+
+    def list(self, request, *args, **kwargs):
+        # RN010: atualiza status para 'vencido' antes de listar
+        ContasReceber.objects.filter(
+            rec_status='pendente',
+            rec_data_vencimento__lt=timezone.now(),
+            deleted_at__isnull=True,
+        ).update(rec_status='vencido', updated_at=timezone.now())
+        return super().list(request, *args, **kwargs)
 
 
 class PlanosPagamentosViewSet(AuditMixin, ModelViewSet):

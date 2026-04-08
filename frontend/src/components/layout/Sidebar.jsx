@@ -109,7 +109,11 @@ export function Sidebar({ collapsed, onToggle }) {
   }
 
   const toggleMenu = (id) => {
-    if (collapsed) return
+    if (collapsed) {
+      onToggle()
+      setOpenMenus(prev => ({ ...prev, [id]: true }))
+      return
+    }
     setOpenMenus(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
@@ -220,19 +224,18 @@ export function Sidebar({ collapsed, onToggle }) {
         })}
       </nav>
 
-      {/* Toggle */}
-      <div className="p-2 border-t border-border shrink-0">
-        <button
-          onClick={onToggle}
-          className="w-full flex items-center justify-center p-2 rounded-lg text-muted-foreground hover:bg-fluir-dark-3 hover:text-foreground transition-colors"
-          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
-        >
-          {collapsed
-            ? <ChevronRightIcon className="w-4 h-4" />
-            : <ChevronLeft className="w-4 h-4" />
-          }
-        </button>
-      </div>
+      {/* Fechar (só quando expandido) */}
+      {!collapsed && (
+        <div className="p-2 border-t border-border shrink-0">
+          <button
+            onClick={onToggle}
+            className="w-full flex items-center justify-center p-2 rounded-lg text-muted-foreground hover:bg-fluir-dark-3 hover:text-foreground transition-colors"
+            title="Recolher menu"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </aside>
   )
 }

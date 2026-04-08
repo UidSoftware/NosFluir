@@ -132,18 +132,22 @@ export function Sidebar({ collapsed, onToggle }) {
       <div className="flex items-center h-14 px-3 border-b border-border shrink-0">
         {!collapsed ? (
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-gradient-fluir flex items-center justify-center shrink-0">
-              <span className="text-white font-bold text-xs">F</span>
-            </div>
+            <img
+              src="/static/landing/Icone-401x401-Sem-Fundo.png"
+              alt="Studio Fluir"
+              className="w-8 h-8 rounded-lg object-contain shrink-0"
+            />
             <div className="min-w-0">
               <p className="text-xs font-semibold leading-none text-gradient truncate">Studio Fluir</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Sistema</p>
             </div>
           </div>
         ) : (
-          <div className="w-7 h-7 rounded-lg bg-gradient-fluir flex items-center justify-center mx-auto">
-            <span className="text-white font-bold text-xs">F</span>
-          </div>
+          <img
+            src="/static/landing/Icone-401x401-Sem-Fundo.png"
+            alt="Studio Fluir"
+            className="w-8 h-8 rounded-lg object-contain mx-auto"
+          />
         )}
       </div>
 

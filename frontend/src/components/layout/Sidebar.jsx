@@ -91,7 +91,7 @@ const MENU = [
 ]
 
 export function Sidebar({ collapsed, onToggle }) {
-  const [openMenus, setOpenMenus] = useState({ financas: true })
+  const [openMenus, setOpenMenus] = useState({})
   const location = useLocation()
   const { canAccessFinanceiro, canAccessTecnico, canAccessOperacional, isAdmin } = useAuthStore()
 

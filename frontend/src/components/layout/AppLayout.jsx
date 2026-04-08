@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/toast'
 import { useAuthStore } from '@/store/useAuthStore'
 
 export function AppLayout() {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
   const { init } = useAuthStore()
 
   useEffect(() => {

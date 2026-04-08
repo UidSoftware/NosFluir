@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 07/04/2026 | Versão: 6.1
+> Última atualização: 08/04/2026 | Versão: 6.2
 
 ---
 
@@ -478,6 +478,10 @@ git pull origin main && docker compose restart nginx
 - [x] Todos os serializers com campo `id` (source='pk') — compatibilidade com seletores do frontend
 - [x] AuditMixin corrigido para endpoints AllowAny (created_by=None para anônimo)
 - [x] 52 testes automatizados — financeiro, operacional, técnico
+
+### Fase 5.2 — UX Mobile: Sidebar e Submenus ✅ EM PRODUÇÃO (08/04/2026)
+- [x] Sidebar inicia recolhida (`collapsed=true`) — não atrapalha dashboard no celular
+- [x] Todos os submenus (incluindo Finanças) iniciam fechados (`openMenus={}`)
 
 ### Fase 5.1 — Melhorias MinistrarAulaPage ✅ EM PRODUÇÃO (07/04/2026)
 - [x] Ícones nos botões de presença: `CheckCircle` / `XCircle` / `RefreshCw` (lucide-react) com `title` tooltip

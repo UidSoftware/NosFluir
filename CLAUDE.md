@@ -408,6 +408,7 @@ git pull origin main && docker compose restart nginx
 | Login sistema: "não encontrado" | `/api/usuarios/me/` não existe | Endpoint correto é `/api/me/` |
 | `entrypoint.sh: permission denied` | Arquivo sem bit de execução | `chmod +x backend/entrypoint.sh` e commitar |
 | Menu sidebar mostra só Dashboard | `UserSerializer` sem `is_superuser`/`groups` | Já corrigido — serializer inclui ambos |
+| Usuário vê só Dashboard (Finanças/Operacional/Técnico sumindo) | Usuário não está em nenhum grupo Django — `canAccess()` retorna false | Acessar `/admin/` → Auth → Groups → criar grupo `Administrador` → Users → adicionar usuário ao grupo → logout/login |
 | nginx: "host not found in upstream" no boot | nginx sobe antes do backend | `depends_on: service_healthy` + healthcheck — já configurado |
 | PWA serve versão antiga após deploy | Service Worker em cache | `skipWaiting/clientsClaim` + `controllerchange` em main.jsx — já configurado |
 | Select mostra todos os nomes concatenados | Radix Select v2.2.6 — nenhum item bate com o `value` | `value={watch('campo') \|\| '__none__'}` + sentinela sem `disabled` + `id` no serializer |

@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 08/04/2026 | Versão: 6.2
+> Última atualização: 10/04/2026 | Versão: 7.0
 
 ---
 
@@ -92,10 +92,10 @@ NosFluir/
 │       │   ├── signals.py             ← lançamentos automáticos LivroCaixa (com transaction.atomic)
 │       │   └── tests.py               ← 18 testes
 │       ├── operacional/
-│       │   └── tests.py               ← 16 testes
+│       │   └── tests.py               ← 20 testes
 │       └── tecnico/
 │           ├── signals.py             ← geração/uso de créditos de reposição
-│           └── tests.py               ← 18 testes
+│           └── tests.py               ← 30 testes
 ├── frontend/
 │   ├── src/
 │   ├── public/
@@ -138,7 +138,7 @@ created_at = models.DateTimeField(...)
 
 ---
 
-## 📊 Models Existentes (29 models em 4 apps)
+## 📊 Models Existentes (33 models em 4 apps)
 
 ### App `financeiro` — 7 models
 | Model | Tabela | Observação |
@@ -151,10 +151,11 @@ created_at = models.DateTimeField(...)
 | LivroCaixa | livro_caixa | **IMUTÁVEL** via ReadCreateViewSet (405 em update/delete) |
 | FolhaPagamento | folha_pagamento | unique: func+mes+ano; **NÃO** gera lançamento no caixa |
 
-### App `operacional` — 7 models
+### App `operacional` — 8 models
 | Model | Tabela | Observação |
 |---|---|---|
-| Aluno | alunos | CPF único |
+| Aluno | alunos | CPF único — sem campos de medidas (movidos para FichaAluno) |
+| FichaAluno | ficha_aluno | histórico de avaliações físicas com data; ordering: -fial_data |
 | Profissao | profissao | catálogo |
 | Funcionario | funcionario | CPF único |
 | Turma | turma | max 15 alunos — **sem campo professor** (professor fica na Aula) |
@@ -162,12 +163,14 @@ created_at = models.DateTimeField(...)
 | AgendamentoHorario | agendamento_horario | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 | AgendamentoTurmas | agendamento_turmas | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 
-### App `tecnico` — 5 models
+### App `tecnico` — 7 models
 | Model | Tabela | Observação |
 |---|---|---|
-| Exercicio | exercicios | aparelhos: solo/reformer/cadillac/chair/barrel |
-| FichaTreino | ficha_treino | apenas `fitr_id` e `fitr_nome` — sem FK aluno |
-| FichaTreinoExercicios | ficha_treino_exercicios | N:N com ordem+séries+reps |
+| Aparelho | aparelho | catálogo de aparelhos; `apar_modalidade`: pilates/funcional/**ambos** |
+| Acessorio | acessorio | catálogo de acessórios (bola suíça, mini band, etc.) — sem modalidade |
+| Exercicio | exercicios | `exe_modalidade` + FK `exe_aparelho` + FK `exe_acessorio` + `exe_variacao` |
+| FichaTreino | ficha_treino | `fitr_nome` + `fitr_modalidade` (nullable) |
+| FichaTreinoExercicios | ficha_treino_exercicios | N:N com ordem+séries+reps+`ftex_secao`+`exe2` (combinado opcional) |
 | Aula | aulas | 1 linha = 1 aluno em 1 aula; **`func` (FK Funcionario, nullable)** — professor que ministrou |
 | CreditoReposicao | creditos_reposicao | gerado por signal ao registrar falta; `cred_data_geracao` é read-only |
 
@@ -243,11 +246,15 @@ GET /api/creditos/?alu=X&cred_status=disponivel  → filtro padrão
 - FolhaPagamento: **NÃO** gera lançamento automático — marcar como "pago" NÃO registra no caixa
 
 ### Técnico:
-- Pressão arterial: formato "120/80" — regex `^\d{2,3}/\d{2}$`
-- Intensidade de esforço: 0-10
+- Pressão arterial: formato "120/80" — regex `^\d{2,3}/\d{2}$` (**será separado em PAS/PAD inteiros na Fase 3.2**)
+- Intensidade de esforço: 0-10 (**será Escala de Borg 6-20 na Fase 3.2**)
 - Mesmo exercício com aparelhos diferentes = registros independentes
 - **Professor fica na Aula** (não na Turma) — turma tem só nome e horário
-- `FichaTreino` tem apenas `fitr_id` e `fitr_nome` — sem FK aluno, sem descrição
+- `FichaTreino`: `fitr_id`, `fitr_nome`, `fitr_modalidade` (nullable)
+- `FichaTreinoExercicios`: `exe` (FK obrigatório) + `exe2` (FK nullable = combinado) — compartilham séries/reps
+- `Exercicio`: `exe_modalidade` obrigatório; `exe_aparelho` FK → Aparelho (nullable); `exe_acessorio` FK → Acessorio (nullable)
+- `Aparelho.apar_modalidade`: 'pilates' | 'funcional' | **'ambos'** — filtrar por modalidade inclui 'ambos'
+- `FichaAluno`: histórico de avaliações físicas — endpoint `/api/ficha-aluno/?aluno={id}`
 
 ### Serializers — campo `id` obrigatório (CRÍTICO):
 ```python
@@ -314,19 +321,21 @@ setFilters(v && v !== 'all' ? { campo: v } : {})
 ### PKs dos models — referência rápida (CRÍTICO para o frontend):
 ```
 Aluno       → alu_id      Funcionario  → func_id     Turma        → tur_id
-TurmaAlunos → tual_id     Fornecedor   → forn_id      ServicoProduto → serv_id
-ContasPagar → pag_id      ContasReceber → rec_id      Planos       → plan_id
-FolhaPag    → fopa_id     Profissao    → prof_id      Exercicio    → exe_id
-FichaTreino → fitr_id     FichaTreinoEx → ftex_id     Aula         → aul_id
-Credito     → cred_id     User         → id (padrão Django)
+TurmaAlunos → tual_id     Fornecedor   → forn_id     ServicoProduto → serv_id
+ContasPagar → pag_id      ContasReceber → rec_id     Planos       → plan_id
+FolhaPag    → fopa_id     Profissao    → prof_id     Exercicio    → exe_id
+FichaTreino → fitr_id     FichaTreinoEx → ftex_id    Aula         → aul_id
+Credito     → cred_id     FichaAluno   → fial_id     Aparelho     → apar_id
+Acessorio   → acess_id    User         → id (padrão Django)
 ```
 
 ### FKs no payload (CRÍTICO — sem sufixo `_id`):
 ```python
 # Campos FK no model Django → nome sem _id no payload da API:
-alu   (não alu_id)    func  (não func_id)    tur   (não tur_id)
-forn  (não forn_id)   serv  (não serv_id)    fitr  (não fitr_id)
-exe   (não exe_id)    cred  (não cred_id)    prof  (não prof_id)
+alu    (não alu_id)    func   (não func_id)    tur    (não tur_id)
+forn   (não forn_id)   serv   (não serv_id)    fitr   (não fitr_id)
+exe    (não exe_id)    exe2   (não exe2_id)     cred   (não cred_id)
+prof   (não prof_id)   aluno  (não aluno_id)   — FichaAluno usa `aluno`
 ```
 
 ### Endpoints da API (CRÍTICO):
@@ -337,6 +346,7 @@ Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/servicos-produtos/   ✅ /api/fornecedores/     ✅ /api/aulas/
 ✅ /api/logout/              ✅ /api/me/               ✅ /api/agendamentos-horario/
 ✅ /api/agendamentos-turmas/ ✅ /api/fichas-treino-exercicios/
+✅ /api/aparelhos/           ✅ /api/acessorios/       ✅ /api/ficha-aluno/
 ❌ /api/operacional/alunos/  ❌ /api/tecnico/exercicios/  ← ERRADO
 ❌ /api/servicos/            ← ERRADO (correto: /api/servicos-produtos/)
 ```
@@ -423,6 +433,12 @@ git pull origin main && docker compose restart nginx
 | MinistrarAula mostra "Aluno 1", "Aluno 2" em vez do nome | `ta.aluno_nome` não existe — campo correto é `ta.alu_nome` | Corrigido 07/04/2026 |
 | Card de exercícios da ficha retorna 404 | Endpoint errado: `/api/ficha-exercicios/` | Correto: `/api/fichas-treino-exercicios/` |
 | Exercícios da ficha não filtram por ficha | Query param `fitr_id` não existe no filterset | Correto: `?fitr=X` (sem sufixo `_id`) |
+| `apar_nome` undefined no frontend | Serializer sem `select_related('exe_aparelho')` no ViewSet | Adicionar `select_related` para evitar N+1 e retornar o campo |
+| `acess_nome` undefined no frontend | Idem para acessório | `select_related('exe_acessorio')` no ExercicioViewSet |
+| Aparelho não aparece no select de exercício | `aparelhosPorModalidade()` filtra por modalidade — 'ambos' é incluído | Verificar se `apar_modalidade === 'ambos'` está no filtro |
+| Componente JSX retorna dois elementos sem wrapper | JSX exige um único root — `<form>` + `<Dialog>` juntos quebra | Envolver em `<>...</>` (fragment) |
+| Deploy VPS sem alterações visíveis | Commit local não foi `git push` antes do deploy | Sempre `git push` antes de `./deploy.sh prod` |
+| `exe_acessorio` no payload como string texto | Campo era CharField, agora é FK integer | Enviar `exe_acessorio: parseInt(id)` ou `null` — não mais string |
 
 ---
 
@@ -503,7 +519,33 @@ git pull origin main && docker compose restart nginx
 - [x] `UserViewSet` com `filter_backends` configurado
 - [x] Banco vs models auditado — 100% consistente, sem campos órfãos
 
+### Fase 7 — Reajustes Estruturais 3.1 ✅ COMPLETO E EM PRODUÇÃO (10/04/2026)
+> Especificação: `Instrucoes_Claude_Code_Fase3.md` — Sub-fase 3.1
+- [x] Medidas corporais removidas do `Aluno` — migradas para `FichaAluno`
+- [x] Nova tabela `FichaAluno` — histórico de avaliações com data
+- [x] Nova tabela `Aparelho` — catálogo com modalidade (pilates/funcional/ambos)
+- [x] Nova tabela `Acessorio` — catálogo (bola suíça, mini band, etc.) — iniciativa própria além do spec
+- [x] `Exercicio` refatorado: `exe_modalidade` obrigatório, FK `exe_aparelho`, FK `exe_acessorio`, `exe_variacao`
+- [x] `FichaTreino`: campo `fitr_modalidade` adicionado
+- [x] `FichaTreinoExercicios`: campo `ftex_secao` + campo `exe2` (combinados — além do spec)
+- [x] Quick-add inline de Aparelho e Acessório no form de exercício (além do spec)
+- [x] Páginas Configuração → Aparelhos e Configuração → Acessórios
+- [x] FichasTreinoPage: agrupamento visual por seção + suporte a combinados
+- [x] MinistrarAulaPage: exibe combinados "Exe1 + Exe2" + usa apar_nome (corrigido)
+- [x] AlunosPage: seção "Avaliações Físicas" com histórico de FichaAluno
+- [x] 68 testes passando (financeiro: 18, operacional: 20, técnico: 30)
+
+### Fase 7.2 — Reajustes Estruturais 3.2 — PRÓXIMA
+> Renomear `Aula` → `MinistrarAula`, PAS/PAD separados, FC, Escala de Borg 6-20
+> Ver `Instrucoes_Claude_Code_Fase3.md` — Sub-fase 3.2
+
+### Fase 7.3 — Reajustes Estruturais 3.3 — PENDENTE
+> Nova tabela `Aulas` (1 por aula coletiva) + FK em `MinistrarAula`
+> Ver `Instrucoes_Claude_Code_Fase3.md` — Sub-fase 3.3
+
 ### Pendências técnicas restantes:
+- [ ] Fase 7.2 — renomear Aula → MinistrarAula + campos PAS/PAD/FC/PSE Borg
+- [ ] Fase 7.3 — nova tabela Aulas
 - [ ] Permissões por perfil (Professor/Financeiro/Recepcionista) não implementadas
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
 - [ ] Crédito expirado — sem job automático para atualizar status

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Dumbbell, Plus, Pencil, Trash2 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -13,45 +14,70 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input, FormField, Textarea } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/primitives'
+import { toast } from '@/hooks/useToast'
+import api from '@/services/api'
 
 const ENDPOINT = '/exercicios/'
 const KEY      = 'exercicios'
 
-const APARELHOS = [
-  { value: 'solo',     label: 'Solo' },
-  { value: 'reformer', label: 'Reformer' },
-  { value: 'cadillac', label: 'Cadillac' },
-  { value: 'chair',    label: 'Chair' },
-  { value: 'barrel',   label: 'Barrel' },
+const MODALIDADES = [
+  { value: 'pilates',   label: 'Mat Pilates' },
+  { value: 'funcional', label: 'Funcional' },
 ]
 
-const APARELHO_COLORS = {
-  solo:     'default',
-  reformer: 'cyan',
-  cadillac: 'success',
-  chair:    'warning',
-  barrel:   'secondary',
+const MODALIDADE_VARIANT = { pilates: 'cyan', funcional: 'success' }
+
+function useAparelhos() {
+  return useQuery({
+    queryKey: ['aparelhos-select'],
+    queryFn: () => api.get('/aparelhos/', { params: { apar_ativo: true } }).then(r => r.data.results),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+function aparelhosPorModalidade(aparelhos, modalidade) {
+  if (!aparelhos) return []
+  if (!modalidade || modalidade === '__none__') return aparelhos
+  return aparelhos.filter(a => a.apar_modalidade === modalidade || a.apar_modalidade === 'ambos')
 }
 
 function ExercForm({ exercicio, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: exercicio ? {
-      exe_nome:      exercicio.exe_nome,
-      exe_aparelho:  exercicio.exe_aparelho || '',
+      exe_nome:             exercicio.exe_nome,
+      exe_modalidade:       exercicio.exe_modalidade || '__none__',
+      exe_aparelho:         exercicio.exe_aparelho ? String(exercicio.exe_aparelho) : '__none__',
+      exe_acessorio:        exercicio.exe_acessorio || '',
+      exe_variacao:         exercicio.exe_variacao || '',
       exe_descricao_tecnica: exercicio.exe_descricao_tecnica || '',
-    } : {},
+    } : { exe_modalidade: '__none__', exe_aparelho: '__none__' },
   })
 
+  const { data: aparelhos } = useAparelhos()
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
   const update = useUpdate(KEY, ENDPOINT, { onSuccess: onClose })
   const busy   = create.isPending || update.isPending
 
+  const modalidadeSelecionada = watch('exe_modalidade')
+  const aparelhosFiltrados = aparelhosPorModalidade(aparelhos, modalidadeSelecionada)
+
   const onSubmit = (data) => {
-    const cleaned = Object.fromEntries(
-      Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
-    )
-    if (exercicio) update.mutate({ id: exercicio.exe_id, data: cleaned })
-    else           create.mutate(cleaned)
+    const modalidade = data.exe_modalidade && data.exe_modalidade !== '__none__' ? data.exe_modalidade : null
+    if (!modalidade) {
+      toast({ title: 'Selecione a modalidade.', variant: 'destructive' })
+      return
+    }
+    const aparelhoId = data.exe_aparelho && data.exe_aparelho !== '__none__' ? parseInt(data.exe_aparelho) : null
+    const payload = {
+      exe_nome:              data.exe_nome,
+      exe_modalidade:        modalidade,
+      exe_aparelho:          aparelhoId,
+      exe_acessorio:         data.exe_acessorio || null,
+      exe_variacao:          data.exe_variacao || null,
+      exe_descricao_tecnica: data.exe_descricao_tecnica || null,
+    }
+    if (exercicio) update.mutate({ id: exercicio.exe_id, data: payload })
+    else           create.mutate(payload)
   }
 
   return (
@@ -60,20 +86,45 @@ function ExercForm({ exercicio, onClose }) {
         <Input {...register('exe_nome', { required: 'Nome obrigatório' })} placeholder="Flexão de quadril" disabled={busy} />
       </FormField>
 
-      <FormField label="Aparelho" required error={errors.exe_aparelho?.message}>
-        <Select value={watch('exe_aparelho') || '__none__'} onValueChange={v => setValue('exe_aparelho', v)} disabled={busy}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar aparelho...</SelectItem>
-            {APARELHOS.map(a => (
-              <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
+      <div className="grid grid-cols-2 gap-3">
+        <FormField label="Modalidade" required>
+          <Select
+            value={watch('exe_modalidade')}
+            onValueChange={v => { setValue('exe_modalidade', v); setValue('exe_aparelho', '__none__') }}
+            disabled={busy}
+          >
+            <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar...</SelectItem>
+              {MODALIDADES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </FormField>
 
-      <FormField label="Descrição">
-        <Textarea {...register('exe_descricao_tecnica')} placeholder="Descrição e observações do exercício..." disabled={busy} rows={3} />
+        <FormField label="Aparelho">
+          <Select value={watch('exe_aparelho')} onValueChange={v => setValue('exe_aparelho', v)} disabled={busy}>
+            <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
+              {aparelhosFiltrados.map(a => (
+                <SelectItem key={a.apar_id} value={String(a.apar_id)}>{a.apar_nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormField>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <FormField label="Acessório">
+          <Input {...register('exe_acessorio')} placeholder="halter, elástico, bola..." disabled={busy} />
+        </FormField>
+        <FormField label="Variação">
+          <Input {...register('exe_variacao')} placeholder="unilateral, com apoio..." disabled={busy} />
+        </FormField>
+      </div>
+
+      <FormField label="Descrição Técnica">
+        <Textarea {...register('exe_descricao_tecnica')} placeholder="Posicionamento, pontos de atenção..." disabled={busy} rows={3} />
       </FormField>
 
       <DialogFooter>
@@ -87,38 +138,48 @@ function ExercForm({ exercicio, onClose }) {
 }
 
 export default function ExerciciosPage() {
-  const [modalOpen, setModalOpen]     = useState(false)
-  const [selected, setSelected]       = useState(null)
-  const [deleteId, setDeleteId]       = useState(null)
-  const [aparelhoFilter, setAparelhoFilter] = useState('all')
+  const [modalOpen, setModalOpen]         = useState(false)
+  const [selected, setSelected]           = useState(null)
+  const [deleteId, setDeleteId]           = useState(null)
+  const [modalidadeFilter, setModalidade] = useState('all')
 
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
+  const { data: aparelhos } = useAparelhos()
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Exercício excluído.' })
 
-  const handleAparelhoFilter = (v) => {
-    setAparelhoFilter(v)
-    setFilters(v && v !== 'all' ? { exe_aparelho: v } : {})
+  const handleModalidadeFilter = (v) => {
+    setModalidade(v)
+    setFilters(v && v !== 'all' ? { exe_modalidade: v } : {})
   }
 
+  const nomeAparelho = (r) => r.apar_nome || '—'
+
   const columns = [
-    { key: 'exe_nome',     header: 'Exercício', render: r => <span className="font-medium">{r.exe_nome}</span> },
     {
-      key: 'exe_aparelho', header: 'Aparelho',
-      render: r => r.exe_aparelho ? (
-        <Badge variant={APARELHO_COLORS[r.exe_aparelho] || 'default'}>
-          {APARELHOS.find(a => a.value === r.exe_aparelho)?.label || r.exe_aparelho}
+      key: 'exe_nome', header: 'Exercício',
+      render: r => <span className="font-medium">{r.exe_nome}</span>,
+    },
+    {
+      key: 'exe_modalidade', header: 'Modalidade',
+      render: r => r.exe_modalidade ? (
+        <Badge variant={MODALIDADE_VARIANT[r.exe_modalidade] || 'default'}>
+          {MODALIDADES.find(m => m.value === r.exe_modalidade)?.label || r.exe_modalidade}
         </Badge>
       ) : '—',
     },
-    { key: 'exe_descricao_tecnica', header: 'Descrição', render: r => r.exe_descricao_tecnica ? (
-      <span className="text-muted-foreground text-xs line-clamp-1">{r.exe_descricao_tecnica}</span>
-    ) : '—' },
+    { key: 'apar_nome',    header: 'Aparelho',  render: nomeAparelho },
+    { key: 'exe_acessorio', header: 'Acessório', render: r => r.exe_acessorio || '—' },
+    { key: 'exe_variacao',  header: 'Variação',  render: r => r.exe_variacao || '—' },
     {
       key: 'acoes', header: '', cellClassName: 'w-20',
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
-          <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.exe_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}>
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.exe_id)} className="text-red-400 hover:text-red-300">
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
         </div>
       ),
     },
@@ -128,17 +189,17 @@ export default function ExerciciosPage() {
     <div className="space-y-5">
       <PageHeader
         title="Exercícios"
-        description="Catálogo de exercícios por aparelho"
+        description="Catálogo de exercícios de Pilates e Funcional"
         actions={<Button onClick={() => { setSelected(null); setModalOpen(true) }}><Plus className="w-4 h-4" />Novo Exercício</Button>}
       />
       <Card>
         <CardContent className="p-5 space-y-4">
           <SearchFilter placeholder="Buscar por nome..." onSearch={q => setFilters(q ? { search: q } : {})}>
-            <Select value={aparelhoFilter} onValueChange={handleAparelhoFilter}>
-              <SelectTrigger className="w-36"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <Select value={modalidadeFilter} onValueChange={handleModalidadeFilter}>
+              <SelectTrigger className="w-40"><SelectValue placeholder="Todas" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {APARELHOS.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
+                <SelectItem value="all">Todas</SelectItem>
+                {MODALIDADES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </SearchFilter>
@@ -148,7 +209,7 @@ export default function ExerciciosPage() {
       </Card>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{selected ? 'Editar Exercício' : 'Novo Exercício'}</DialogTitle></DialogHeader>
           <ExercForm exercicio={selected} onClose={() => setModalOpen(false)} />
         </DialogContent>

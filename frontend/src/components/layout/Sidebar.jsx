@@ -86,6 +86,7 @@ const MENU = [
     children: [
       { label: 'Usuários',   path: '/configuracao/usuarios',   icon: UserCog },
       { label: 'Profissões', path: '/configuracao/profissoes', icon: ClipboardList },
+      { label: 'Aparelhos',  path: '/configuracao/aparelhos',  icon: Dumbbell },
     ],
   },
 ]

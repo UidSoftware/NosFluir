@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Users, Plus, Pencil, Trash2, Eye } from 'lucide-react'
+import { Users, Plus, Pencil, Trash2, Eye, ClipboardList } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SearchFilter } from '@/components/shared/SearchFilter'
@@ -10,26 +11,25 @@ import { DataTable } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Input, FormField } from '@/components/ui/primitives'
+import { Input, FormField, Spinner } from '@/components/ui/primitives'
 import { formatDate, formatCPF, onlyNumbers } from '@/lib/utils'
+import { toast } from '@/hooks/useToast'
+import api from '@/services/api'
 
 const ENDPOINT = '/alunos/'
 const KEY      = 'alunos'
 
+// ─── Formulário de Aluno ────────────────────────────────────────────────────
+
 function AlunoForm({ aluno, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue } = useForm({
     defaultValues: aluno ? {
-      alu_nome:                     aluno.alu_nome,
-      alu_documento:                aluno.alu_documento,
-      alu_data_nascimento:          aluno.alu_data_nascimento,
-      alu_email:                    aluno.alu_email || '',
-      alu_telefone:                 aluno.alu_telefone || '',
-      alu_endereco:                 aluno.alu_endereco || '',
-      alu_peso:                     aluno.alu_peso || '',
-      alu_massa_muscular:           aluno.alu_massa_muscular || '',
-      alu_massa_gorda:              aluno.alu_massa_gorda || '',
-      alu_porcentagem_gordura:      aluno.alu_porcentagem_gordura || '',
-      alu_circunferencia_abdominal: aluno.alu_circunferencia_abdominal || '',
+      alu_nome:            aluno.alu_nome,
+      alu_documento:       aluno.alu_documento,
+      alu_data_nascimento: aluno.alu_data_nascimento,
+      alu_email:           aluno.alu_email || '',
+      alu_telefone:        aluno.alu_telefone || '',
+      alu_endereco:        aluno.alu_endereco || '',
     } : {},
   })
 
@@ -48,71 +48,45 @@ function AlunoForm({ aluno, onClose }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-5">
-      <div>
-        <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">Dados Pessoais</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <FormField label="Nome completo" required error={errors.alu_nome?.message} className="sm:col-span-2">
-            <Input {...register('alu_nome', { required: 'Nome obrigatório' })} placeholder="Giulia Fagionato" disabled={busy} />
-          </FormField>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FormField label="Nome completo" required error={errors.alu_nome?.message} className="sm:col-span-2">
+          <Input {...register('alu_nome', { required: 'Nome obrigatório' })} placeholder="Giulia Fagionato" disabled={busy} />
+        </FormField>
 
-          <FormField label="CPF" required error={errors.alu_documento?.message}>
-            <Input
-              {...register('alu_documento', {
-                required: 'CPF obrigatório',
-                validate: v => onlyNumbers(v).length === 11 || 'CPF deve ter 11 dígitos',
-              })}
-              placeholder="000.000.000-00"
-              disabled={busy}
-              onChange={e => {
-                const n = onlyNumbers(e.target.value)
-                const f = n.length <= 11
-                  ? n.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, (_, a, b, c, d) =>
-                      d ? `${a}.${b}.${c}-${d}` : c ? `${a}.${b}.${c}` : b ? `${a}.${b}` : a)
-                  : e.target.value
-                setValue('alu_documento', f)
-              }}
-            />
-          </FormField>
+        <FormField label="CPF" required error={errors.alu_documento?.message}>
+          <Input
+            {...register('alu_documento', {
+              required: 'CPF obrigatório',
+              validate: v => onlyNumbers(v).length === 11 || 'CPF deve ter 11 dígitos',
+            })}
+            placeholder="000.000.000-00"
+            disabled={busy}
+            onChange={e => {
+              const n = onlyNumbers(e.target.value)
+              const f = n.length <= 11
+                ? n.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, (_, a, b, c, d) =>
+                    d ? `${a}.${b}.${c}-${d}` : c ? `${a}.${b}.${c}` : b ? `${a}.${b}` : a)
+                : e.target.value
+              setValue('alu_documento', f)
+            }}
+          />
+        </FormField>
 
-          <FormField label="Data de Nascimento" required error={errors.alu_data_nascimento?.message}>
-            <Input type="date" {...register('alu_data_nascimento', { required: 'Data obrigatória' })} disabled={busy} />
-          </FormField>
+        <FormField label="Data de Nascimento" required error={errors.alu_data_nascimento?.message}>
+          <Input type="date" {...register('alu_data_nascimento', { required: 'Data obrigatória' })} disabled={busy} />
+        </FormField>
 
-          <FormField label="E-mail" error={errors.alu_email?.message}>
-            <Input type="email" {...register('alu_email')} placeholder="giulia@email.com" disabled={busy} />
-          </FormField>
+        <FormField label="E-mail">
+          <Input type="email" {...register('alu_email')} placeholder="giulia@email.com" disabled={busy} />
+        </FormField>
 
-          <FormField label="Telefone">
-            <Input {...register('alu_telefone')} placeholder="(34) 99999-0000" disabled={busy} />
-          </FormField>
+        <FormField label="Telefone">
+          <Input {...register('alu_telefone')} placeholder="(34) 99999-0000" disabled={busy} />
+        </FormField>
 
-          <FormField label="Endereço" className="sm:col-span-2">
-            <Input {...register('alu_endereco')} placeholder="Rua Exemplo, 123 — Uberlândia, MG" disabled={busy} />
-          </FormField>
-        </div>
-      </div>
-
-      <div>
-        <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
-          Medidas Corporais <span className="normal-case">(opcional)</span>
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <FormField label="Peso (kg)">
-            <Input type="number" step="0.01" {...register('alu_peso')} placeholder="70.5" disabled={busy} />
-          </FormField>
-          <FormField label="Massa Muscular (kg)">
-            <Input type="number" step="0.01" {...register('alu_massa_muscular')} placeholder="45.0" disabled={busy} />
-          </FormField>
-          <FormField label="Massa Gorda (kg)">
-            <Input type="number" step="0.01" {...register('alu_massa_gorda')} placeholder="18.0" disabled={busy} />
-          </FormField>
-          <FormField label="% Gordura">
-            <Input type="number" step="0.01" {...register('alu_porcentagem_gordura')} placeholder="15.5" disabled={busy} />
-          </FormField>
-          <FormField label="Circ. Abdominal (cm)">
-            <Input type="number" step="0.01" {...register('alu_circunferencia_abdominal')} placeholder="85.0" disabled={busy} />
-          </FormField>
-        </div>
+        <FormField label="Endereço" className="sm:col-span-2">
+          <Input {...register('alu_endereco')} placeholder="Rua Exemplo, 123 — Uberlândia, MG" disabled={busy} />
+        </FormField>
       </div>
 
       <DialogFooter>
@@ -124,6 +98,146 @@ function AlunoForm({ aluno, onClose }) {
     </form>
   )
 }
+
+// ─── Seção de Avaliações Físicas (FichaAluno) ────────────────────────────────
+
+function FichaAlunoForm({ alunoId, onClose }) {
+  const queryClient = useQueryClient()
+  const { register, handleSubmit } = useForm({
+    defaultValues: { fial_data: new Date().toISOString().slice(0, 10) },
+  })
+
+  const mutation = useMutation({
+    mutationFn: (data) => api.post('/ficha-aluno/', data).then(r => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ficha-aluno', alunoId] })
+      toast({ title: 'Avaliação registrada.', variant: 'success' })
+      onClose()
+    },
+    onError: () => toast({ title: 'Erro ao salvar avaliação.', variant: 'destructive' }),
+  })
+
+  const onSubmit = (data) => {
+    const payload = {
+      aluno:                       alunoId,
+      fial_data:                   data.fial_data,
+      fial_peso:                   data.fial_peso || null,
+      fial_massa_muscular:         data.fial_massa_muscular || null,
+      fial_massa_gorda:            data.fial_massa_gorda || null,
+      fial_porcentagem_gordura:    data.fial_porcentagem_gordura || null,
+      fial_circunferencia_abdominal: data.fial_circunferencia_abdominal || null,
+    }
+    mutation.mutate(payload)
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
+      <FormField label="Data da Avaliação" required>
+        <Input type="date" {...register('fial_data', { required: true })} disabled={mutation.isPending} />
+      </FormField>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <FormField label="Peso (kg)">
+          <Input type="number" step="0.01" {...register('fial_peso')} placeholder="70.5" disabled={mutation.isPending} />
+        </FormField>
+        <FormField label="M. Muscular (kg)">
+          <Input type="number" step="0.01" {...register('fial_massa_muscular')} placeholder="45.0" disabled={mutation.isPending} />
+        </FormField>
+        <FormField label="M. Gorda (kg)">
+          <Input type="number" step="0.01" {...register('fial_massa_gorda')} placeholder="18.0" disabled={mutation.isPending} />
+        </FormField>
+        <FormField label="% Gordura">
+          <Input type="number" step="0.01" {...register('fial_porcentagem_gordura')} placeholder="15.5" disabled={mutation.isPending} />
+        </FormField>
+        <FormField label="Circ. Abdominal (cm)">
+          <Input type="number" step="0.01" {...register('fial_circunferencia_abdominal')} placeholder="85.0" disabled={mutation.isPending} />
+        </FormField>
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>Cancelar</Button>
+        <Button type="submit" disabled={mutation.isPending}>
+          {mutation.isPending ? 'Salvando...' : 'Registrar Avaliação'}
+        </Button>
+      </DialogFooter>
+    </form>
+  )
+}
+
+function AvaliacoesSection({ alunoId }) {
+  const queryClient = useQueryClient()
+  const [addOpen, setAddOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState(null)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['ficha-aluno', alunoId],
+    queryFn: () => api.get('/ficha-aluno/', { params: { aluno: alunoId } }).then(r => r.data.results),
+    enabled: !!alunoId,
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: (id) => api.delete(`/ficha-aluno/${id}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ficha-aluno', alunoId] })
+      toast({ title: 'Avaliação excluída.', variant: 'success' })
+    },
+  })
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Avaliações Físicas</p>
+        <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
+          <Plus className="w-3.5 h-3.5" />Nova Avaliação
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-4"><Spinner /></div>
+      ) : !data?.length ? (
+        <p className="text-sm text-muted-foreground text-center py-4">Nenhuma avaliação registrada.</p>
+      ) : (
+        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+          {data.map(f => (
+            <div key={f.fial_id} className="flex items-start justify-between gap-3 rounded-md border border-border p-3 text-sm">
+              <div>
+                <p className="font-medium text-xs mb-1">{formatDate(f.fial_data)}</p>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                  {f.fial_peso              && <span>Peso: {f.fial_peso} kg</span>}
+                  {f.fial_porcentagem_gordura && <span>Gordura: {f.fial_porcentagem_gordura}%</span>}
+                  {f.fial_massa_muscular    && <span>M. Muscular: {f.fial_massa_muscular} kg</span>}
+                  {f.fial_circunferencia_abdominal && <span>Circ.: {f.fial_circunferencia_abdominal} cm</span>}
+                </div>
+              </div>
+              <Button
+                variant="ghost" size="icon-sm"
+                className="text-red-400 hover:text-red-300 shrink-0"
+                onClick={() => setDeleteId(f.fial_id)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Nova Avaliação Física</DialogTitle></DialogHeader>
+          <FichaAlunoForm alunoId={alunoId} onClose={() => setAddOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={!!deleteId} onOpenChange={() => setDeleteId(null)}
+        title="Excluir Avaliação" description="Tem certeza que deseja excluir esta avaliação?"
+        confirmLabel="Excluir"
+        onConfirm={() => { deleteMut.mutate(deleteId); setDeleteId(null) }}
+        isLoading={deleteMut.isPending}
+      />
+    </div>
+  )
+}
+
+// ─── Detalhe do Aluno ────────────────────────────────────────────────────────
 
 function AlunoDetail({ aluno, onClose }) {
   if (!aluno) return null
@@ -143,24 +257,17 @@ function AlunoDetail({ aluno, onClose }) {
         <F label="Telefone"   value={aluno.alu_telefone} />
         <F label="Endereço"   value={aluno.alu_endereco} />
       </div>
-      <div>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-3">Medidas Corporais</p>
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            ['Peso',       aluno.alu_peso ? `${aluno.alu_peso} kg` : null],
-            ['M. Muscular',aluno.alu_massa_muscular ? `${aluno.alu_massa_muscular} kg` : null],
-            ['M. Gorda',   aluno.alu_massa_gorda ? `${aluno.alu_massa_gorda} kg` : null],
-            ['% Gordura',  aluno.alu_porcentagem_gordura ? `${aluno.alu_porcentagem_gordura}%` : null],
-            ['Circ. Abd.', aluno.alu_circunferencia_abdominal ? `${aluno.alu_circunferencia_abdominal} cm` : null],
-          ].map(([l, v]) => <F key={l} label={l} value={v} />)}
-        </div>
-      </div>
+
+      <AvaliacoesSection alunoId={aluno.alu_id} />
+
       <DialogFooter>
         <Button variant="ghost" onClick={onClose}>Fechar</Button>
       </DialogFooter>
     </div>
   )
 }
+
+// ─── Página principal ────────────────────────────────────────────────────────
 
 export default function AlunosPage() {
   const [modalOpen, setModalOpen]   = useState(false)
@@ -176,16 +283,16 @@ export default function AlunosPage() {
   const openDetail = (a) => { setSelected(a); setDetailOpen(true) }
 
   const columns = [
-    { key: 'alu_nome',             header: 'Nome',       render: r => <span className="font-medium">{r.alu_nome}</span> },
-    { key: 'alu_documento',        header: 'CPF',        render: r => formatCPF(r.alu_documento) },
-    { key: 'alu_data_nascimento',  header: 'Nascimento', render: r => formatDate(r.alu_data_nascimento) },
-    { key: 'alu_telefone',         header: 'Telefone',   render: r => r.alu_telefone || '—' },
-    { key: 'alu_email',            header: 'E-mail',     render: r => r.alu_email || '—' },
+    { key: 'alu_nome',            header: 'Nome',       render: r => <span className="font-medium">{r.alu_nome}</span> },
+    { key: 'alu_documento',       header: 'CPF',        render: r => formatCPF(r.alu_documento) },
+    { key: 'alu_data_nascimento', header: 'Nascimento', render: r => formatDate(r.alu_data_nascimento) },
+    { key: 'alu_telefone',        header: 'Telefone',   render: r => r.alu_telefone || '—' },
+    { key: 'alu_email',           header: 'E-mail',     render: r => r.alu_email || '—' },
     {
       key: 'acoes', header: '', cellClassName: 'w-24',
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
-          <Button variant="ghost" size="icon-sm" onClick={() => openDetail(r)} title="Ver detalhes">
+          <Button variant="ghost" size="icon-sm" onClick={() => openDetail(r)} title="Ver detalhes e avaliações">
             <Eye className="w-3.5 h-3.5" />
           </Button>
           <Button variant="ghost" size="icon-sm" onClick={() => openEdit(r)} title="Editar">
@@ -216,7 +323,7 @@ export default function AlunosPage() {
       </Card>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>{selected ? 'Editar Aluno' : 'Novo Aluno'}</DialogTitle>
           </DialogHeader>

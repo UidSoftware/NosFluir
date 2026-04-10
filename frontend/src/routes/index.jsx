@@ -44,6 +44,7 @@ import GrafFrequenciaPage     from '@/pages/graficos/GrafFrequenciaPage'
 // Configuração
 import UsuariosPage           from '@/pages/configuracao/UsuariosPage'
 import ProfissoesPage         from '@/pages/configuracao/ProfissoesPage'
+import AparelhosPage          from '@/pages/configuracao/AparelhosPage'
 
 export const router = createBrowserRouter(
   [
@@ -101,6 +102,7 @@ export const router = createBrowserRouter(
             // Configuração
             { path: '/configuracao/usuarios',     element: <UsuariosPage /> },
             { path: '/configuracao/profissoes',   element: <ProfissoesPage /> },
+            { path: '/configuracao/aparelhos',    element: <AparelhosPage /> },
           ],
         },
       ],

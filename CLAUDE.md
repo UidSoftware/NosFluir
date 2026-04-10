@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 10/04/2026 | Versão: 7.2
+> Última atualização: 10/04/2026 | Versão: 7.3
 
 ---
 
@@ -154,7 +154,7 @@ created_at = models.DateTimeField(...)
 ### App `operacional` — 8 models
 | Model | Tabela | Observação |
 |---|---|---|
-| Aluno | alunos | CPF único — sem campos de medidas (movidos para FichaAluno) |
+| Aluno | alunos | CPF único — sem campos de medidas (movidos para FichaAluno); `alu_contato_emergencia`, `alu_doencas_cronicas`, `alu_medicamentos` |
 | FichaAluno | ficha_aluno | histórico de avaliações físicas com data; ordering: -fial_data |
 | Profissao | profissao | catálogo |
 | Funcionario | funcionario | CPF único |
@@ -554,6 +554,13 @@ git pull origin main && docker compose restart nginx
 - [x] CreditoReposicao FKs atualizadas → MinistrarAula
 - [x] Signals atualizados para MinistrarAula
 - [x] 75 testes passando (financeiro: 18, operacional: 20, técnico: 33 — 5 novos PSE/FC/obs)
+
+### Fase 7.2.1 — Campos de saúde e emergência no Aluno ✅ EM PRODUÇÃO (10/04/2026)
+- [x] `alu_contato_emergencia` (CharField max_length=20, nullable) — telefone de emergência
+- [x] `alu_doencas_cronicas` (TextField, nullable) — doenças crônicas
+- [x] `alu_medicamentos` (TextField, nullable) — medicamentos em uso
+- [x] Formulário e detalhe do Aluno atualizados no frontend
+- [x] 75 testes passando (sem regressão)
 
 ### Fase 7.3 — Reajustes Estruturais 3.3 — PENDENTE
 > Nova tabela `Aulas` (1 por aula coletiva) + FK em `MinistrarAula`

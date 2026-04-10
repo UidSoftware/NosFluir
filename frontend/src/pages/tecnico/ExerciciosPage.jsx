@@ -154,6 +154,7 @@ function ExercForm({ exercicio, onClose }) {
   }
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <FormField label="Nome do Exercício" required error={errors.exe_nome?.message}>
         <Input {...register('exe_nome', { required: 'Nome obrigatório' })} placeholder="Flexão de quadril" disabled={busy} />
@@ -226,6 +227,7 @@ function ExercForm({ exercicio, onClose }) {
       onOpenChange={setQuickAparelho}
       onCreated={(novo) => setValue('exe_aparelho', String(novo.apar_id))}
     />
+    </>
   )
 }
 

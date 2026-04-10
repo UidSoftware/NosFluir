@@ -14,54 +14,47 @@ Após reunião com as clientes em 08/04/2026 (aula real de Funcional),
 surgiram solicitações de reajuste estrutural no banco, backend e frontend.
 
 Organizado em 3 sub-fases — executar **obrigatoriamente nessa ordem**:
-- **3.1** — Alterações e criações
-- **3.2** — Renomear tabela `Aula` → `MinistrarAula`
-- **3.3** — Criar nova tabela `Aulas`
+- **3.1** — Alterações e criações ✅ COMPLETO (10/04/2026)
+- **3.2** — Renomear tabela `Aula` → `MinistrarAula` ✅ COMPLETO (10/04/2026)
+- **3.3** — Criar nova tabela `Aulas` — **PENDENTE**
 
 ---
 
-## FASE 3.1 — Alterações e Criações
+## FASE 3.1 — Alterações e Criações ✅ COMPLETO
 
-### 3.1.1 — Tabela `Aluno` — remover campos de medidas corporais
+### 3.1.1 — Tabela `Aluno` — remover campos de medidas corporais ✅
 
-Esses dados migram para a nova tabela `FichaAluno`.
-
-```python
-# REMOVER do model Aluno:
-alu_peso
-alu_massa_muscular
-alu_massa_gorda
-alu_porcentagem_gordura
-alu_circunferencia_abdominal
+Campos removidos e migrados para `FichaAluno`:
+```
+alu_peso, alu_massa_muscular, alu_massa_gorda,
+alu_porcentagem_gordura, alu_circunferencia_abdominal
 ```
 
-> ⚠️ Verificar se há dados nesses campos antes de dropar.
-> Se houver, migrar para `FichaAluno` antes.
+**Extra (além do spec) — adicionado em 10/04/2026:**
+```python
+alu_contato_emergencia = CharField(max_length=20, null=True)
+alu_doencas_cronicas   = TextField(null=True)
+alu_medicamentos       = TextField(null=True)
+```
 
 ---
 
-### 3.1.2 — Nova tabela `FichaAluno`
+### 3.1.2 — Nova tabela `FichaAluno` ✅
 
-Histórico de avaliações físicas com data — permite acompanhar evolução.
+Histórico de avaliações físicas com data.
 
 ```python
 class FichaAluno(BaseModel):
-    aluno = models.ForeignKey(
-        'operacional.Aluno',
-        on_delete=models.PROTECT,
-        related_name='fichas'
-    )
-    fial_data = models.DateField()
-    fial_peso = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    fial_massa_muscular = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    fial_massa_gorda = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    fial_porcentagem_gordura = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    fial_circunferencia_abdominal = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    aluno   = ForeignKey('operacional.Aluno', related_name='fichas')
+    fial_data                    = DateField()
+    fial_peso                    = DecimalField(5,2, null=True)
+    fial_massa_muscular          = DecimalField(5,2, null=True)
+    fial_massa_gorda             = DecimalField(5,2, null=True)
+    fial_porcentagem_gordura     = DecimalField(5,2, null=True)
+    fial_circunferencia_abdominal = DecimalField(5,2, null=True)
 
     class Meta:
         db_table = 'ficha_aluno'
-        verbose_name = 'Ficha do Aluno'
-        verbose_name_plural = 'Fichas dos Alunos'
         ordering = ['-fial_data']
 ```
 
@@ -74,342 +67,205 @@ GET         /api/ficha-aluno/?aluno={id}
 
 ---
 
-### 3.1.3 — Nova tabela `Aparelho`
+### 3.1.3 — Nova tabela `Aparelho` ✅
 
-Substituir ENUM fixo de aparelhos por tabela própria — permite cadastrar
-novos sem alterar código.
+Substituiu ENUM fixo por tabela catálogo.
 
 ```python
 class Aparelho(BaseModel):
-    MODALIDADE_CHOICES = [
-        ('pilates', 'Mat Pilates'),
-        ('funcional', 'Funcional'),
-        ('ambos', 'Ambos'),
-    ]
-    apar_nome = models.CharField(max_length=100)
-    apar_modalidade = models.CharField(max_length=20, choices=MODALIDADE_CHOICES)
-    apar_ativo = models.BooleanField(default=True)
+    MODALIDADE_CHOICES = [('pilates', 'Mat Pilates'), ('funcional', 'Funcional'), ('ambos', 'Ambos')]
+    apar_id         = AutoField(primary_key=True)
+    apar_nome       = CharField(max_length=100)
+    apar_modalidade = CharField(max_length=20, choices=MODALIDADE_CHOICES)
+    apar_ativo      = BooleanField(default=True)
 
     class Meta:
         db_table = 'aparelho'
-        verbose_name = 'Aparelho'
-        verbose_name_plural = 'Aparelhos'
+        ordering = ['apar_modalidade', 'apar_nome']
 ```
 
-**Popular via fixture após criar:**
-```
-Pilates: Solo, Reformer, Cadillac, Chair, Barrel
-Funcional: Step, Banco, Parede, Polia
-```
-
-**Endpoints:**
-```
-GET/POST    /api/aparelhos/
-GET/PUT/DEL /api/aparelhos/{id}/
-```
+**Endpoints:** `GET/POST /api/aparelhos/` · `GET/PUT/DEL /api/aparelhos/{id}/`
 
 ---
 
-### 3.1.4 — Tabela `Exercicio` — refatorar
+### 3.1.3b — Nova tabela `Acessorio` ✅ (extra além do spec)
 
 ```python
-# REMOVER:
-exe_aparelho (CharField ENUM fixo)
+class Acessorio(BaseModel):
+    acess_id   = AutoField(primary_key=True)
+    acess_nome = CharField(max_length=100)
+    acess_ativo = BooleanField(default=True)
 
-# ADICIONAR:
-exe_modalidade = models.CharField(
-    max_length=20,
-    choices=[('pilates', 'Mat Pilates'), ('funcional', 'Funcional')],
-)
-exe_aparelho = models.ForeignKey(
-    'Aparelho',
-    on_delete=models.PROTECT,
-    null=True, blank=True,
-    related_name='exercicios'
-)
-exe_acessorio = models.CharField(max_length=100, null=True, blank=True)
-# ex: halter, elástico, bola, anilha, saco de peso
-
-exe_variacao = models.CharField(max_length=100, null=True, blank=True)
-# ex: unilateral, bilateral, com apoio
+    class Meta:
+        db_table = 'acessorio'
+        ordering = ['acess_nome']
 ```
 
-> ⚠️ Variações NÃO são aparelhos — podem ser acessórios (halter, elástico)
-> ou formas de execução (unilateral, com apoio). Campos separados.
+**Endpoints:** `GET/POST /api/acessorios/` · `GET/PUT/DEL /api/acessorios/{id}/`
 
 ---
 
-### 3.1.5 — Tabela `FichaTreino` — adicionar modalidade
+### 3.1.4 — Tabela `Exercicio` — refatorada ✅
 
 ```python
-# ADICIONAR:
-fitr_modalidade = models.CharField(
-    max_length=20,
-    choices=[('pilates', 'Mat Pilates'), ('funcional', 'Funcional')],
-)
+exe_modalidade  = CharField(max_length=20, choices=[('pilates',...),('funcional',...)]) # obrigatório
+exe_aparelho    = ForeignKey('Aparelho', null=True)   # era ENUM fixo
+exe_acessorio   = ForeignKey('Acessorio', null=True)  # era CharField livre
+exe_variacao    = CharField(max_length=100, null=True) # ex: unilateral, com apoio
 ```
+
+> Filtro por modalidade nos aparelhos inclui `apar_modalidade == 'ambos'`.
 
 ---
 
-### 3.1.6 — Tabela `FichaTreinoExercicios` — adicionar seção
-
-A seção ("Potência", "Força") pertence ao exercício dentro da ficha,
-não à ficha em si.
+### 3.1.5 — Tabela `FichaTreino` — campo modalidade ✅
 
 ```python
-# ADICIONAR:
-ftex_secao = models.CharField(max_length=100, null=True, blank=True)
-# ex: "Potência", "Força", "Aquecimento", "Alongamento"
+fitr_modalidade = CharField(max_length=20, choices=[...], null=True)
 ```
 
 ---
 
-## FASE 3.2 — Renomear `Aula` → `MinistrarAula`
+### 3.1.6 — Tabela `FichaTreinoExercicios` — seção + combinados ✅
 
-> ⚠️ Backup obrigatório antes desta fase.
+```python
+ftex_secao = CharField(max_length=100, null=True)  # ex: "Potência", "Força"
+exe2       = ForeignKey('Exercicio', null=True)     # exercício combinado (extra além do spec)
+```
 
-### Mapeamento de renomeação:
+---
+
+## FASE 3.2 — Renomear `Aula` → `MinistrarAula` ✅ COMPLETO
+
+### Mapeamento aplicado:
 
 | Antes | Depois |
 |---|---|
 | Model `Aula` | Model `MinistrarAula` |
 | Tabela `aulas` | Tabela `ministrar_aula` |
 | Prefixo `aul_` | Prefixo `miau_` |
+| Endpoint `/api/aulas/` | Endpoint `/api/ministrar-aula/` |
 
 ### Campos renomeados + novos:
 
 | Campo antigo | Campo novo | Observação |
 |---|---|---|
 | aul_id | miau_id | |
+| aul_data | miau_data | |
 | aul_hora_inicio | miau_hora_inicio | |
 | aul_hora_final | miau_hora_final | |
-| aul_tipo_presenca | miau_tipo_presenca | |
+| aul_tipo_presenca | miau_tipo_presenca | `'regular'` → `'presente'` (data migration) |
 | aul_tipo_falta | miau_tipo_falta | |
-| aul_pse (0-10) | miau_pse (6-20) | **Escala de Borg — muda validação** |
-| aul_observacoes | miau_observacoes | |
-| aul_pressao_inicio (string) | miau_pas_inicio (INTEGER) + miau_pad_inicio (INTEGER) | **Separar PAS e PAD** |
-| aul_pressao_final (string) | miau_pas_final (INTEGER) + miau_pad_final (INTEGER) | **Separar PAS e PAD** |
-| — | miau_fc_inicio (INTEGER) | **NOVO — Frequência Cardíaca** |
-| — | miau_fc_final (INTEGER) | **NOVO — Frequência Cardíaca** |
+| aul_intensidade_esforco (0-10) | miau_pse (6-20) | **Escala de Borg — validators Min=6 Max=20** |
+| aul_pressao_inicio (string) | miau_pas_inicio (INTEGER) + miau_pad_inicio (INTEGER) | **PAS e PAD separados** |
+| aul_pressao_final (string) | miau_pas_final (INTEGER) + miau_pad_final (INTEGER) | **PAS e PAD separados** |
+| — | miau_fc_inicio (INTEGER) | **NOVO — Frequência Cardíaca inicial** |
+| — | miau_fc_final (INTEGER) | **NOVO — Frequência Cardíaca final** |
+| — | miau_observacoes (TextField) | **NOVO — observações por aluno** |
 
-### Model completo `MinistrarAula`:
+### Model atual `MinistrarAula` (implementado):
 
 ```python
 class MinistrarAula(BaseModel):
-    TIPO_PRESENCA_CHOICES = [
-        ('presente', 'Presente'),
-        ('falta', 'Falta'),
-        ('reposicao', 'Reposição'),
-    ]
-    TIPO_FALTA_CHOICES = [
-        ('sem_aviso', 'Sem Aviso'),
-        ('justificada', 'Justificada'),
-        ('atestado', 'Atestado Médico'),
-        ('cenario3', 'Entre 1h e 48h'),
-    ]
+    miau_id  = AutoField(primary_key=True)
+    tur      = ForeignKey('operacional.Turma', on_delete=PROTECT)
+    alu      = ForeignKey('operacional.Aluno', on_delete=PROTECT)
+    func     = ForeignKey('operacional.Funcionario', null=True, blank=True)
+    fitr     = ForeignKey('FichaTreino', null=True, blank=True)
+    cred     = ForeignKey('CreditoReposicao', null=True, blank=True)
 
-    # FKs
-    aula = models.ForeignKey(
-        'Aulas',
-        on_delete=models.PROTECT,
-        related_name='registros'
-    )
-    aluno = models.ForeignKey(
-        'operacional.Aluno',
-        on_delete=models.PROTECT,
-        related_name='ministrar_aulas'
-    )
-    ficha_treino = models.ForeignKey(
-        'FichaTreino',
-        on_delete=models.PROTECT,
-        null=True, blank=True,
-        related_name='ministrar_aulas'
-    )
-    funcionario = models.ForeignKey(
-        'operacional.Funcionario',
-        on_delete=models.PROTECT,
-        null=True, blank=True,
-        related_name='ministrar_aulas'
-    )
-    credito_reposicao = models.ForeignKey(
-        'CreditoReposicao',
-        on_delete=models.PROTECT,
-        null=True, blank=True,
-        related_name='aula_reposicao'
-    )
+    miau_data        = DateField()
+    miau_hora_inicio = TimeField()
+    miau_hora_final  = TimeField(null=True)
 
-    # Medidas início
-    miau_pas_inicio = models.IntegerField(null=True, blank=True)
-    miau_pad_inicio = models.IntegerField(null=True, blank=True)
-    miau_fc_inicio = models.IntegerField(null=True, blank=True)
+    miau_pas_inicio  = IntegerField(null=True)
+    miau_pad_inicio  = IntegerField(null=True)
+    miau_pas_final   = IntegerField(null=True)
+    miau_pad_final   = IntegerField(null=True)
+    miau_fc_inicio   = IntegerField(null=True)
+    miau_fc_final    = IntegerField(null=True)
+    miau_pse         = IntegerField(null=True, validators=[Min(6), Max(20)])
+    miau_observacoes = TextField(null=True)
 
-    # Medidas final
-    miau_pas_final = models.IntegerField(null=True, blank=True)
-    miau_pad_final = models.IntegerField(null=True, blank=True)
-    miau_fc_final = models.IntegerField(null=True, blank=True)
-
-    # Controle
-    miau_hora_inicio = models.TimeField()
-    miau_hora_final = models.TimeField(null=True, blank=True)
-    miau_tipo_presenca = models.CharField(
-        max_length=20,
-        choices=TIPO_PRESENCA_CHOICES,
-        default='presente'
-    )
-    miau_tipo_falta = models.CharField(
-        max_length=20,
-        choices=TIPO_FALTA_CHOICES,
-        null=True, blank=True
-    )
-    miau_pse = models.IntegerField(
-        null=True, blank=True,
-        validators=[MinValueValidator(6), MaxValueValidator(20)]
-    )
-    miau_observacoes = models.TextField(null=True, blank=True)
+    miau_tipo_presenca = CharField(choices=[('presente',...),('falta',...),('reposicao',...)], default='presente')
+    miau_tipo_falta    = CharField(choices=[('sem_aviso',...),('justificada',...),('atestado',...),('cenario3',...)], null=True)
 
     class Meta:
         db_table = 'ministrar_aula'
-        verbose_name = 'Registro de Aula'
-        verbose_name_plural = 'Registros de Aula'
-        unique_together = [['aula', 'aluno']]
+        unique_together = [['tur', 'alu', 'miau_data', 'miau_hora_inicio']]
+        ordering = ['-miau_data', '-miau_hora_inicio']
 ```
 
-### Atualizar FKs que apontavam para `Aula`:
+### ⚠️ Gotchas descobertos durante a migração:
 
-```python
-# CreditoReposicao:
-aula_origem → FK → MinistrarAula
-aula_reposicao → FK → MinistrarAula
-```
+1. **`RenameModel` + `db_table` customizado:** Django NÃO renomeia a tabela no banco quando ambos os models têm `db_table` explícito. Solução: adicionar `AlterModelTable(name='ministraraula', table='ministrar_aula')` imediatamente após o `RenameModel`.
+
+2. **`RunPython` com `Meta.ordering` usando campos renomeados:** usar `.order_by()` para limpar o ordering antes de iterar, senão `FieldError` nos campos com nome antigo.
 
 ---
 
-## FASE 3.3 — Nova tabela `Aulas`
+## FASE 3.3 — Nova tabela `Aulas` — PENDENTE
 
 Tabela agregada — 1 linha por aula coletiva.
 Facilita relatórios, gráficos e página de histórico.
 
-### Relacionamento:
+### Relacionamento planejado:
 ```
 Aulas (1) ──── MinistrarAula (N)
 ```
 
-### Model:
+### Model proposto:
 
 ```python
 class Aulas(BaseModel):
-    MODALIDADE_CHOICES = [
-        ('pilates', 'Mat Pilates'),
-        ('funcional', 'Funcional'),
-    ]
+    MODALIDADE_CHOICES = [('pilates', 'Mat Pilates'), ('funcional', 'Funcional')]
 
-    turma = models.ForeignKey(
-        'operacional.Turma',
-        on_delete=models.PROTECT,
-        related_name='aulas'
-    )
-    aul_nome = models.CharField(max_length=150)
-    # ex: "Funcional Seg 17:00", "Pilates Qua 18:30"
-
-    aul_data = models.DateField()
-    aul_modalidade = models.CharField(max_length=20, choices=MODALIDADE_CHOICES)
+    aul_id         = AutoField(primary_key=True)
+    tur            = ForeignKey('operacional.Turma', on_delete=PROTECT)
+    aul_data       = DateField()
+    aul_modalidade = CharField(max_length=20, choices=MODALIDADE_CHOICES)
+    aul_nome       = CharField(max_length=150, null=True, blank=True)
+    # ex: "Funcional Seg 17:00" — preenchido automaticamente ou pelo professor
 
     class Meta:
         db_table = 'aulas'
-        verbose_name = 'Aula'
-        verbose_name_plural = 'Aulas'
         ordering = ['-aul_data']
-        unique_together = [['turma', 'aul_data', 'aul_modalidade']]
+        unique_together = [['tur', 'aul_data', 'aul_modalidade']]
 ```
 
-**Endpoints:**
+> ⚠️ **Atenção:** ao criar a tabela `aulas`, o endpoint `/api/aulas/` pode conflitar
+> com o histórico antigo. Verificar roteamento antes de registrar o ViewSet.
+
+### Alteração em `MinistrarAula` após Fase 3.3:
+
+```python
+# ADICIONAR FK opcional (retrocompatível):
+aula = ForeignKey('Aulas', on_delete=SET_NULL, null=True, blank=True, related_name='registros')
+```
+
+### Endpoints planejados:
 ```
 GET/POST    /api/aulas/
 GET/PUT/DEL /api/aulas/{id}/
 GET         /api/aulas/?modalidade=funcional
-GET         /api/aulas/?turma={id}
-GET         /api/aulas/?data_inicio=2026-01-01&data_fim=2026-04-30
+GET         /api/aulas/?tur={id}
+GET         /api/aulas/?aul_data_after=2026-01-01&aul_data_before=2026-04-30
 ```
 
----
-
-## Ordem das migrations (executar nessa sequência)
-
-```
-1.  Criar tabela Aparelho
-2.  Criar tabela FichaAluno
-3.  Remover campos medidas de Aluno
-4.  Refatorar Exercicio (aparelho vira FK + modalidade + acessorio + variacao)
-5.  Adicionar fitr_modalidade em FichaTreino
-6.  Adicionar ftex_secao em FichaTreinoExercicios
-7.  Criar tabela Aulas (Fase 3.3)
-8.  Renomear tabela aulas → ministrar_aula + prefixo aul_ → miau_
-9.  Adicionar FK aula (→ Aulas) em MinistrarAula
-10. Adicionar miau_fc_inicio, miau_fc_final, miau_observacoes
-11. Separar pressão em PAS/PAD (remover string, adicionar integers)
-12. Ajustar miau_pse para validação 6-20
-13. Atualizar CreditoReposicao — FKs → MinistrarAula
-```
-
-> ⚠️ Testar cada migration individualmente antes da próxima.
-> Rodar suite de testes após cada etapa.
-
----
-
-## Frontend — o que atualizar
-
-### `MinistrarAulaPage`:
-- PAS e PAD como campos numéricos separados (não mais string)
-- Adicionar FC Inicial e FC Final
-- PSE: slider ou input de 6 a 20 (Escala de Borg)
-- Adicionar campo Observações por aluno
-- Atualizar payload do POST com novos campos
-
-### Nova página `AulasPage` (`/aulas`):
-- Listar histórico de aulas (tabela `Aulas`)
-- Filtros: modalidade, turma, período
+### Nova página `AulasPage` (frontend):
+- Listar histórico de aulas com filtros: modalidade, turma, período
 - Card por aula: nome, data, modalidade (badge), turma, qtd presentes
 - Link para detalhes → lista `MinistrarAula` daquela aula
 
-### `AlunosPage` / `AlunoDetails`:
-- Remover campos de medidas do formulário de aluno
-- Adicionar seção "Avaliações Físicas" com histórico de `FichaAluno`
-- Botão "Nova Avaliação" → modal com campos + data
-
-### `ExerciciosPage`:
-- Filtro por modalidade (Pilates / Funcional)
-- Campo aparelho vira select (busca `/api/aparelhos/`)
-- Adicionar campos acessório e variação
-
-### `FichasTreinoPage`:
-- Campo modalidade no formulário
-- Agrupar exercícios por seção (`ftex_secao`) no card
-
-### Nova página `AparelhosPage` (`/configuracao/aparelhos`):
-- CRUD simples — visível só para Administrador
-
 ---
 
-## Testes a criar/atualizar
+## Estado atual dos testes
 
-```python
-# MinistrarAula
-- test_criar_registro_com_pas_pad_fc
-- test_pse_invalido_fora_escala_6_20  # deve rejeitar 0-5 e 21+
-- test_falta_justificada_gera_credito  # ajustar FK
-
-# FichaAluno
-- test_criar_ficha_aluno_com_data
-- test_historico_multiplas_fichas_por_aluno
-
-# Aparelho
-- test_crud_aparelho
-- test_exercicio_com_aparelho_fk
-
-# Aulas
-- test_criar_aula
-- test_listar_aulas_por_modalidade
-- test_unique_turma_data_modalidade
+```
+75 testes passando (10/04/2026):
+  - financeiro:  18
+  - operacional: 20
+  - tecnico:     33  (5 novos em 3.2 — PSE/FC/obs)
 ```
 
 ---
@@ -423,11 +279,11 @@ GET         /api/aulas/?data_inicio=2026-01-01&data_fim=2026-04-30
 
 ---
 
-## Ao finalizar
+## Ao finalizar a Fase 3.3
 
 Atualizar o `CLAUDE.md`:
-- Fase 3 → ✅ COMPLETO com data
-- Tabela de models atualizada
+- Fase 3.3 → ✅ COMPLETO com data
+- Tabela de models atualizada (Aulas)
 - Novos endpoints adicionados
 - Novas armadilhas no troubleshooting
 

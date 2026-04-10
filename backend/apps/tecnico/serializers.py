@@ -19,7 +19,8 @@ class AparelhoSerializer(serializers.ModelSerializer):
 
 class ExercicioSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
-    apar_nome = serializers.CharField(source='exe_aparelho.apar_nome', read_only=True)
+    # allow_null=True: exe_aparelho é FK nullable
+    apar_nome = serializers.CharField(source='exe_aparelho.apar_nome', read_only=True, allow_null=True)
 
     class Meta:
         model = Exercicio
@@ -35,7 +36,8 @@ class ExercicioSerializer(serializers.ModelSerializer):
 class FichaTreinoExerciciosSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
     exe_nome = serializers.CharField(source='exe.exe_nome', read_only=True)
-    apar_nome = serializers.CharField(source='exe.exe_aparelho.apar_nome', read_only=True)
+    # allow_null=True: exercício pode não ter aparelho vinculado
+    apar_nome = serializers.CharField(source='exe.exe_aparelho.apar_nome', read_only=True, allow_null=True)
 
     class Meta:
         model = FichaTreinoExercicios

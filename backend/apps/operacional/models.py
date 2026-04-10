@@ -13,7 +13,7 @@ class Aluno(BaseModel):
     alu_endereco = models.CharField('endereço', max_length=300, null=True, blank=True)
     alu_email = models.EmailField('e-mail', max_length=150, null=True, blank=True)
     alu_telefone = models.CharField('telefone', max_length=20, null=True, blank=True)
-    # Medidas corporais — atualizadas nas avaliações
+
     class Meta:
         db_table = 'alunos'
         verbose_name = 'Aluno'

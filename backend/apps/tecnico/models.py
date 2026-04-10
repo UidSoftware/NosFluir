@@ -46,7 +46,7 @@ class Exercicio(BaseModel):
 
     exe_id = models.AutoField(primary_key=True)
     exe_nome = models.CharField('nome do exercício', max_length=125)
-    exe_modalidade = models.CharField('modalidade', max_length=20, choices=MODALIDADE_CHOICES, default='pilates')
+    exe_modalidade = models.CharField('modalidade', max_length=20, choices=MODALIDADE_CHOICES)
     exe_aparelho = models.ForeignKey(
         'Aparelho', on_delete=models.PROTECT,
         null=True, blank=True, verbose_name='aparelho',

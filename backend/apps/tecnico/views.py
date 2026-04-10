@@ -23,7 +23,13 @@ class AparelhoViewSet(AuditMixin, ModelViewSet):
 
 
 class ExercicioViewSet(AuditMixin, ModelViewSet):
-    queryset = Exercicio.objects.filter(deleted_at__isnull=True).order_by('exe_nome')
+    # select_related: evita N+1 ao serializar apar_nome
+    queryset = (
+        Exercicio.objects
+        .filter(deleted_at__isnull=True)
+        .select_related('exe_aparelho')
+        .order_by('exe_nome')
+    )
     serializer_class = ExercicioSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['exe_modalidade', 'exe_aparelho']
@@ -34,13 +40,20 @@ class ExercicioViewSet(AuditMixin, ModelViewSet):
 class FichaTreinoViewSet(AuditMixin, ModelViewSet):
     queryset = FichaTreino.objects.filter(deleted_at__isnull=True).order_by('fitr_nome')
     serializer_class = FichaTreinoSerializer
-    filter_backends = [SearchFilter, OrderingFilter]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['fitr_modalidade']
     search_fields = ['fitr_nome']
     ordering_fields = ['fitr_nome']
 
 
 class FichaTreinoExerciciosViewSet(AuditMixin, ModelViewSet):
-    queryset = FichaTreinoExercicios.objects.filter(deleted_at__isnull=True).order_by('fitr', 'ftex_ordem')
+    # select_related: evita N+1 ao serializar exe_nome e apar_nome
+    queryset = (
+        FichaTreinoExercicios.objects
+        .filter(deleted_at__isnull=True)
+        .select_related('exe__exe_aparelho')
+        .order_by('fitr', 'ftex_ordem')
+    )
     serializer_class = FichaTreinoExerciciosSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ['fitr', 'exe']

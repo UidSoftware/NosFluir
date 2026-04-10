@@ -2,6 +2,7 @@ import re
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -9,7 +10,7 @@ from apps.core.mixins import BaseModel
 
 
 def validar_pressao_arterial(value):
-    """RN019: pressão arterial no formato NNN/NN ou NN/NN."""
+    """Mantida para compatibilidade com migrations antigas."""
     if value and not re.match(r'^\d{2,3}/\d{2}$', value):
         raise ValidationError('Pressão arterial deve estar no formato "120/80" ou "130/85".')
 
@@ -151,13 +152,13 @@ class CreditoReposicao(BaseModel):
     alu = models.ForeignKey(
         'operacional.Aluno', on_delete=models.PROTECT, verbose_name='aluno'
     )
-    # FK para Aula usando string — Aula é definida abaixo
+    # FK usa string para evitar referência circular (MinistrarAula é definido abaixo)
     aula_origem = models.ForeignKey(
-        'Aula', on_delete=models.PROTECT,
+        'MinistrarAula', on_delete=models.PROTECT,
         related_name='creditos_gerados', verbose_name='aula de origem (falta)'
     )
     aula_reposicao = models.ForeignKey(
-        'Aula', on_delete=models.SET_NULL,
+        'MinistrarAula', on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='creditos_utilizados', verbose_name='aula de reposição'
     )
@@ -183,13 +184,14 @@ class CreditoReposicao(BaseModel):
         return f'Crédito {self.alu} — {self.cred_status} (expira {self.cred_data_expiracao.date()})'
 
 
-class Aula(BaseModel):
+class MinistrarAula(BaseModel):
     """
     Registro de aulas ministradas. 1 linha = 1 aluno em 1 aula.
-    Constraint: UNIQUE(tur, alu, aul_data, aul_hora_inicio)
+    Fase 3.2 — campos PAS/PAD separados, FC, PSE Borg 6-20.
+    Constraint: UNIQUE(tur, alu, miau_data, miau_hora_inicio)
     """
     TIPO_PRESENCA_CHOICES = [
-        ('regular', 'Regular'),
+        ('presente', 'Presente'),
         ('falta', 'Falta'),
         ('reposicao', 'Reposição'),
     ]
@@ -201,7 +203,7 @@ class Aula(BaseModel):
         ('cenario3', 'Aviso com mais de 48h (pendente)'),
     ]
 
-    aul_id = models.AutoField(primary_key=True)
+    miau_id = models.AutoField(primary_key=True)
     tur = models.ForeignKey('operacional.Turma', on_delete=models.PROTECT, verbose_name='turma')
     alu = models.ForeignKey('operacional.Aluno', on_delete=models.PROTECT, verbose_name='aluno')
     func = models.ForeignKey(
@@ -216,32 +218,40 @@ class Aula(BaseModel):
         CreditoReposicao, on_delete=models.SET_NULL,
         null=True, blank=True, verbose_name='crédito utilizado'
     )
-    aul_data = models.DateField('data da aula')
-    aul_hora_inicio = models.TimeField('hora de início')
-    aul_hora_final = models.TimeField('hora de término', null=True, blank=True)
-    aul_pressao_inicio = models.CharField(
-        'pressão inicial', max_length=10, null=True, blank=True,
-        validators=[validar_pressao_arterial]
+    miau_data = models.DateField('data da aula')
+    miau_hora_inicio = models.TimeField('hora de início')
+    miau_hora_final = models.TimeField('hora de término', null=True, blank=True)
+
+    # Pressão arterial — PAS e PAD separados (inteiros em mmHg)
+    miau_pas_inicio = models.IntegerField('PAS inicial (mmHg)', null=True, blank=True)
+    miau_pad_inicio = models.IntegerField('PAD inicial (mmHg)', null=True, blank=True)
+    miau_pas_final = models.IntegerField('PAS final (mmHg)', null=True, blank=True)
+    miau_pad_final = models.IntegerField('PAD final (mmHg)', null=True, blank=True)
+
+    # Frequência cardíaca
+    miau_fc_inicio = models.IntegerField('FC inicial (bpm)', null=True, blank=True)
+    miau_fc_final = models.IntegerField('FC final (bpm)', null=True, blank=True)
+
+    # PSE — Escala de Borg (6-20)
+    miau_pse = models.IntegerField(
+        'PSE — Escala de Borg (6–20)', null=True, blank=True,
+        validators=[MinValueValidator(6), MaxValueValidator(20)]
     )
-    aul_pressao_final = models.CharField(
-        'pressão final', max_length=10, null=True, blank=True,
-        validators=[validar_pressao_arterial]
+    miau_observacoes = models.TextField('observações', null=True, blank=True)
+
+    miau_tipo_presenca = models.CharField(
+        'tipo de presença', max_length=20, choices=TIPO_PRESENCA_CHOICES, default='presente'
     )
-    aul_tipo_presenca = models.CharField(
-        'tipo de presença', max_length=20, choices=TIPO_PRESENCA_CHOICES, default='regular'
-    )
-    aul_tipo_falta = models.CharField(
+    miau_tipo_falta = models.CharField(
         'tipo de falta', max_length=20, choices=TIPO_FALTA_CHOICES, null=True, blank=True
     )
-    aul_intensidade_esforco = models.IntegerField('intensidade de esforço (0–10)', null=True, blank=True)
 
     class Meta:
-        db_table = 'aulas'
-        verbose_name = 'Aula'
-        verbose_name_plural = 'Aulas'
-        # RN022: evita duplicação de registro de aula
-        unique_together = [['tur', 'alu', 'aul_data', 'aul_hora_inicio']]
-        ordering = ['-aul_data', '-aul_hora_inicio']
+        db_table = 'ministrar_aula'
+        verbose_name = 'Registro de Aula'
+        verbose_name_plural = 'Registros de Aula'
+        unique_together = [['tur', 'alu', 'miau_data', 'miau_hora_inicio']]
+        ordering = ['-miau_data', '-miau_hora_inicio']
 
     def __str__(self):
-        return f'{self.alu} — {self.tur} — {self.aul_data}'
+        return f'{self.alu} — {self.tur} — {self.miau_data}'

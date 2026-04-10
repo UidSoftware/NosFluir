@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Acessorio, Aparelho, Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
+from .models import Acessorio, Aparelho, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
 
 
 @admin.register(Acessorio)
@@ -46,13 +46,13 @@ class FichaTreinoExerciciosAdmin(admin.ModelAdmin):
     ordering = ['fitr', 'ftex_ordem']
 
 
-@admin.register(Aula)
-class AulaAdmin(admin.ModelAdmin):
-    list_display = ['aul_data', 'tur', 'alu', 'func', 'aul_tipo_presenca', 'aul_pressao_inicio']
-    list_filter = ['aul_tipo_presenca', 'aul_tipo_falta', 'tur', 'func']
+@admin.register(MinistrarAula)
+class MinistrarAulaAdmin(admin.ModelAdmin):
+    list_display = ['miau_data', 'tur', 'alu', 'func', 'miau_tipo_presenca', 'miau_pas_inicio', 'miau_pad_inicio']
+    list_filter = ['miau_tipo_presenca', 'miau_tipo_falta', 'tur', 'func']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
-    date_hierarchy = 'aul_data'
-    ordering = ['-aul_data', '-aul_hora_inicio']
+    date_hierarchy = 'miau_data'
+    ordering = ['-miau_data', '-miau_hora_inicio']
 
 
 @admin.register(CreditoReposicao)

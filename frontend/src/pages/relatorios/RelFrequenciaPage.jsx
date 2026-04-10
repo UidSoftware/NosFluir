@@ -18,7 +18,7 @@ export default function RelFrequenciaPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['rel-frequencia', dataInicio, dataFim, page],
-    queryFn: () => api.get('/aulas/', {
+    queryFn: () => api.get('/ministrar-aula/', {
       params: { data_inicio: dataInicio || undefined, data_fim: dataFim || undefined, page },
     }).then(r => r.data),
   })
@@ -27,16 +27,16 @@ export default function RelFrequenciaPage() {
   const count      = data?.count ?? 0
   const totalPages = Math.ceil(count / 20) || 1
 
-  const totalPresentes  = items.filter(r => r.aul_tipo_presenca === 'regular').length
-  const totalFaltas     = items.filter(r => r.aul_tipo_presenca === 'falta').length
-  const totalReposicoes = items.filter(r => r.aul_tipo_presenca === 'reposicao').length
+  const totalPresentes  = items.filter(r => r.miau_tipo_presenca === 'presente').length
+  const totalFaltas     = items.filter(r => r.miau_tipo_presenca === 'falta').length
+  const totalReposicoes = items.filter(r => r.miau_tipo_presenca === 'reposicao').length
 
   const columns = [
-    { key: 'alu_nome',          header: 'Aluno',    render: r => r.alu_nome || r.alu },
-    { key: 'tur_nome',          header: 'Turma',    render: r => r.tur_nome || '—' },
-    { key: 'aul_data',          header: 'Data',     render: r => formatDate(r.aul_data) },
-    { key: 'aul_tipo_presenca', header: 'Presença', render: r => <StatusBadge status={r.aul_tipo_presenca} /> },
-    { key: 'aul_pressao_inicio', header: 'P.A. Início', render: r => r.aul_pressao_inicio || '—' },
+    { key: 'alu_nome',           header: 'Aluno',    render: r => r.alu_nome || r.alu },
+    { key: 'tur_nome',           header: 'Turma',    render: r => r.tur_nome || '—' },
+    { key: 'miau_data',          header: 'Data',     render: r => formatDate(r.miau_data) },
+    { key: 'miau_tipo_presenca', header: 'Presença', render: r => <StatusBadge status={r.miau_tipo_presenca} /> },
+    { key: 'miau_pa',            header: 'P.A. Início', render: r => r.miau_pas_inicio != null ? `${r.miau_pas_inicio}/${r.miau_pad_inicio ?? '?'}` : '—' },
   ]
 
   return (

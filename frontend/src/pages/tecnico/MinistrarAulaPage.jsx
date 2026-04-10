@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 import api from '@/services/api'
 
 const PRESENCA_OPTS = [
-  { value: 'regular',   label: 'Presente',   Icon: CheckCircle },
+  { value: 'presente',  label: 'Presente',   Icon: CheckCircle },
   { value: 'falta',     label: 'Falta',      Icon: XCircle },
   { value: 'reposicao', label: 'Reposição',  Icon: RefreshCw },
 ]
@@ -23,8 +23,6 @@ const FALTA_TIPOS = [
   { value: 'atestado',    label: 'Atestado médico' },
   { value: 'cenario3',    label: 'Aviso com mais de 48h (pendente)' },
 ]
-
-const PRESSAO_REGEX = /^\d{2,3}\/\d{2}$/
 
 function ExerciciosFicha({ exercicios }) {
   const grupos = useMemo(() => {
@@ -89,11 +87,16 @@ function ExercicioLinha({ ex }) {
 }
 
 function AlunoRow({ aluno, state, onUpdate }) {
-  const presenca   = state?.presenca   ?? 'regular'
-  const faltaTipo  = state?.faltaTipo  ?? 'sem_aviso'
-  const pressaoI   = state?.pressaoI   ?? ''
-  const pressaoF   = state?.pressaoF   ?? ''
-  const intensidade= state?.intensidade?? ''
+  const presenca  = state?.presenca  ?? 'presente'
+  const faltaTipo = state?.faltaTipo ?? 'sem_aviso'
+  const pasI      = state?.pasI      ?? ''
+  const padI      = state?.padI      ?? ''
+  const pasF      = state?.pasF      ?? ''
+  const padF      = state?.padF      ?? ''
+  const fcI       = state?.fcI       ?? ''
+  const fcF       = state?.fcF       ?? ''
+  const pse       = state?.pse       ?? ''
+  const obs       = state?.obs       ?? ''
 
   const { data: creditos } = useQuery({
     queryKey: ['creditos-aluno', aluno.id],
@@ -128,7 +131,7 @@ function AlunoRow({ aluno, state, onUpdate }) {
               className={cn(
                 'p-2 rounded-md transition-colors min-h-[36px]',
                 presenca === o.value
-                  ? o.value === 'regular'
+                  ? o.value === 'presente'
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                     : o.value === 'falta'
                     ? 'bg-red-500/20 text-red-400 border border-red-500/30'
@@ -179,35 +182,98 @@ function AlunoRow({ aluno, state, onUpdate }) {
         </div>
       )}
 
-      {/* P.A. e intensidade */}
-      {presenca === 'regular' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-1">
-          <div>
-            <label className="text-xs text-gray-400">P.A. Inicial</label>
-            <Input
-              value={pressaoI}
-              onChange={e => onUpdate(aluno.id, { pressaoI: e.target.value })}
-              placeholder="120/80"
-              className={cn('w-full text-sm px-2 py-1 mt-0.5', pressaoI && !PRESSAO_REGEX.test(pressaoI) ? 'border-red-500' : '')}
-            />
+      {/* Campos de medição — apenas para Presente */}
+      {presenca === 'presente' && (
+        <div className="space-y-2 mt-1">
+          {/* PAS/PAD Inicial e Final */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-gray-400">PAS Inicial (mmHg)</label>
+              <Input
+                type="number" min="50" max="250"
+                value={pasI}
+                onChange={e => onUpdate(aluno.id, { pasI: e.target.value })}
+                placeholder="120"
+                className="w-full text-sm px-2 py-1 mt-0.5"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400">PAD Inicial (mmHg)</label>
+              <Input
+                type="number" min="30" max="150"
+                value={padI}
+                onChange={e => onUpdate(aluno.id, { padI: e.target.value })}
+                placeholder="80"
+                className="w-full text-sm px-2 py-1 mt-0.5"
+              />
+            </div>
           </div>
-          <div>
-            <label className="text-xs text-gray-400">P.A. Final</label>
-            <Input
-              value={pressaoF}
-              onChange={e => onUpdate(aluno.id, { pressaoF: e.target.value })}
-              placeholder="120/80"
-              className={cn('w-full text-sm px-2 py-1 mt-0.5', pressaoF && !PRESSAO_REGEX.test(pressaoF) ? 'border-red-500' : '')}
-            />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-gray-400">PAS Final (mmHg)</label>
+              <Input
+                type="number" min="50" max="250"
+                value={pasF}
+                onChange={e => onUpdate(aluno.id, { pasF: e.target.value })}
+                placeholder="120"
+                className="w-full text-sm px-2 py-1 mt-0.5"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400">PAD Final (mmHg)</label>
+              <Input
+                type="number" min="30" max="150"
+                value={padF}
+                onChange={e => onUpdate(aluno.id, { padF: e.target.value })}
+                placeholder="80"
+                className="w-full text-sm px-2 py-1 mt-0.5"
+              />
+            </div>
           </div>
+
+          {/* FC e PSE */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div>
+              <label className="text-xs text-gray-400">FC Inicial (bpm)</label>
+              <Input
+                type="number" min="30" max="250"
+                value={fcI}
+                onChange={e => onUpdate(aluno.id, { fcI: e.target.value })}
+                placeholder="70"
+                className="w-full text-sm px-2 py-1 mt-0.5"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400">FC Final (bpm)</label>
+              <Input
+                type="number" min="30" max="250"
+                value={fcF}
+                onChange={e => onUpdate(aluno.id, { fcF: e.target.value })}
+                placeholder="90"
+                className="w-full text-sm px-2 py-1 mt-0.5"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400">PSE Borg (6–20)</label>
+              <Input
+                type="number" min="6" max="20"
+                value={pse}
+                onChange={e => onUpdate(aluno.id, { pse: e.target.value })}
+                placeholder="13"
+                className="w-full text-sm px-2 py-1 mt-0.5"
+              />
+            </div>
+          </div>
+
+          {/* Observações */}
           <div>
-            <label className="text-xs text-gray-400">Intensidade (0-10)</label>
-            <Input
-              type="number" min="0" max="10"
-              value={intensidade}
-              onChange={e => onUpdate(aluno.id, { intensidade: e.target.value })}
-              placeholder="7"
-              className="w-full text-sm px-2 py-1 mt-0.5"
+            <label className="text-xs text-gray-400">Observações</label>
+            <textarea
+              value={obs}
+              onChange={e => onUpdate(aluno.id, { obs: e.target.value })}
+              placeholder="Observações sobre o aluno nesta aula..."
+              rows={2}
+              className="w-full mt-0.5 rounded-md border border-border bg-fluir-dark-3 px-2 py-1 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-fluir-cyan resize-none"
             />
           </div>
         </div>
@@ -263,11 +329,13 @@ export default function MinistrarAulaPage() {
       const init = {}
       alunosTurma.forEach(ta => {
         init[ta.alu] = {
-          presenca: 'regular',
+          presenca: 'presente',
           faltaTipo: 'sem_aviso',
-          pressaoI: '',
-          pressaoF: '',
-          intensidade: '',
+          pasI: '', padI: '',
+          pasF: '', padF: '',
+          fcI: '', fcF: '',
+          pse: '',
+          obs: '',
           creditoId: null,
         }
       })
@@ -305,17 +373,33 @@ export default function MinistrarAulaPage() {
       if (!d) continue
       const nome = ta.alu_nome || `Aluno ${ta.alu}`
 
-      if (d.presenca === 'regular') {
-        if (d.pressaoI && !PRESSAO_REGEX.test(d.pressaoI)) {
-          toast({ title: `P.A. inicial inválida para ${nome}. Formato: 120/80`, variant: 'destructive' })
+      if (d.presenca === 'presente') {
+        if (d.pasI !== '' && (parseInt(d.pasI) < 50 || parseInt(d.pasI) > 250)) {
+          toast({ title: `PAS inicial inválida para ${nome}. Use 50–250 mmHg.`, variant: 'destructive' })
           return
         }
-        if (d.pressaoF && !PRESSAO_REGEX.test(d.pressaoF)) {
-          toast({ title: `P.A. final inválida para ${nome}. Formato: 120/80`, variant: 'destructive' })
+        if (d.padI !== '' && (parseInt(d.padI) < 30 || parseInt(d.padI) > 150)) {
+          toast({ title: `PAD inicial inválida para ${nome}. Use 30–150 mmHg.`, variant: 'destructive' })
           return
         }
-        if (d.intensidade !== '' && (parseInt(d.intensidade) < 0 || parseInt(d.intensidade) > 10)) {
-          toast({ title: `Intensidade inválida para ${nome}. Use 0–10.`, variant: 'destructive' })
+        if (d.pasF !== '' && (parseInt(d.pasF) < 50 || parseInt(d.pasF) > 250)) {
+          toast({ title: `PAS final inválida para ${nome}. Use 50–250 mmHg.`, variant: 'destructive' })
+          return
+        }
+        if (d.padF !== '' && (parseInt(d.padF) < 30 || parseInt(d.padF) > 150)) {
+          toast({ title: `PAD final inválida para ${nome}. Use 30–150 mmHg.`, variant: 'destructive' })
+          return
+        }
+        if (d.fcI !== '' && (parseInt(d.fcI) < 30 || parseInt(d.fcI) > 250)) {
+          toast({ title: `FC inicial inválida para ${nome}. Use 30–250 bpm.`, variant: 'destructive' })
+          return
+        }
+        if (d.fcF !== '' && (parseInt(d.fcF) < 30 || parseInt(d.fcF) > 250)) {
+          toast({ title: `FC final inválida para ${nome}. Use 30–250 bpm.`, variant: 'destructive' })
+          return
+        }
+        if (d.pse !== '' && (parseInt(d.pse) < 6 || parseInt(d.pse) > 20)) {
+          toast({ title: `PSE inválido para ${nome}. Use Escala de Borg: 6–20.`, variant: 'destructive' })
           return
         }
       }
@@ -336,24 +420,31 @@ export default function MinistrarAulaPage() {
       const d = alunoStates[ta.alu]
       if (!d) continue
 
+      const toInt = v => v !== '' ? parseInt(v) : null
+
       const payload = {
-        tur:                     parseInt(turmaId),
-        alu:                     ta.alu,
-        func:                    funcId ? parseInt(funcId) : null,
-        fitr:                    fichaId ? parseInt(fichaId) : null,
-        cred:                    d.creditoId || null,
-        aul_data:                data,
-        aul_hora_inicio:         horaInicio,
-        aul_hora_final:          horaFinal,
-        aul_pressao_inicio:      d.pressaoI || null,
-        aul_pressao_final:       d.pressaoF || null,
-        aul_tipo_presenca:       d.presenca,
-        aul_tipo_falta:          d.presenca === 'falta' ? d.faltaTipo : null,
-        aul_intensidade_esforco: d.intensidade !== '' ? parseInt(d.intensidade) : null,
+        tur:                parseInt(turmaId),
+        alu:                ta.alu,
+        func:               funcId ? parseInt(funcId) : null,
+        fitr:               fichaId ? parseInt(fichaId) : null,
+        cred:               d.creditoId || null,
+        miau_data:          data,
+        miau_hora_inicio:   horaInicio,
+        miau_hora_final:    horaFinal,
+        miau_pas_inicio:    toInt(d.pasI),
+        miau_pad_inicio:    toInt(d.padI),
+        miau_pas_final:     toInt(d.pasF),
+        miau_pad_final:     toInt(d.padF),
+        miau_fc_inicio:     toInt(d.fcI),
+        miau_fc_final:      toInt(d.fcF),
+        miau_pse:           toInt(d.pse),
+        miau_observacoes:   d.obs || null,
+        miau_tipo_presenca: d.presenca,
+        miau_tipo_falta:    d.presenca === 'falta' ? d.faltaTipo : null,
       }
 
       try {
-        await api.post('/aulas/', payload)
+        await api.post('/ministrar-aula/', payload)
       } catch (err) {
         erros++
         const nome = ta.alu_nome || `Aluno ${ta.alu}`

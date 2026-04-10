@@ -18,15 +18,15 @@ from django.dispatch import receiver
 
 # Import lazy para evitar circular import
 def _get_models():
-    from apps.tecnico.models import Aula, CreditoReposicao
-    return Aula, CreditoReposicao
+    from apps.tecnico.models import MinistrarAula, CreditoReposicao
+    return MinistrarAula, CreditoReposicao
 
 
 TIPOS_FALTA_QUE_GERAM_CREDITO = {'justificada', 'atestado'}
 LIMITE_CREDITOS_SIMULTANEOS = 3
 
 
-@receiver(post_save, sender='tecnico.Aula')
+@receiver(post_save, sender='tecnico.MinistrarAula')
 def marcar_credito_usado(sender, instance, **kwargs):
     """
     Quando uma aula de reposição é registrada com um crédito vinculado,
@@ -34,7 +34,7 @@ def marcar_credito_usado(sender, instance, **kwargs):
     """
     _, CreditoReposicao = _get_models()
 
-    if instance.aul_tipo_presenca != 'reposicao':
+    if instance.miau_tipo_presenca != 'reposicao':
         return
     if not instance.cred_id:
         return
@@ -47,18 +47,18 @@ def marcar_credito_usado(sender, instance, **kwargs):
         credito.save()
 
 
-@receiver(post_save, sender='tecnico.Aula')
+@receiver(post_save, sender='tecnico.MinistrarAula')
 def gerar_credito_reposicao(sender, instance, **kwargs):
     """
     Cria um CreditoReposicao quando uma falta justificada ou atestado é registrada.
-    Dispara tanto na criação quanto na atualização da Aula.
+    Dispara tanto na criação quanto na atualização de MinistrarAula.
     """
     _, CreditoReposicao = _get_models()
 
     # Só processa se for falta com tipo que gera crédito
-    if instance.aul_tipo_presenca != 'falta':
+    if instance.miau_tipo_presenca != 'falta':
         return
-    if instance.aul_tipo_falta not in TIPOS_FALTA_QUE_GERAM_CREDITO:
+    if instance.miau_tipo_falta not in TIPOS_FALTA_QUE_GERAM_CREDITO:
         return
 
     # Evita duplicata: já existe crédito para esta aula de origem?

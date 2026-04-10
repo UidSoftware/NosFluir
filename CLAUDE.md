@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 10/04/2026 | Versão: 7.1
+> Última atualização: 10/04/2026 | Versão: 7.2
 
 ---
 
@@ -171,7 +171,7 @@ created_at = models.DateTimeField(...)
 | Exercicio | exercicios | `exe_modalidade` + FK `exe_aparelho` + FK `exe_acessorio` + `exe_variacao` |
 | FichaTreino | ficha_treino | `fitr_nome` + `fitr_modalidade` (nullable) |
 | FichaTreinoExercicios | ficha_treino_exercicios | N:N com ordem+séries+reps+`ftex_secao`+`exe2` (combinado opcional) |
-| Aula | aulas | 1 linha = 1 aluno em 1 aula; **`func` (FK Funcionario, nullable)** — professor que ministrou |
+| MinistrarAula | ministrar_aula | 1 linha = 1 aluno em 1 aula; PAS/PAD int, FC, PSE Borg 6-20; `func` (FK Funcionario, nullable) |
 | CreditoReposicao | creditos_reposicao | gerado por signal ao registrar falta; `cred_data_geracao` é read-only |
 
 ### App `usuarios` — 1 model
@@ -246,8 +246,9 @@ GET /api/creditos/?alu=X&cred_status=disponivel  → filtro padrão
 - FolhaPagamento: **NÃO** gera lançamento automático — marcar como "pago" NÃO registra no caixa
 
 ### Técnico:
-- Pressão arterial: formato "120/80" — regex `^\d{2,3}/\d{2}$` (**será separado em PAS/PAD inteiros na Fase 3.2**)
-- Intensidade de esforço: 0-10 (**será Escala de Borg 6-20 na Fase 3.2**)
+- Pressão arterial: **PAS e PAD como inteiros separados** — `miau_pas_inicio`, `miau_pad_inicio`, `miau_pas_final`, `miau_pad_final` (em mmHg)
+- PSE: **Escala de Borg 6-20** — `miau_pse` (validação: MinValueValidator(6), MaxValueValidator(20))
+- FC: `miau_fc_inicio`, `miau_fc_final` (inteiros em bpm)
 - Mesmo exercício com aparelhos diferentes = registros independentes
 - **Professor fica na Aula** (não na Turma) — turma tem só nome e horário
 - `FichaTreino`: `fitr_id`, `fitr_nome`, `fitr_modalidade` (nullable)
@@ -324,7 +325,7 @@ Aluno       → alu_id      Funcionario  → func_id     Turma        → tur_id
 TurmaAlunos → tual_id     Fornecedor   → forn_id     ServicoProduto → serv_id
 ContasPagar → pag_id      ContasReceber → rec_id     Planos       → plan_id
 FolhaPag    → fopa_id     Profissao    → prof_id     Exercicio    → exe_id
-FichaTreino → fitr_id     FichaTreinoEx → ftex_id    Aula         → aul_id
+FichaTreino → fitr_id     FichaTreinoEx → ftex_id    MinistrarAula → miau_id
 Credito     → cred_id     FichaAluno   → fial_id     Aparelho     → apar_id
 Acessorio   → acess_id    User         → id (padrão Django)
 ```
@@ -347,6 +348,8 @@ Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/logout/              ✅ /api/me/               ✅ /api/agendamentos-horario/
 ✅ /api/agendamentos-turmas/ ✅ /api/fichas-treino-exercicios/
 ✅ /api/aparelhos/           ✅ /api/acessorios/       ✅ /api/ficha-aluno/
+✅ /api/ministrar-aula/
+❌ /api/aulas/               ← ERRADO (renomeado para /api/ministrar-aula/ na Fase 3.2)
 ❌ /api/operacional/alunos/  ❌ /api/tecnico/exercicios/  ← ERRADO
 ❌ /api/servicos/            ← ERRADO (correto: /api/servicos-produtos/)
 ```
@@ -439,6 +442,10 @@ git pull origin main && docker compose restart nginx
 | Componente JSX retorna dois elementos sem wrapper | JSX exige um único root — `<form>` + `<Dialog>` juntos quebra | Envolver em `<>...</>` (fragment) |
 | Deploy VPS sem alterações visíveis | Commit local não foi `git push` antes do deploy | Sempre `git push` antes de `./deploy.sh prod` |
 | `exe_acessorio` no payload como string texto | Campo era CharField, agora é FK integer | Enviar `exe_acessorio: parseInt(id)` ou `null` — não mais string |
+| Endpoint `/api/aulas/` retorna 404 | Renomeado na Fase 3.2 | Correto: `/api/ministrar-aula/` |
+| `aul_pressao_inicio` retorna 404/erro | Campo removido na Fase 3.2 | Usar `miau_pas_inicio` + `miau_pad_inicio` (inteiros) |
+| `aul_intensidade_esforco` não existe | Renomeado para `miau_pse` (Borg 6-20) | Enviar `miau_pse` com valor entre 6 e 20 |
+| `RenameModel` não renomeia tabela DB | Django não renomeia quando `db_table` é customizado | Sempre combinar com `AlterModelTable` na migration |
 
 ---
 
@@ -535,16 +542,25 @@ git pull origin main && docker compose restart nginx
 - [x] AlunosPage: seção "Avaliações Físicas" com histórico de FichaAluno
 - [x] 68 testes passando (financeiro: 18, operacional: 20, técnico: 30)
 
-### Fase 7.2 — Reajustes Estruturais 3.2 — PRÓXIMA
-> Renomear `Aula` → `MinistrarAula`, PAS/PAD separados, FC, Escala de Borg 6-20
-> Ver `Instrucoes_Claude_Code_Fase3.md` — Sub-fase 3.2
+### Fase 7.2 — Reajustes Estruturais 3.2 ✅ COMPLETO E EM PRODUÇÃO (10/04/2026)
+- [x] Model `Aula` → `MinistrarAula`, tabela `aulas` → `ministrar_aula`, prefixo `aul_` → `miau_`
+- [x] PAS e PAD separados como inteiros (miau_pas_inicio/pad_inicio/pas_final/pad_final em mmHg)
+- [x] FC Inicial e Final (miau_fc_inicio, miau_fc_final em bpm)
+- [x] PSE: Escala de Borg 6-20 (miau_pse com MinValueValidator(6), MaxValueValidator(20))
+- [x] Campo miau_observacoes (texto livre por aluno)
+- [x] tipo_presenca: 'regular' → 'presente' (data migration)
+- [x] Endpoint renomeado: `/api/aulas/` → `/api/ministrar-aula/`
+- [x] Frontend atualizado: MinistrarAulaPage, RelPressaoPage, RelFrequenciaPage, GrafFrequenciaPage
+- [x] CreditoReposicao FKs atualizadas → MinistrarAula
+- [x] Signals atualizados para MinistrarAula
+- [x] 75 testes passando (financeiro: 18, operacional: 20, técnico: 33 — 5 novos PSE/FC/obs)
 
 ### Fase 7.3 — Reajustes Estruturais 3.3 — PENDENTE
 > Nova tabela `Aulas` (1 por aula coletiva) + FK em `MinistrarAula`
 > Ver `Instrucoes_Claude_Code_Fase3.md` — Sub-fase 3.3
 
 ### Pendências técnicas restantes:
-- [ ] Fase 7.2 — renomear Aula → MinistrarAula + campos PAS/PAD/FC/PSE Borg
+- [x] Fase 7.2 — renomear Aula → MinistrarAula + campos PAS/PAD/FC/PSE Borg ✅
 - [ ] Fase 7.3 — nova tabela Aulas
 - [ ] Permissões por perfil (Professor/Financeiro/Recepcionista) não implementadas
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

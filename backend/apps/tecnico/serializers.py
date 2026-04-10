@@ -1,8 +1,6 @@
-import re
-
 from rest_framework import serializers
 
-from .models import Acessorio, Aparelho, Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
+from .models import Acessorio, Aparelho, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
 
 
 class AcessorioSerializer(serializers.ModelSerializer):
@@ -82,75 +80,82 @@ class FichaTreinoSerializer(serializers.ModelSerializer):
         read_only_fields = ['fitr_id', 'created_at', 'updated_at']
 
 
-class AulaSerializer(serializers.ModelSerializer):
+class MinistrarAulaSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
     alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
     tur_nome = serializers.CharField(source='tur.tur_nome', read_only=True)
-    func_nome = serializers.CharField(source='func.func_nome', read_only=True)
+    func_nome = serializers.CharField(source='func.func_nome', read_only=True, allow_null=True)
 
     class Meta:
-        model = Aula
+        model = MinistrarAula
         fields = [
-            'id', 'aul_id', 'tur', 'tur_nome', 'alu', 'alu_nome', 'func', 'func_nome',
+            'id', 'miau_id', 'tur', 'tur_nome', 'alu', 'alu_nome', 'func', 'func_nome',
             'fitr', 'cred',
-            'aul_data', 'aul_hora_inicio', 'aul_hora_final',
-            'aul_pressao_inicio', 'aul_pressao_final',
-            'aul_tipo_presenca', 'aul_tipo_falta', 'aul_intensidade_esforco',
+            'miau_data', 'miau_hora_inicio', 'miau_hora_final',
+            'miau_pas_inicio', 'miau_pad_inicio',
+            'miau_pas_final', 'miau_pad_final',
+            'miau_fc_inicio', 'miau_fc_final',
+            'miau_pse', 'miau_observacoes',
+            'miau_tipo_presenca', 'miau_tipo_falta',
             'created_at', 'updated_at',
         ]
-        read_only_fields = ['aul_id', 'created_at', 'updated_at']
+        read_only_fields = ['miau_id', 'created_at', 'updated_at']
 
-    def _validar_pressao(self, valor, campo):
-        """Valida pressão arterial e retorna sistólica/diastólica."""
-        if not valor:
-            return
-        if not re.match(r'^\d{2,3}/\d{2}$', valor):
+    def _validar_pa(self, pas, pad, sufixo):
+        """Valida PAS e PAD em mmHg."""
+        if pas is not None and not (50 <= pas <= 250):
             raise serializers.ValidationError(
-                {campo: 'Formato inválido. Use "120/80" ou "130/85".'}
+                {f'miau_pas_{sufixo}': 'Sistólica (PAS) deve estar entre 50 e 250 mmHg.'}
             )
-        sistolica, diastolica = map(int, valor.split('/'))
-        if not (50 <= sistolica <= 250):
+        if pad is not None and not (30 <= pad <= 150):
             raise serializers.ValidationError(
-                {campo: 'Sistólica deve estar entre 50 e 250.'}
+                {f'miau_pad_{sufixo}': 'Diastólica (PAD) deve estar entre 30 e 150 mmHg.'}
             )
-        if not (30 <= diastolica <= 150):
+
+    def _validar_fc(self, fc, campo):
+        """Valida frequência cardíaca em bpm."""
+        if fc is not None and not (30 <= fc <= 250):
             raise serializers.ValidationError(
-                {campo: 'Diastólica deve estar entre 30 e 150.'}
+                {campo: 'Frequência cardíaca deve estar entre 30 e 250 bpm.'}
             )
 
     def validate(self, data):
-        # RN-AUL-05: tipo_falta só preenchido quando tipo_presenca = 'falta'
-        tipo_presenca = data.get('aul_tipo_presenca', getattr(self.instance, 'aul_tipo_presenca', 'regular'))
-        tipo_falta = data.get('aul_tipo_falta')
+        # RN-MIAU-05: tipo_falta só preenchido quando tipo_presenca = 'falta'
+        tipo_presenca = data.get('miau_tipo_presenca', getattr(self.instance, 'miau_tipo_presenca', 'presente'))
+        tipo_falta = data.get('miau_tipo_falta')
         if tipo_falta and tipo_presenca != 'falta':
             raise serializers.ValidationError(
-                {'aul_tipo_falta': 'Tipo de falta só pode ser preenchido quando tipo de presença é "falta".'}
+                {'miau_tipo_falta': 'Tipo de falta só pode ser preenchido quando tipo de presença é "falta".'}
             )
 
-        # RN-AUL-06: cred só preenchido quando tipo_presenca = 'reposicao'
+        # RN-MIAU-06: cred só preenchido quando tipo_presenca = 'reposicao'
         cred = data.get('cred')
         if cred and tipo_presenca != 'reposicao':
             raise serializers.ValidationError(
                 {'cred': 'Crédito só pode ser utilizado quando tipo de presença é "reposição".'}
             )
 
-        # RN-AUL-01: hora_final > hora_inicio
-        hora_inicio = data.get('aul_hora_inicio', getattr(self.instance, 'aul_hora_inicio', None))
-        hora_final = data.get('aul_hora_final')
+        # RN-MIAU-01: hora_final > hora_inicio
+        hora_inicio = data.get('miau_hora_inicio', getattr(self.instance, 'miau_hora_inicio', None))
+        hora_final = data.get('miau_hora_final')
         if hora_final and hora_inicio and hora_final <= hora_inicio:
             raise serializers.ValidationError(
-                {'aul_hora_final': 'Hora de término deve ser maior que a hora de início.'}
+                {'miau_hora_final': 'Hora de término deve ser maior que a hora de início.'}
             )
 
-        # RN019: validar pressão arterial
-        self._validar_pressao(data.get('aul_pressao_inicio'), 'aul_pressao_inicio')
-        self._validar_pressao(data.get('aul_pressao_final'), 'aul_pressao_final')
+        # Validação PAS/PAD
+        self._validar_pa(data.get('miau_pas_inicio'), data.get('miau_pad_inicio'), 'inicio')
+        self._validar_pa(data.get('miau_pas_final'), data.get('miau_pad_final'), 'final')
 
-        # RN021: intensidade entre 0 e 10
-        intensidade = data.get('aul_intensidade_esforco')
-        if intensidade is not None and not (0 <= intensidade <= 10):
+        # Validação FC
+        self._validar_fc(data.get('miau_fc_inicio'), 'miau_fc_inicio')
+        self._validar_fc(data.get('miau_fc_final'), 'miau_fc_final')
+
+        # Validação PSE — Escala de Borg (6-20)
+        pse = data.get('miau_pse')
+        if pse is not None and not (6 <= pse <= 20):
             raise serializers.ValidationError(
-                {'aul_intensidade_esforco': 'Intensidade deve ser entre 0 e 10.'}
+                {'miau_pse': 'PSE deve estar entre 6 e 20 (Escala de Borg).'}
             )
 
         return data

@@ -6,9 +6,9 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apps.core.mixins import AuditMixin
 
-from .models import Acessorio, Aparelho, Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
+from .models import Acessorio, Aparelho, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
 from .serializers import (
-    AcessorioSerializer, AparelhoSerializer, AulaSerializer, CreditoReposicaoSerializer,
+    AcessorioSerializer, AparelhoSerializer, MinistrarAulaSerializer, CreditoReposicaoSerializer,
     ExercicioSerializer, FichaTreinoSerializer, FichaTreinoExerciciosSerializer,
 )
 
@@ -69,13 +69,13 @@ class FichaTreinoExerciciosViewSet(AuditMixin, ModelViewSet):
     ordering_fields = ['ftex_ordem']
 
 
-class AulaViewSet(AuditMixin, ModelViewSet):
-    queryset = Aula.objects.filter(deleted_at__isnull=True).order_by('-aul_data', '-aul_hora_inicio')
-    serializer_class = AulaSerializer
+class MinistrarAulaViewSet(AuditMixin, ModelViewSet):
+    queryset = MinistrarAula.objects.filter(deleted_at__isnull=True).order_by('-miau_data', '-miau_hora_inicio')
+    serializer_class = MinistrarAulaSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['tur', 'alu', 'func', 'aul_tipo_presenca', 'aul_data']
+    filterset_fields = ['tur', 'alu', 'func', 'miau_tipo_presenca', 'miau_data']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
-    ordering_fields = ['aul_data', 'aul_hora_inicio']
+    ordering_fields = ['miau_data', 'miau_hora_inicio']
 
 
 class CreditoReposicaoViewSet(AuditMixin, ModelViewSet):

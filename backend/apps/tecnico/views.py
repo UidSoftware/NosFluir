@@ -6,20 +6,29 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apps.core.mixins import AuditMixin
 
-from .models import Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
+from .models import Aparelho, Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
 from .serializers import (
-    AulaSerializer, CreditoReposicaoSerializer, ExercicioSerializer,
+    AparelhoSerializer, AulaSerializer, CreditoReposicaoSerializer, ExercicioSerializer,
     FichaTreinoSerializer, FichaTreinoExerciciosSerializer,
 )
+
+
+class AparelhoViewSet(AuditMixin, ModelViewSet):
+    queryset = Aparelho.objects.filter(deleted_at__isnull=True).order_by('apar_modalidade', 'apar_nome')
+    serializer_class = AparelhoSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['apar_modalidade', 'apar_ativo']
+    search_fields = ['apar_nome']
+    ordering_fields = ['apar_nome', 'apar_modalidade']
 
 
 class ExercicioViewSet(AuditMixin, ModelViewSet):
     queryset = Exercicio.objects.filter(deleted_at__isnull=True).order_by('exe_nome')
     serializer_class = ExercicioSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['exe_aparelho']
+    filterset_fields = ['exe_modalidade', 'exe_aparelho']
     search_fields = ['exe_nome']
-    ordering_fields = ['exe_nome', 'exe_aparelho']
+    ordering_fields = ['exe_nome', 'exe_modalidade']
 
 
 class FichaTreinoViewSet(AuditMixin, ModelViewSet):

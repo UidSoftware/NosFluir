@@ -2,16 +2,31 @@ import re
 
 from rest_framework import serializers
 
-from .models import Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
+from .models import Aparelho, Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
+
+
+class AparelhoSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+
+    class Meta:
+        model = Aparelho
+        fields = [
+            'id', 'apar_id', 'apar_nome', 'apar_modalidade', 'apar_ativo',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['apar_id', 'created_at', 'updated_at']
 
 
 class ExercicioSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
+    apar_nome = serializers.CharField(source='exe_aparelho.apar_nome', read_only=True)
 
     class Meta:
         model = Exercicio
         fields = [
-            'id', 'exe_id', 'exe_nome', 'exe_aparelho', 'exe_descricao_tecnica',
+            'id', 'exe_id', 'exe_nome', 'exe_modalidade',
+            'exe_aparelho', 'apar_nome',
+            'exe_acessorio', 'exe_variacao', 'exe_descricao_tecnica',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['exe_id', 'created_at', 'updated_at']
@@ -20,13 +35,13 @@ class ExercicioSerializer(serializers.ModelSerializer):
 class FichaTreinoExerciciosSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
     exe_nome = serializers.CharField(source='exe.exe_nome', read_only=True)
-    exe_aparelho = serializers.CharField(source='exe.exe_aparelho', read_only=True)
+    apar_nome = serializers.CharField(source='exe.exe_aparelho.apar_nome', read_only=True)
 
     class Meta:
         model = FichaTreinoExercicios
         fields = [
-            'id', 'ftex_id', 'fitr', 'exe', 'exe_nome', 'exe_aparelho',
-            'ftex_ordem', 'ftex_repeticoes', 'ftex_series', 'ftex_observacoes',
+            'id', 'ftex_id', 'fitr', 'exe', 'exe_nome', 'apar_nome',
+            'ftex_secao', 'ftex_ordem', 'ftex_repeticoes', 'ftex_series', 'ftex_observacoes',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['ftex_id', 'created_at', 'updated_at']
@@ -46,7 +61,7 @@ class FichaTreinoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FichaTreino
-        fields = ['id', 'fitr_id', 'fitr_nome', 'exercicios', 'created_at', 'updated_at']
+        fields = ['id', 'fitr_id', 'fitr_nome', 'fitr_modalidade', 'exercicios', 'created_at', 'updated_at']
         read_only_fields = ['fitr_id', 'created_at', 'updated_at']
 
 

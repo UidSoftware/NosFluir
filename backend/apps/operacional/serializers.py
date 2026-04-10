@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from .models import (
     AgendamentoHorario, AgendamentoTurmas,
-    Aluno, Funcionario, Profissao, Turma, TurmaAlunos,
+    Aluno, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos,
 )
 
 
@@ -16,8 +16,6 @@ class AlunoSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'alu_id', 'alu_nome', 'alu_documento', 'alu_data_nascimento',
             'alu_endereco', 'alu_email', 'alu_telefone',
-            'alu_peso', 'alu_massa_muscular', 'alu_massa_gorda',
-            'alu_porcentagem_gordura', 'alu_circunferencia_abdominal',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['alu_id', 'created_at', 'updated_at']
@@ -36,6 +34,21 @@ class AlunoSerializer(serializers.ModelSerializer):
         if len(cpf) != 11:
             raise serializers.ValidationError('CPF deve ter 11 dígitos numéricos.')
         return cpf
+
+
+class FichaAlunoSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    alu_nome = serializers.CharField(source='aluno.alu_nome', read_only=True)
+
+    class Meta:
+        model = FichaAluno
+        fields = [
+            'id', 'fial_id', 'aluno', 'alu_nome', 'fial_data',
+            'fial_peso', 'fial_massa_muscular', 'fial_massa_gorda',
+            'fial_porcentagem_gordura', 'fial_circunferencia_abdominal',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['fial_id', 'created_at', 'updated_at']
 
 
 class ProfissaoSerializer(serializers.ModelSerializer):

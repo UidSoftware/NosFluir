@@ -7,11 +7,11 @@ from apps.core.mixins import AuditMixin
 
 from .models import (
     AgendamentoHorario, AgendamentoTurmas,
-    Aluno, Funcionario, Profissao, Turma, TurmaAlunos,
+    Aluno, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos,
 )
 from .serializers import (
     AgendamentoHorarioSerializer, AgendamentoTurmasSerializer,
-    AlunoSerializer, FuncionarioSerializer, ProfissaoSerializer,
+    AlunoSerializer, FichaAlunoSerializer, FuncionarioSerializer, ProfissaoSerializer,
     TurmaSerializer, TurmaAlunosSerializer,
 )
 
@@ -56,6 +56,14 @@ class TurmaAlunosViewSet(AuditMixin, ModelViewSet):
     filterset_fields = ['tur', 'alu', 'ativo']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
     ordering_fields = ['data_matricula']
+
+
+class FichaAlunoViewSet(AuditMixin, ModelViewSet):
+    queryset = FichaAluno.objects.filter(deleted_at__isnull=True).order_by('-fial_data')
+    serializer_class = FichaAlunoSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['aluno']
+    ordering_fields = ['fial_data']
 
 
 class AgendamentoHorarioViewSet(AuditMixin, ModelViewSet):

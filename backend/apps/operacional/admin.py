@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from .models import (
     AgendamentoHorario, AgendamentoTurmas,
-    Aluno, Funcionario, Profissao, Turma, TurmaAlunos,
+    Aluno, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos,
 )
 
 
@@ -37,6 +37,15 @@ class TurmaAlunosAdmin(admin.ModelAdmin):
     list_display = ['tur', 'alu', 'data_matricula', 'ativo']
     list_filter = ['ativo', 'tur']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
+
+
+@admin.register(FichaAluno)
+class FichaAlunoAdmin(admin.ModelAdmin):
+    list_display = ['aluno', 'fial_data', 'fial_peso', 'fial_porcentagem_gordura']
+    list_filter = ['aluno']
+    search_fields = ['aluno__alu_nome']
+    date_hierarchy = 'fial_data'
+    ordering = ['-fial_data']
 
 
 @admin.register(AgendamentoHorario)

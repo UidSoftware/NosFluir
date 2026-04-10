@@ -14,36 +14,71 @@ def validar_pressao_arterial(value):
         raise ValidationError('Pressão arterial deve estar no formato "120/80" ou "130/85".')
 
 
+class Aparelho(BaseModel):
+    """Catálogo de aparelhos — substitui ENUM fixo em Exercicio."""
+    MODALIDADE_CHOICES = [
+        ('pilates', 'Mat Pilates'),
+        ('funcional', 'Funcional'),
+        ('ambos', 'Ambos'),
+    ]
+
+    apar_id = models.AutoField(primary_key=True)
+    apar_nome = models.CharField('nome', max_length=100)
+    apar_modalidade = models.CharField('modalidade', max_length=20, choices=MODALIDADE_CHOICES)
+    apar_ativo = models.BooleanField('ativo', default=True)
+
+    class Meta:
+        db_table = 'aparelho'
+        verbose_name = 'Aparelho'
+        verbose_name_plural = 'Aparelhos'
+        ordering = ['apar_modalidade', 'apar_nome']
+
+    def __str__(self):
+        return f'{self.apar_nome} ({self.get_apar_modalidade_display()})'
+
+
 class Exercicio(BaseModel):
     """Biblioteca de exercícios de Pilates e funcional."""
-    APARELHO_CHOICES = [
-        ('solo', 'Solo'),
-        ('reformer', 'Reformer'),
-        ('cadillac', 'Cadillac'),
-        ('chair', 'Chair'),
-        ('barrel', 'Barrel'),
+    MODALIDADE_CHOICES = [
+        ('pilates', 'Mat Pilates'),
+        ('funcional', 'Funcional'),
     ]
 
     exe_id = models.AutoField(primary_key=True)
     exe_nome = models.CharField('nome do exercício', max_length=125)
-    # RN023: mesmo exercício em aparelhos diferentes = registros independentes
-    exe_aparelho = models.CharField('aparelho', max_length=20, choices=APARELHO_CHOICES)
+    exe_modalidade = models.CharField('modalidade', max_length=20, choices=MODALIDADE_CHOICES, default='pilates')
+    exe_aparelho = models.ForeignKey(
+        'Aparelho', on_delete=models.PROTECT,
+        null=True, blank=True, verbose_name='aparelho',
+        related_name='exercicios'
+    )
+    exe_acessorio = models.CharField('acessório', max_length=100, null=True, blank=True)
+    exe_variacao = models.CharField('variação', max_length=100, null=True, blank=True)
     exe_descricao_tecnica = models.TextField('descrição técnica', null=True, blank=True)
 
     class Meta:
         db_table = 'exercicios'
         verbose_name = 'Exercício'
         verbose_name_plural = 'Exercícios'
-        ordering = ['exe_nome', 'exe_aparelho']
+        ordering = ['exe_nome']
 
     def __str__(self):
-        return f'{self.exe_nome} ({self.get_exe_aparelho_display()})'
+        aparelho = self.exe_aparelho.apar_nome if self.exe_aparelho_id else 'Sem aparelho'
+        return f'{self.exe_nome} ({aparelho})'
 
 
 class FichaTreino(BaseModel):
     """Ficha/programa de treino. Exercícios ficam em FichaTreinoExercicios."""
+    MODALIDADE_CHOICES = [
+        ('pilates', 'Mat Pilates'),
+        ('funcional', 'Funcional'),
+    ]
+
     fitr_id = models.AutoField(primary_key=True)
     fitr_nome = models.CharField('nome da ficha', max_length=150)
+    fitr_modalidade = models.CharField(
+        'modalidade', max_length=20, choices=MODALIDADE_CHOICES, null=True, blank=True
+    )
 
     class Meta:
         db_table = 'ficha_treino'
@@ -63,6 +98,7 @@ class FichaTreinoExercicios(BaseModel):
     ftex_ordem = models.IntegerField('ordem na ficha')
     ftex_repeticoes = models.IntegerField('repetições')
     ftex_series = models.IntegerField('séries', null=True, blank=True)
+    ftex_secao = models.CharField('seção', max_length=100, null=True, blank=True)
     ftex_observacoes = models.TextField('observações', null=True, blank=True)
 
     class Meta:

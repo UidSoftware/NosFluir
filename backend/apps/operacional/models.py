@@ -14,14 +14,6 @@ class Aluno(BaseModel):
     alu_email = models.EmailField('e-mail', max_length=150, null=True, blank=True)
     alu_telefone = models.CharField('telefone', max_length=20, null=True, blank=True)
     # Medidas corporais — atualizadas nas avaliações
-    alu_peso = models.DecimalField('peso (kg)', max_digits=5, decimal_places=2, null=True, blank=True)
-    alu_massa_muscular = models.DecimalField('massa muscular (kg)', max_digits=5, decimal_places=2, null=True, blank=True)
-    alu_massa_gorda = models.DecimalField('massa gorda (kg)', max_digits=5, decimal_places=2, null=True, blank=True)
-    alu_porcentagem_gordura = models.DecimalField('% gordura', max_digits=5, decimal_places=2, null=True, blank=True)
-    alu_circunferencia_abdominal = models.DecimalField(
-        'circunferência abdominal (cm)', max_digits=5, decimal_places=2, null=True, blank=True
-    )
-
     class Meta:
         db_table = 'alunos'
         verbose_name = 'Aluno'
@@ -107,6 +99,29 @@ class TurmaAlunos(BaseModel):
 
     def __str__(self):
         return f'{self.alu} — {self.tur}'
+
+
+class FichaAluno(BaseModel):
+    """Histórico de avaliações físicas do aluno com data — permite acompanhar evolução."""
+    fial_id = models.AutoField(primary_key=True)
+    aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, related_name='fichas', verbose_name='aluno')
+    fial_data = models.DateField('data da avaliação')
+    fial_peso = models.DecimalField('peso (kg)', max_digits=5, decimal_places=2, null=True, blank=True)
+    fial_massa_muscular = models.DecimalField('massa muscular (kg)', max_digits=5, decimal_places=2, null=True, blank=True)
+    fial_massa_gorda = models.DecimalField('massa gorda (kg)', max_digits=5, decimal_places=2, null=True, blank=True)
+    fial_porcentagem_gordura = models.DecimalField('% gordura', max_digits=5, decimal_places=2, null=True, blank=True)
+    fial_circunferencia_abdominal = models.DecimalField(
+        'circunferência abdominal (cm)', max_digits=5, decimal_places=2, null=True, blank=True
+    )
+
+    class Meta:
+        db_table = 'ficha_aluno'
+        verbose_name = 'Ficha do Aluno'
+        verbose_name_plural = 'Fichas dos Alunos'
+        ordering = ['-fial_data']
+
+    def __str__(self):
+        return f'{self.aluno} — {self.fial_data}'
 
 
 class AgendamentoHorario(BaseModel):

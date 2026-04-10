@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 
 from apps.operacional.models import Aluno, Funcionario, Profissao, Turma, TurmaAlunos
-from .models import Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
+from .models import Aparelho, Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
 
 User = get_user_model()
 
@@ -286,10 +286,15 @@ class IntegracaoFluxoAulaTest(TestCase):
 
 # ── TB037–TB041 — Melhorias MinistrarAulaPage ────────────────────────────────
 
-def criar_exercicio(nome='Hundred', aparelho='reformer'):
+def criar_exercicio(nome='Hundred', aparelho_nome='Reformer'):
+    apar = Aparelho.objects.get_or_create(
+        apar_nome=aparelho_nome,
+        defaults={'apar_modalidade': 'pilates'},
+    )[0]
     return Exercicio.objects.create(
         exe_nome=nome,
-        exe_aparelho=aparelho,
+        exe_modalidade='pilates',
+        exe_aparelho=apar,
     )
 
 
@@ -316,8 +321,8 @@ class FichaExerciciosCardTest(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         self.ficha = criar_ficha()
-        self.ex1 = criar_exercicio('Hundred', 'reformer')
-        self.ex2 = criar_exercicio('Single Leg Stretch', 'solo')
+        self.ex1 = criar_exercicio('Hundred', 'Reformer')
+        self.ex2 = criar_exercicio('Single Leg Stretch', 'Solo')
         criar_ficha_exercicio(self.ficha, self.ex1, ordem=1, series=3, reps=10, obs='manter lombar')
         criar_ficha_exercicio(self.ficha, self.ex2, ordem=2, series=3, reps=12)
 
@@ -326,7 +331,7 @@ class FichaExerciciosCardTest(TestCase):
         resp = self.client.get('/api/fichas-treino-exercicios/', {'fitr': self.ficha.fitr_id})
         self.assertEqual(resp.status_code, 200)
         ex = resp.data['results'][0]
-        for campo in ['id', 'ftex_ordem', 'exe_nome', 'exe_aparelho', 'ftex_series', 'ftex_repeticoes', 'ftex_observacoes']:
+        for campo in ['id', 'ftex_ordem', 'exe_nome', 'apar_nome', 'ftex_series', 'ftex_repeticoes', 'ftex_observacoes']:
             self.assertIn(campo, ex, f'Campo {campo} ausente no serializer')
 
     def test_TB038_retorna_paginado(self):
@@ -339,7 +344,7 @@ class FichaExerciciosCardTest(TestCase):
     def test_TB039_filtra_por_ficha(self):
         """TB039: filtro fitr=X retorna só exercícios da ficha correta"""
         outra_ficha = criar_ficha('Outra Ficha')
-        outro_ex = criar_exercicio('Roll Up', 'cadillac')
+        outro_ex = criar_exercicio('Roll Up', 'Cadillac')
         criar_ficha_exercicio(outra_ficha, outro_ex, ordem=1)
 
         resp = self.client.get('/api/fichas-treino-exercicios/', {'fitr': self.ficha.fitr_id})

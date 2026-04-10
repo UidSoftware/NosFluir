@@ -13,6 +13,9 @@ class Aluno(BaseModel):
     alu_endereco = models.CharField('endereço', max_length=300, null=True, blank=True)
     alu_email = models.EmailField('e-mail', max_length=150, null=True, blank=True)
     alu_telefone = models.CharField('telefone', max_length=20, null=True, blank=True)
+    alu_contato_emergencia = models.CharField('contato de emergência (telefone)', max_length=20, null=True, blank=True)
+    alu_doencas_cronicas = models.TextField('doenças crônicas', null=True, blank=True)
+    alu_medicamentos = models.TextField('medicamentos em uso', null=True, blank=True)
 
     class Meta:
         db_table = 'alunos'

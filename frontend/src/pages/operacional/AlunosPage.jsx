@@ -28,8 +28,11 @@ function AlunoForm({ aluno, onClose }) {
       alu_documento:       aluno.alu_documento,
       alu_data_nascimento: aluno.alu_data_nascimento,
       alu_email:           aluno.alu_email || '',
-      alu_telefone:        aluno.alu_telefone || '',
-      alu_endereco:        aluno.alu_endereco || '',
+      alu_telefone:           aluno.alu_telefone || '',
+      alu_endereco:           aluno.alu_endereco || '',
+      alu_contato_emergencia: aluno.alu_contato_emergencia || '',
+      alu_doencas_cronicas:   aluno.alu_doencas_cronicas || '',
+      alu_medicamentos:       aluno.alu_medicamentos || '',
     } : {},
   })
 
@@ -86,6 +89,30 @@ function AlunoForm({ aluno, onClose }) {
 
         <FormField label="Endereço" className="sm:col-span-2">
           <Input {...register('alu_endereco')} placeholder="Rua Exemplo, 123 — Uberlândia, MG" disabled={busy} />
+        </FormField>
+
+        <FormField label="Contato de Emergência" className="sm:col-span-2">
+          <Input {...register('alu_contato_emergencia')} placeholder="(34) 99999-0000" disabled={busy} />
+        </FormField>
+
+        <FormField label="Doenças Crônicas" className="sm:col-span-2">
+          <textarea
+            {...register('alu_doencas_cronicas')}
+            placeholder="Ex: Hipertensão, Diabetes tipo 2..."
+            disabled={busy}
+            rows={2}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 resize-none"
+          />
+        </FormField>
+
+        <FormField label="Medicamentos em Uso" className="sm:col-span-2">
+          <textarea
+            {...register('alu_medicamentos')}
+            placeholder="Ex: Losartana 50mg, Metformina 500mg..."
+            disabled={busy}
+            rows={2}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 resize-none"
+          />
         </FormField>
       </div>
 
@@ -255,7 +282,20 @@ function AlunoDetail({ aluno, onClose }) {
         <F label="Nascimento" value={formatDate(aluno.alu_data_nascimento)} />
         <F label="E-mail"     value={aluno.alu_email} />
         <F label="Telefone"   value={aluno.alu_telefone} />
+        <F label="Contato de Emergência" value={aluno.alu_contato_emergencia} />
         <F label="Endereço"   value={aluno.alu_endereco} />
+        {aluno.alu_doencas_cronicas && (
+          <div className="col-span-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Doenças Crônicas</p>
+            <p className="text-sm mt-0.5 whitespace-pre-wrap">{aluno.alu_doencas_cronicas}</p>
+          </div>
+        )}
+        {aluno.alu_medicamentos && (
+          <div className="col-span-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Medicamentos em Uso</p>
+            <p className="text-sm mt-0.5 whitespace-pre-wrap">{aluno.alu_medicamentos}</p>
+          </div>
+        )}
       </div>
 
       <AvaliacoesSection alunoId={aluno.alu_id} />

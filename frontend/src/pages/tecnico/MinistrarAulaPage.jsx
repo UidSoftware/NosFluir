@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { Activity, Play, Square, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp, ClipboardList } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -25,6 +25,68 @@ const FALTA_TIPOS = [
 ]
 
 const PRESSAO_REGEX = /^\d{2,3}\/\d{2}$/
+
+function ExerciciosFicha({ exercicios }) {
+  const grupos = useMemo(() => {
+    if (!exercicios) return null
+    const ordenados = [...exercicios].sort((a, b) => a.ftex_ordem - b.ftex_ordem)
+    const mapa = {}
+    const ordem = []
+    ordenados.forEach(ex => {
+      const sec = ex.ftex_secao || ''
+      if (!mapa[sec]) { mapa[sec] = []; ordem.push(sec) }
+      mapa[sec].push(ex)
+    })
+    return { grupos: ordem.map(s => ({ secao: s, itens: mapa[s] })), temSecao: ordenados.some(e => e.ftex_secao) }
+  }, [exercicios])
+
+  if (!exercicios) return <div className="flex justify-center py-3"><Spinner /></div>
+  if (exercicios.length === 0) return <p className="text-xs text-muted-foreground">Nenhum exercício cadastrado nesta ficha.</p>
+
+  if (!grupos.temSecao) {
+    return (
+      <ol className="space-y-1.5">
+        {grupos.grupos[0]?.itens.map(ex => <ExercicioLinha key={ex.ftex_id} ex={ex} />)}
+      </ol>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {grupos.grupos.map(({ secao, itens }) => (
+        <div key={secao || '__sem__'}>
+          {secao && (
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-fluir-cyan mb-1">
+              {secao}
+            </p>
+          )}
+          <ol className="space-y-1.5">
+            {itens.map(ex => <ExercicioLinha key={ex.ftex_id} ex={ex} />)}
+          </ol>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ExercicioLinha({ ex }) {
+  return (
+    <li className="text-sm list-none">
+      <span className="text-muted-foreground">{ex.ftex_ordem}.</span>{' '}
+      <span className="font-medium">
+        {ex.exe_nome}
+        {ex.exe2_nome && <span className="text-fluir-cyan"> + {ex.exe2_nome}</span>}
+      </span>
+      {ex.apar_nome && <span className="text-muted-foreground"> · {ex.apar_nome}</span>}
+      {(ex.ftex_series || ex.ftex_repeticoes) && (
+        <span className="text-muted-foreground"> — {ex.ftex_series}x{ex.ftex_repeticoes}</span>
+      )}
+      {ex.ftex_observacoes && (
+        <p className="text-xs text-muted-foreground italic ml-3">{ex.ftex_observacoes}</p>
+      )}
+    </li>
+  )
+}
 
 function AlunoRow({ aluno, state, onUpdate }) {
   const presenca   = state?.presenca   ?? 'regular'
@@ -346,30 +408,7 @@ export default function MinistrarAulaPage() {
             </CardHeader>
             {fichaExpandida && (
               <CardContent className="pt-0 pb-3 px-4">
-                {!exerciciosFicha ? (
-                  <div className="flex justify-center py-3"><Spinner /></div>
-                ) : exerciciosFicha.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Nenhum exercício cadastrado nesta ficha.</p>
-                ) : (
-                  <ol className="space-y-1.5">
-                    {exerciciosFicha.map(ex => (
-                      <li key={ex.id || ex.ftex_id} className="text-sm">
-                        <span className="text-muted-foreground">{ex.ftex_ordem}.</span>{' '}
-                        <span className="font-medium">
-                          {ex.exe_nome}
-                          {ex.exe2_nome && <span className="text-fluir-cyan"> + {ex.exe2_nome}</span>}
-                        </span>
-                        {ex.apar_nome && <span className="text-muted-foreground"> · {ex.apar_nome}</span>}
-                        {(ex.ftex_series || ex.ftex_repeticoes) && (
-                          <span className="text-muted-foreground"> — {ex.ftex_series}x{ex.ftex_repeticoes}</span>
-                        )}
-                        {ex.ftex_observacoes && (
-                          <p className="text-xs text-muted-foreground italic ml-3">{ex.ftex_observacoes}</p>
-                        )}
-                      </li>
-                    ))}
-                  </ol>
-                )}
+                <ExerciciosFicha exercicios={exerciciosFicha} />
               </CardContent>
             )}
           </Card>

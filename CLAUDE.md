@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 10/04/2026 | Versão: 7.0
+> Última atualização: 10/04/2026 | Versão: 7.1
 
 ---
 
@@ -531,7 +531,7 @@ git pull origin main && docker compose restart nginx
 - [x] Quick-add inline de Aparelho e Acessório no form de exercício (além do spec)
 - [x] Páginas Configuração → Aparelhos e Configuração → Acessórios
 - [x] FichasTreinoPage: agrupamento visual por seção + suporte a combinados
-- [x] MinistrarAulaPage: exibe combinados "Exe1 + Exe2" + usa apar_nome (corrigido)
+- [x] MinistrarAulaPage: exibe combinados "Exe1 + Exe2" + agrupamento por seção (Potência, Força...) + usa apar_nome
 - [x] AlunosPage: seção "Avaliações Físicas" com histórico de FichaAluno
 - [x] 68 testes passando (financeiro: 18, operacional: 20, técnico: 30)
 

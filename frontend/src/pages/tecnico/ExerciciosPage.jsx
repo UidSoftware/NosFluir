@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Dumbbell, Plus, Pencil, Trash2 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { Boxes, Dumbbell, Plus, Pencil, Trash2 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -41,6 +41,77 @@ function aparelhosPorModalidade(aparelhos, modalidade) {
   return aparelhos.filter(a => a.apar_modalidade === modalidade || a.apar_modalidade === 'ambos')
 }
 
+const MODALIDADES_APARELHO = [
+  { value: 'pilates',   label: 'Mat Pilates' },
+  { value: 'funcional', label: 'Funcional' },
+  { value: 'ambos',     label: 'Ambos' },
+]
+
+function QuickAddAparelho({ open, onOpenChange, onCreated }) {
+  const queryClient = useQueryClient()
+  const { register, handleSubmit, setValue, watch, reset } = useForm({
+    defaultValues: { apar_nome: '', apar_modalidade: '__none__' },
+  })
+
+  const mutation = useMutation({
+    mutationFn: (data) => api.post('/aparelhos/', data).then(r => r.data),
+    onSuccess: (novo) => {
+      queryClient.invalidateQueries({ queryKey: ['aparelhos-select'] })
+      toast({ title: `Aparelho "${novo.apar_nome}" criado.`, variant: 'success' })
+      reset()
+      onCreated(novo)
+      onOpenChange(false)
+    },
+    onError: () => toast({ title: 'Erro ao criar aparelho.', variant: 'destructive' }),
+  })
+
+  const onSubmit = (data) => {
+    const modalidade = data.apar_modalidade !== '__none__' ? data.apar_modalidade : null
+    if (!modalidade) {
+      toast({ title: 'Selecione a modalidade.', variant: 'destructive' })
+      return
+    }
+    mutation.mutate({ apar_nome: data.apar_nome, apar_modalidade: modalidade, apar_ativo: true })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Novo Aparelho</DialogTitle></DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
+          <FormField label="Nome" required>
+            <Input
+              {...register('apar_nome', { required: true })}
+              placeholder="Reformer, Chair..."
+              disabled={mutation.isPending}
+              autoFocus
+            />
+          </FormField>
+          <FormField label="Modalidade" required>
+            <Select
+              value={watch('apar_modalidade')}
+              onValueChange={v => setValue('apar_modalidade', v)}
+              disabled={mutation.isPending}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar...</SelectItem>
+                {MODALIDADES_APARELHO.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </FormField>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>Cancelar</Button>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? 'Criando...' : 'Criar Aparelho'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function ExercForm({ exercicio, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: exercicio ? {
@@ -52,6 +123,8 @@ function ExercForm({ exercicio, onClose }) {
       exe_descricao_tecnica: exercicio.exe_descricao_tecnica || '',
     } : { exe_modalidade: '__none__', exe_aparelho: '__none__' },
   })
+
+  const [quickAparelho, setQuickAparelho] = useState(false)
 
   const { data: aparelhos } = useAparelhos()
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
@@ -102,15 +175,28 @@ function ExercForm({ exercicio, onClose }) {
         </FormField>
 
         <FormField label="Aparelho">
-          <Select value={watch('exe_aparelho')} onValueChange={v => setValue('exe_aparelho', v)} disabled={busy}>
-            <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
-              {aparelhosFiltrados.map(a => (
-                <SelectItem key={a.apar_id} value={String(a.apar_id)}>{a.apar_nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-1.5">
+            <Select value={watch('exe_aparelho')} onValueChange={v => setValue('exe_aparelho', v)} disabled={busy}>
+              <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
+                {aparelhosFiltrados.map(a => (
+                  <SelectItem key={a.apar_id} value={String(a.apar_id)}>{a.apar_nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              title="Cadastrar novo aparelho"
+              onClick={() => setQuickAparelho(true)}
+              disabled={busy}
+              className="shrink-0 h-9 w-9"
+            >
+              <Boxes className="w-4 h-4" />
+            </Button>
+          </div>
         </FormField>
       </div>
 
@@ -134,6 +220,12 @@ function ExercForm({ exercicio, onClose }) {
         </Button>
       </DialogFooter>
     </form>
+
+    <QuickAddAparelho
+      open={quickAparelho}
+      onOpenChange={setQuickAparelho}
+      onCreated={(novo) => setValue('exe_aparelho', String(novo.apar_id))}
+    />
   )
 }
 

@@ -70,6 +70,90 @@ function FichaForm({ ficha, onClose }) {
   )
 }
 
+function EditExercicioForm({ ftex, fichaId, onClose }) {
+  const queryClient = useQueryClient()
+  const { register, handleSubmit, setValue, watch } = useForm({
+    defaultValues: {
+      exe:              String(ftex.exe),
+      ftex_secao:       ftex.ftex_secao || '',
+      ftex_ordem:       ftex.ftex_ordem,
+      ftex_series:      ftex.ftex_series || '',
+      ftex_repeticoes:  ftex.ftex_repeticoes,
+      ftex_observacoes: ftex.ftex_observacoes || '',
+    },
+  })
+
+  const { data: exercicios } = useQuery({
+    queryKey: ['exercicios-select'],
+    queryFn: () => api.get('/exercicios/').then(r => r.data.results),
+  })
+
+  const mutation = useMutation({
+    mutationFn: (data) => api.patch(`${EXER_ENDPOINT}${ftex.ftex_id}/`, data).then(r => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ficha-exercicios', fichaId] })
+      toast({ title: 'Exercício atualizado.', variant: 'success' })
+      onClose()
+    },
+    onError: () => toast({ title: 'Erro ao atualizar exercício.', variant: 'destructive' }),
+  })
+
+  const onSubmit = (data) => {
+    const exeId = data.exe && data.exe !== '__none__' ? parseInt(data.exe) : null
+    if (!exeId) {
+      toast({ title: 'Selecione o exercício.', variant: 'destructive' })
+      return
+    }
+    mutation.mutate({
+      exe:              exeId,
+      ftex_secao:       data.ftex_secao || null,
+      ftex_ordem:       parseInt(data.ftex_ordem),
+      ftex_series:      data.ftex_series ? parseInt(data.ftex_series) : null,
+      ftex_repeticoes:  parseInt(data.ftex_repeticoes),
+      ftex_observacoes: data.ftex_observacoes || null,
+    })
+  }
+
+  const nomeExercicio = (e) => {
+    const mod  = e.exe_modalidade === 'pilates' ? 'Pilates' : 'Funcional'
+    const apar = e.apar_nome ? ` · ${e.apar_nome}` : ''
+    return `${e.exe_nome} (${mod}${apar})`
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
+      <FormField label="Exercício" required>
+        <Select value={watch('exe')} onValueChange={v => setValue('exe', v)} disabled={mutation.isPending}>
+          <SelectTrigger><SelectValue placeholder="Selecionar exercício..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar exercício...</SelectItem>
+            {exercicios?.map(e => (
+              <SelectItem key={e.exe_id} value={String(e.exe_id)}>{nomeExercicio(e)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField label="Seção">
+        <Input {...register('ftex_secao')} placeholder="Potência, Força, Aquecimento..." disabled={mutation.isPending} />
+      </FormField>
+
+      <div className="grid grid-cols-3 gap-3">
+        <FormField label="Ordem"><Input type="number" {...register('ftex_ordem')} disabled={mutation.isPending} /></FormField>
+        <FormField label="Séries"><Input type="number" {...register('ftex_series')} disabled={mutation.isPending} /></FormField>
+        <FormField label="Reps"><Input type="number" {...register('ftex_repeticoes')} disabled={mutation.isPending} /></FormField>
+      </div>
+      <FormField label="Observações">
+        <Input {...register('ftex_observacoes')} placeholder="Carga, observações..." disabled={mutation.isPending} />
+      </FormField>
+      <DialogFooter>
+        <Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>Cancelar</Button>
+        <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Salvando...' : 'Salvar Alterações'}</Button>
+      </DialogFooter>
+    </form>
+  )
+}
+
 function AddExercicioForm({ fichaId, onClose }) {
   const queryClient = useQueryClient()
   const { register, handleSubmit, setValue, watch } = useForm({
@@ -151,6 +235,8 @@ function AddExercicioForm({ fichaId, onClose }) {
 export default function FichasTreinoPage() {
   const [modalOpen, setModalOpen]       = useState(false)
   const [addExerOpen, setAddExerOpen]   = useState(false)
+  const [editExerOpen, setEditExerOpen] = useState(false)
+  const [selectedExer, setSelectedExer] = useState(null)
   const [selected, setSelected]         = useState(null)
   const [fichaDetalhe, setFichaDetalhe] = useState(null)
   const [deleteId, setDeleteId]         = useState(null)
@@ -217,11 +303,16 @@ export default function FichasTreinoPage() {
     { key: 'ftex_repeticoes',  header: 'Reps' },
     { key: 'ftex_observacoes', header: 'Obs.',      render: r => r.ftex_observacoes ? <span className="text-xs text-muted-foreground">{r.ftex_observacoes}</span> : '—' },
     {
-      key: 'acoes', header: '', cellClassName: 'w-10',
+      key: 'acoes', header: '', cellClassName: 'w-20',
       render: (r) => (
-        <Button variant="ghost" size="icon-sm" onClick={() => removeExerc.mutate(r.ftex_id)} className="text-red-400 hover:text-red-300">
-          <Trash2 className="w-3.5 h-3.5" />
-        </Button>
+        <div className="flex items-center gap-1 justify-end">
+          <Button variant="ghost" size="icon-sm" onClick={() => { setSelectedExer(r); setEditExerOpen(true) }}>
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => removeExerc.mutate(r.ftex_id)} className="text-red-400 hover:text-red-300">
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       ),
     },
   ]
@@ -286,6 +377,19 @@ export default function FichasTreinoPage() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Adicionar Exercício</DialogTitle></DialogHeader>
           {fichaDetalhe && <AddExercicioForm fichaId={fichaDetalhe.fitr_id} onClose={() => setAddExerOpen(false)} />}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editExerOpen} onOpenChange={setEditExerOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Editar Exercício da Ficha</DialogTitle></DialogHeader>
+          {selectedExer && fichaDetalhe && (
+            <EditExercicioForm
+              ftex={selectedExer}
+              fichaId={fichaDetalhe.fitr_id}
+              onClose={() => { setEditExerOpen(false); setSelectedExer(null) }}
+            />
+          )}
         </DialogContent>
       </Dialog>
 

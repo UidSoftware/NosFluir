@@ -6,11 +6,20 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apps.core.mixins import AuditMixin
 
-from .models import Aparelho, Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
+from .models import Acessorio, Aparelho, Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
 from .serializers import (
-    AparelhoSerializer, AulaSerializer, CreditoReposicaoSerializer, ExercicioSerializer,
-    FichaTreinoSerializer, FichaTreinoExerciciosSerializer,
+    AcessorioSerializer, AparelhoSerializer, AulaSerializer, CreditoReposicaoSerializer,
+    ExercicioSerializer, FichaTreinoSerializer, FichaTreinoExerciciosSerializer,
 )
+
+
+class AcessorioViewSet(AuditMixin, ModelViewSet):
+    queryset = Acessorio.objects.filter(deleted_at__isnull=True).order_by('acess_nome')
+    serializer_class = AcessorioSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['acess_ativo']
+    search_fields = ['acess_nome']
+    ordering_fields = ['acess_nome']
 
 
 class AparelhoViewSet(AuditMixin, ModelViewSet):
@@ -23,16 +32,16 @@ class AparelhoViewSet(AuditMixin, ModelViewSet):
 
 
 class ExercicioViewSet(AuditMixin, ModelViewSet):
-    # select_related: evita N+1 ao serializar apar_nome
+    # select_related: evita N+1 ao serializar apar_nome e acess_nome
     queryset = (
         Exercicio.objects
         .filter(deleted_at__isnull=True)
-        .select_related('exe_aparelho')
+        .select_related('exe_aparelho', 'exe_acessorio')
         .order_by('exe_nome')
     )
     serializer_class = ExercicioSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['exe_modalidade', 'exe_aparelho']
+    filterset_fields = ['exe_modalidade', 'exe_aparelho', 'exe_acessorio']
     search_fields = ['exe_nome']
     ordering_fields = ['exe_nome', 'exe_modalidade']
 

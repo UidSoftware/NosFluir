@@ -2,7 +2,16 @@ import re
 
 from rest_framework import serializers
 
-from .models import Aparelho, Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
+from .models import Acessorio, Aparelho, Aula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
+
+
+class AcessorioSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+
+    class Meta:
+        model = Acessorio
+        fields = ['id', 'acess_id', 'acess_nome', 'acess_ativo', 'created_at', 'updated_at']
+        read_only_fields = ['acess_id', 'created_at', 'updated_at']
 
 
 class AparelhoSerializer(serializers.ModelSerializer):
@@ -19,15 +28,17 @@ class AparelhoSerializer(serializers.ModelSerializer):
 
 class ExercicioSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
-    # allow_null=True: exe_aparelho é FK nullable
-    apar_nome = serializers.CharField(source='exe_aparelho.apar_nome', read_only=True, allow_null=True)
+    # allow_null=True: FKs são nullable
+    apar_nome  = serializers.CharField(source='exe_aparelho.apar_nome', read_only=True, allow_null=True)
+    acess_nome = serializers.CharField(source='exe_acessorio.acess_nome', read_only=True, allow_null=True)
 
     class Meta:
         model = Exercicio
         fields = [
             'id', 'exe_id', 'exe_nome', 'exe_modalidade',
             'exe_aparelho', 'apar_nome',
-            'exe_acessorio', 'exe_variacao', 'exe_descricao_tecnica',
+            'exe_acessorio', 'acess_nome',
+            'exe_variacao', 'exe_descricao_tecnica',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['exe_id', 'created_at', 'updated_at']

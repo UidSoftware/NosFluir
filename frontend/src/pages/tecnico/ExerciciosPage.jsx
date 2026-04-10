@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Boxes, Dumbbell, Plus, Pencil, Trash2 } from 'lucide-react'
+import { Boxes, Dumbbell, Package, Plus, Pencil, Trash2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useForm } from 'react-hook-form'
@@ -31,6 +31,14 @@ function useAparelhos() {
   return useQuery({
     queryKey: ['aparelhos-select'],
     queryFn: () => api.get('/aparelhos/', { params: { apar_ativo: true } }).then(r => r.data.results),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+function useAcessorios() {
+  return useQuery({
+    queryKey: ['acessorios-select'],
+    queryFn: () => api.get('/acessorios/', { params: { acess_ativo: true } }).then(r => r.data.results),
     staleTime: 5 * 60 * 1000,
   })
 }
@@ -112,21 +120,72 @@ function QuickAddAparelho({ open, onOpenChange, onCreated }) {
   )
 }
 
+function QuickAddAcessorio({ open, onOpenChange, onCreated }) {
+  const queryClient = useQueryClient()
+  const { register, handleSubmit, reset } = useForm({ defaultValues: { acess_nome: '' } })
+
+  const mutation = useMutation({
+    mutationFn: (data) => api.post('/acessorios/', data).then(r => r.data),
+    onSuccess: (novo) => {
+      queryClient.invalidateQueries({ queryKey: ['acessorios-select'] })
+      toast({ title: `Acessório "${novo.acess_nome}" criado.`, variant: 'success' })
+      reset()
+      onCreated(novo)
+      onOpenChange(false)
+    },
+    onError: () => toast({ title: 'Erro ao criar acessório.', variant: 'destructive' }),
+  })
+
+  const onSubmit = (data) => {
+    if (!data.acess_nome.trim()) {
+      toast({ title: 'Informe o nome do acessório.', variant: 'destructive' })
+      return
+    }
+    mutation.mutate({ acess_nome: data.acess_nome.trim(), acess_ativo: true })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Novo Acessório</DialogTitle></DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
+          <FormField label="Nome" required>
+            <Input
+              {...register('acess_nome')}
+              placeholder="Bola suíça, Mini band..."
+              disabled={mutation.isPending}
+              autoFocus
+            />
+          </FormField>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>Cancelar</Button>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? 'Criando...' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function ExercForm({ exercicio, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: exercicio ? {
       exe_nome:             exercicio.exe_nome,
       exe_modalidade:       exercicio.exe_modalidade || '__none__',
       exe_aparelho:         exercicio.exe_aparelho ? String(exercicio.exe_aparelho) : '__none__',
-      exe_acessorio:        exercicio.exe_acessorio || '',
+      exe_acessorio:        exercicio.exe_acessorio ? String(exercicio.exe_acessorio) : '__none__',
       exe_variacao:         exercicio.exe_variacao || '',
       exe_descricao_tecnica: exercicio.exe_descricao_tecnica || '',
-    } : { exe_modalidade: '__none__', exe_aparelho: '__none__' },
+    } : { exe_modalidade: '__none__', exe_aparelho: '__none__', exe_acessorio: '__none__' },
   })
 
   const [quickAparelho, setQuickAparelho] = useState(false)
+  const [quickAcessorio, setQuickAcessorio] = useState(false)
 
-  const { data: aparelhos } = useAparelhos()
+  const { data: aparelhos }  = useAparelhos()
+  const { data: acessorios } = useAcessorios()
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
   const update = useUpdate(KEY, ENDPOINT, { onSuccess: onClose })
   const busy   = create.isPending || update.isPending
@@ -140,12 +199,13 @@ function ExercForm({ exercicio, onClose }) {
       toast({ title: 'Selecione a modalidade.', variant: 'destructive' })
       return
     }
-    const aparelhoId = data.exe_aparelho && data.exe_aparelho !== '__none__' ? parseInt(data.exe_aparelho) : null
+    const aparelhoId  = data.exe_aparelho  && data.exe_aparelho  !== '__none__' ? parseInt(data.exe_aparelho)  : null
+    const acessorioId = data.exe_acessorio && data.exe_acessorio !== '__none__' ? parseInt(data.exe_acessorio) : null
     const payload = {
       exe_nome:              data.exe_nome,
       exe_modalidade:        modalidade,
       exe_aparelho:          aparelhoId,
-      exe_acessorio:         data.exe_acessorio || null,
+      exe_acessorio:         acessorioId,
       exe_variacao:          data.exe_variacao || null,
       exe_descricao_tecnica: data.exe_descricao_tecnica || null,
     }
@@ -203,7 +263,28 @@ function ExercForm({ exercicio, onClose }) {
 
       <div className="grid grid-cols-2 gap-3">
         <FormField label="Acessório">
-          <Input {...register('exe_acessorio')} placeholder="halter, elástico, bola..." disabled={busy} />
+          <div className="flex gap-1.5">
+            <Select value={watch('exe_acessorio')} onValueChange={v => setValue('exe_acessorio', v)} disabled={busy}>
+              <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
+                {acessorios?.map(a => (
+                  <SelectItem key={a.acess_id} value={String(a.acess_id)}>{a.acess_nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              title="Cadastrar novo acessório"
+              onClick={() => setQuickAcessorio(true)}
+              disabled={busy}
+              className="shrink-0 h-9 w-9"
+            >
+              <Package className="w-4 h-4" />
+            </Button>
+          </div>
         </FormField>
         <FormField label="Variação">
           <Input {...register('exe_variacao')} placeholder="unilateral, com apoio..." disabled={busy} />
@@ -226,6 +307,11 @@ function ExercForm({ exercicio, onClose }) {
       open={quickAparelho}
       onOpenChange={setQuickAparelho}
       onCreated={(novo) => setValue('exe_aparelho', String(novo.apar_id))}
+    />
+    <QuickAddAcessorio
+      open={quickAcessorio}
+      onOpenChange={setQuickAcessorio}
+      onCreated={(novo) => setValue('exe_acessorio', String(novo.acess_id))}
     />
     </>
   )
@@ -262,7 +348,7 @@ export default function ExerciciosPage() {
       ) : '—',
     },
     { key: 'apar_nome',    header: 'Aparelho',  render: nomeAparelho },
-    { key: 'exe_acessorio', header: 'Acessório', render: r => r.exe_acessorio || '—' },
+    { key: 'acess_nome',    header: 'Acessório',  render: r => r.acess_nome || '—' },
     { key: 'exe_variacao',  header: 'Variação',  render: r => r.exe_variacao || '—' },
     {
       key: 'acoes', header: '', cellClassName: 'w-20',

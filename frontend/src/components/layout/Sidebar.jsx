@@ -87,6 +87,7 @@ const MENU = [
       { label: 'Usuários',   path: '/configuracao/usuarios',   icon: UserCog },
       { label: 'Profissões', path: '/configuracao/profissoes', icon: ClipboardList },
       { label: 'Aparelhos',  path: '/configuracao/aparelhos',  icon: Dumbbell },
+      { label: 'Acessórios', path: '/configuracao/acessorios', icon: Package },
     ],
   },
 ]

@@ -37,6 +37,22 @@ class Aparelho(BaseModel):
         return f'{self.apar_nome} ({self.get_apar_modalidade_display()})'
 
 
+class Acessorio(BaseModel):
+    """Catálogo de acessórios usados nos exercícios."""
+    acess_id = models.AutoField(primary_key=True)
+    acess_nome = models.CharField('nome', max_length=100)
+    acess_ativo = models.BooleanField('ativo', default=True)
+
+    class Meta:
+        db_table = 'acessorio'
+        verbose_name = 'Acessório'
+        verbose_name_plural = 'Acessórios'
+        ordering = ['acess_nome']
+
+    def __str__(self):
+        return self.acess_nome
+
+
 class Exercicio(BaseModel):
     """Biblioteca de exercícios de Pilates e funcional."""
     MODALIDADE_CHOICES = [
@@ -52,7 +68,11 @@ class Exercicio(BaseModel):
         null=True, blank=True, verbose_name='aparelho',
         related_name='exercicios'
     )
-    exe_acessorio = models.CharField('acessório', max_length=100, null=True, blank=True)
+    exe_acessorio = models.ForeignKey(
+        'Acessorio', on_delete=models.PROTECT,
+        null=True, blank=True, verbose_name='acessório',
+        related_name='exercicios'
+    )
     exe_variacao = models.CharField('variação', max_length=100, null=True, blank=True)
     exe_descricao_tecnica = models.TextField('descrição técnica', null=True, blank=True)
 

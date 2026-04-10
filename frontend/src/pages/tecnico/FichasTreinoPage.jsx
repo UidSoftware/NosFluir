@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { FileText, Plus, Pencil, Trash2, Dumbbell } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -288,8 +288,21 @@ export default function FichasTreinoPage() {
     },
   })
 
-  // Agrupamento por seção para exibição
   const exerciciosOrdenados = exerciciosFicha?.slice().sort((a, b) => a.ftex_ordem - b.ftex_ordem) || []
+
+  // Agrupa por seção mantendo a ordem interna
+  const gruposSecao = useMemo(() => {
+    const mapa = {}
+    const ordem = []
+    exerciciosOrdenados.forEach(ex => {
+      const sec = ex.ftex_secao || ''
+      if (!mapa[sec]) { mapa[sec] = []; ordem.push(sec) }
+      mapa[sec].push(ex)
+    })
+    return ordem.map(sec => ({ secao: sec, itens: mapa[sec] }))
+  }, [exerciciosOrdenados])
+
+  const temSecao = exerciciosOrdenados.some(ex => ex.ftex_secao)
 
   const fichasCols = [
     {
@@ -397,6 +410,48 @@ export default function FichasTreinoPage() {
             <CardContent className="px-5 pb-5">
               {loadingExerc ? (
                 <div className="flex justify-center py-6"><Spinner /></div>
+              ) : exerciciosOrdenados.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Nenhum exercício nesta ficha.</p>
+              ) : temSecao ? (
+                <div className="space-y-4">
+                  {gruposSecao.map(({ secao, itens }) => (
+                    <div key={secao || '__sem_secao__'}>
+                      {secao && (
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-fluir-cyan mb-1.5">
+                          {secao}
+                        </p>
+                      )}
+                      <div className="space-y-1">
+                        {itens.map(ex => (
+                          <div key={ex.ftex_id} className="flex items-center gap-2 py-1.5 border-b border-border/40 last:border-0">
+                            <span className="text-muted-foreground text-xs w-5 shrink-0">{ex.ftex_ordem}.</span>
+                            <span className="flex-1 text-sm font-medium min-w-0">
+                              {ex.exe_nome}
+                              {ex.exe2_nome && <span className="text-fluir-cyan"> + {ex.exe2_nome}</span>}
+                              {ex.apar_nome && <span className="text-muted-foreground font-normal"> · {ex.apar_nome}</span>}
+                            </span>
+                            {(ex.ftex_series || ex.ftex_repeticoes) && (
+                              <span className="text-xs text-muted-foreground shrink-0">{ex.ftex_series}×{ex.ftex_repeticoes}</span>
+                            )}
+                            {ex.ftex_observacoes && (
+                              <span className="text-xs text-muted-foreground italic shrink-0 max-w-[120px] truncate" title={ex.ftex_observacoes}>
+                                {ex.ftex_observacoes}
+                              </span>
+                            )}
+                            <div className="flex gap-0.5 shrink-0">
+                              <Button variant="ghost" size="icon-sm" onClick={() => { setSelectedExer(ex); setEditExerOpen(true) }}>
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon-sm" onClick={() => removeExerc.mutate(ex.ftex_id)} className="text-red-400 hover:text-red-300">
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <DataTable
                   columns={exercCols}

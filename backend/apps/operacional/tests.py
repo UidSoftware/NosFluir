@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 
-from .models import Aluno, Funcionario, Profissao, Turma, TurmaAlunos
+from .models import Aluno, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos
 
 User = get_user_model()
 
@@ -269,6 +269,55 @@ class TurmaAlunosNomeRealTest(TestCase):
         matricula = resp.data['results'][0]
         self.assertIn('id', matricula)
         self.assertIn('alu', matricula)
+
+
+# ── FichaAluno — histórico de avaliações físicas ─────────────────────────────
+
+class FichaAlunoTest(TestCase):
+    """TB_FIAL_01, TB_FIAL_02 — criação e histórico de FichaAluno."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.aluno = criar_aluno()
+
+    def test_TB_FIAL_01_criar_ficha_aluno_com_data(self):
+        """TB_FIAL_01: POST /api/ficha-aluno/ → 201 com medidas e data de avaliação."""
+        resp = self.client.post('/api/ficha-aluno/', {
+            'aluno':                      self.aluno.alu_id,
+            'fial_data':                  '2026-04-10',
+            'fial_peso':                  '65.50',
+            'fial_massa_muscular':        '30.20',
+            'fial_massa_gorda':           '18.10',
+            'fial_porcentagem_gordura':   '27.70',
+            'fial_circunferencia_abdominal': '82.00',
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(resp.data['fial_data'], '2026-04-10')
+        self.assertEqual(Decimal(resp.data['fial_peso']), Decimal('65.50'))
+        self.assertEqual(resp.data['aluno'], self.aluno.alu_id)
+
+    def test_TB_FIAL_02_historico_multiplas_fichas_por_aluno(self):
+        """TB_FIAL_02: aluno com múltiplas fichas → GET filtra por aluno e ordena por -fial_data."""
+        FichaAluno.objects.create(aluno=self.aluno, fial_data='2026-01-10', fial_peso=Decimal('67.00'))
+        FichaAluno.objects.create(aluno=self.aluno, fial_data='2026-02-15', fial_peso=Decimal('65.50'))
+        FichaAluno.objects.create(aluno=self.aluno, fial_data='2026-04-10', fial_peso=Decimal('64.00'))
+
+        # outro aluno não deve aparecer
+        outro = criar_aluno(cpf='99988877766', nome='Outro Aluno')
+        FichaAluno.objects.create(aluno=outro, fial_data='2026-03-01', fial_peso=Decimal('80.00'))
+
+        resp = self.client.get('/api/ficha-aluno/', {'aluno': self.aluno.alu_id})
+        self.assertEqual(resp.status_code, 200)
+        results = resp.data['results']
+        self.assertEqual(len(results), 3)
+        # ordenação: mais recente primeiro
+        datas = [r['fial_data'] for r in results]
+        self.assertEqual(datas, ['2026-04-10', '2026-02-15', '2026-01-10'])
+        # todos pertencem ao aluno correto
+        for r in results:
+            self.assertEqual(r['aluno'], self.aluno.alu_id)
 
 
 # ── Soft delete — comportamento atual ────────────────────────────────────────

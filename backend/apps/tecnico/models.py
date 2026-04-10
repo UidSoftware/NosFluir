@@ -95,6 +95,11 @@ class FichaTreinoExercicios(BaseModel):
     ftex_id = models.AutoField(primary_key=True)
     fitr = models.ForeignKey(FichaTreino, on_delete=models.CASCADE, verbose_name='ficha de treino')
     exe = models.ForeignKey(Exercicio, on_delete=models.PROTECT, verbose_name='exercício')
+    exe2 = models.ForeignKey(
+        Exercicio, on_delete=models.PROTECT,
+        null=True, blank=True, verbose_name='exercício combinado (opcional)',
+        related_name='fichas_treino_secundario'
+    )
     ftex_ordem = models.IntegerField('ordem na ficha')
     ftex_repeticoes = models.IntegerField('repetições')
     ftex_series = models.IntegerField('séries', null=True, blank=True)

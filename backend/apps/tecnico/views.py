@@ -47,11 +47,11 @@ class FichaTreinoViewSet(AuditMixin, ModelViewSet):
 
 
 class FichaTreinoExerciciosViewSet(AuditMixin, ModelViewSet):
-    # select_related: evita N+1 ao serializar exe_nome e apar_nome
+    # select_related: evita N+1 ao serializar exe_nome, apar_nome e combinados
     queryset = (
         FichaTreinoExercicios.objects
         .filter(deleted_at__isnull=True)
-        .select_related('exe__exe_aparelho')
+        .select_related('exe__exe_aparelho', 'exe2__exe_aparelho')
         .order_by('fitr', 'ftex_ordem')
     )
     serializer_class = FichaTreinoExerciciosSerializer

@@ -75,6 +75,7 @@ function EditExercicioForm({ ftex, fichaId, onClose }) {
   const { register, handleSubmit, setValue, watch } = useForm({
     defaultValues: {
       exe:              String(ftex.exe),
+      exe2:             ftex.exe2 ? String(ftex.exe2) : '__none__',
       ftex_secao:       ftex.ftex_secao || '',
       ftex_ordem:       ftex.ftex_ordem,
       ftex_series:      ftex.ftex_series || '',
@@ -99,13 +100,15 @@ function EditExercicioForm({ ftex, fichaId, onClose }) {
   })
 
   const onSubmit = (data) => {
-    const exeId = data.exe && data.exe !== '__none__' ? parseInt(data.exe) : null
+    const exeId  = data.exe  && data.exe  !== '__none__' ? parseInt(data.exe)  : null
+    const exe2Id = data.exe2 && data.exe2 !== '__none__' ? parseInt(data.exe2) : null
     if (!exeId) {
       toast({ title: 'Selecione o exercício.', variant: 'destructive' })
       return
     }
     mutation.mutate({
       exe:              exeId,
+      exe2:             exe2Id,
       ftex_secao:       data.ftex_secao || null,
       ftex_ordem:       parseInt(data.ftex_ordem),
       ftex_series:      data.ftex_series ? parseInt(data.ftex_series) : null,
@@ -127,6 +130,18 @@ function EditExercicioForm({ ftex, fichaId, onClose }) {
           <SelectTrigger><SelectValue placeholder="Selecionar exercício..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar exercício...</SelectItem>
+            {exercicios?.map(e => (
+              <SelectItem key={e.exe_id} value={String(e.exe_id)}>{nomeExercicio(e)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField label="Combinado com (opcional)">
+        <Select value={watch('exe2')} onValueChange={v => setValue('exe2', v)} disabled={mutation.isPending}>
+          <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
             {exercicios?.map(e => (
               <SelectItem key={e.exe_id} value={String(e.exe_id)}>{nomeExercicio(e)}</SelectItem>
             ))}
@@ -157,7 +172,7 @@ function EditExercicioForm({ ftex, fichaId, onClose }) {
 function AddExercicioForm({ fichaId, onClose }) {
   const queryClient = useQueryClient()
   const { register, handleSubmit, setValue, watch } = useForm({
-    defaultValues: { ftex_ordem: 1, ftex_series: 3, ftex_repeticoes: 12, exe: '__none__' },
+    defaultValues: { ftex_ordem: 1, ftex_series: 3, ftex_repeticoes: 12, exe: '__none__', exe2: '__none__' },
   })
 
   const { data: exercicios } = useQuery({
@@ -176,7 +191,8 @@ function AddExercicioForm({ fichaId, onClose }) {
   })
 
   const onSubmit = (data) => {
-    const exeId = data.exe && data.exe !== '__none__' ? parseInt(data.exe) : null
+    const exeId  = data.exe  && data.exe  !== '__none__' ? parseInt(data.exe)  : null
+    const exe2Id = data.exe2 && data.exe2 !== '__none__' ? parseInt(data.exe2) : null
     if (!exeId) {
       toast({ title: 'Selecione o exercício.', variant: 'destructive' })
       return
@@ -184,6 +200,7 @@ function AddExercicioForm({ fichaId, onClose }) {
     mutation.mutate({
       fitr:             fichaId,
       exe:              exeId,
+      exe2:             exe2Id,
       ftex_secao:       data.ftex_secao || null,
       ftex_ordem:       parseInt(data.ftex_ordem),
       ftex_series:      parseInt(data.ftex_series),
@@ -205,6 +222,18 @@ function AddExercicioForm({ fichaId, onClose }) {
           <SelectTrigger><SelectValue placeholder="Selecionar exercício..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar exercício...</SelectItem>
+            {exercicios?.map(e => (
+              <SelectItem key={e.exe_id} value={String(e.exe_id)}>{nomeExercicio(e)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField label="Combinado com (opcional)">
+        <Select value={watch('exe2')} onValueChange={v => setValue('exe2', v)} disabled={mutation.isPending}>
+          <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
             {exercicios?.map(e => (
               <SelectItem key={e.exe_id} value={String(e.exe_id)}>{nomeExercicio(e)}</SelectItem>
             ))}
@@ -297,8 +326,22 @@ export default function FichasTreinoPage() {
   const exercCols = [
     { key: 'ftex_ordem',       header: '#',         cellClassName: 'w-8' },
     { key: 'ftex_secao',       header: 'Seção',     render: r => r.ftex_secao ? <span className="text-xs text-muted-foreground">{r.ftex_secao}</span> : '—' },
-    { key: 'exe_nome',         header: 'Exercício', render: r => <span className="font-medium">{r.exe_nome}</span> },
-    { key: 'apar_nome',        header: 'Aparelho',  render: r => r.apar_nome || '—' },
+    {
+      key: 'exe_nome', header: 'Exercício',
+      render: r => (
+        <span className="font-medium">
+          {r.exe_nome}{r.exe2_nome ? <span className="text-fluir-cyan"> + {r.exe2_nome}</span> : ''}
+        </span>
+      ),
+    },
+    {
+      key: 'apar_nome', header: 'Aparelho',
+      render: r => {
+        if (!r.apar_nome && !r.exe2_apar_nome) return '—'
+        if (r.exe2_apar_nome && r.apar_nome !== r.exe2_apar_nome) return `${r.apar_nome || '—'} / ${r.exe2_apar_nome}`
+        return r.apar_nome || '—'
+      },
+    },
     { key: 'ftex_series',      header: 'Séries' },
     { key: 'ftex_repeticoes',  header: 'Reps' },
     { key: 'ftex_observacoes', header: 'Obs.',      render: r => r.ftex_observacoes ? <span className="text-xs text-muted-foreground">{r.ftex_observacoes}</span> : '—' },

@@ -38,11 +38,15 @@ class FichaTreinoExerciciosSerializer(serializers.ModelSerializer):
     exe_nome = serializers.CharField(source='exe.exe_nome', read_only=True)
     # allow_null=True: exercício pode não ter aparelho vinculado
     apar_nome = serializers.CharField(source='exe.exe_aparelho.apar_nome', read_only=True, allow_null=True)
+    # Combinados — exercício secundário opcional
+    exe2_nome = serializers.CharField(source='exe2.exe_nome', read_only=True, allow_null=True)
+    exe2_apar_nome = serializers.CharField(source='exe2.exe_aparelho.apar_nome', read_only=True, allow_null=True)
 
     class Meta:
         model = FichaTreinoExercicios
         fields = [
             'id', 'ftex_id', 'fitr', 'exe', 'exe_nome', 'apar_nome',
+            'exe2', 'exe2_nome', 'exe2_apar_nome',
             'ftex_secao', 'ftex_ordem', 'ftex_repeticoes', 'ftex_series', 'ftex_observacoes',
             'created_at', 'updated_at',
         ]

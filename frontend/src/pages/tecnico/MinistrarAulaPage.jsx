@@ -355,8 +355,11 @@ export default function MinistrarAulaPage() {
                     {exerciciosFicha.map(ex => (
                       <li key={ex.id || ex.ftex_id} className="text-sm">
                         <span className="text-muted-foreground">{ex.ftex_ordem}.</span>{' '}
-                        <span className="font-medium">{ex.exe_nome}</span>
-                        {ex.exe_aparelho && <span className="text-muted-foreground"> — {ex.exe_aparelho}</span>}
+                        <span className="font-medium">
+                          {ex.exe_nome}
+                          {ex.exe2_nome && <span className="text-fluir-cyan"> + {ex.exe2_nome}</span>}
+                        </span>
+                        {ex.apar_nome && <span className="text-muted-foreground"> · {ex.apar_nome}</span>}
                         {(ex.ftex_series || ex.ftex_repeticoes) && (
                           <span className="text-muted-foreground"> — {ex.ftex_series}x{ex.ftex_repeticoes}</span>
                         )}

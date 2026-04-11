@@ -19,7 +19,7 @@ class AparelhoAdmin(admin.ModelAdmin):
 
 @admin.register(Aulas)
 class AulasAdmin(admin.ModelAdmin):
-    list_display = ['aul_nome', 'tur', 'aul_modalidade', 'aul_data', 'aul_hora_inicio', 'func']
+    list_display = ['aul_nome', 'tur', 'aul_modalidade', 'aul_data', 'func']
     list_filter = ['aul_modalidade', 'aul_data']
     search_fields = ['aul_nome', 'tur__tur_nome']
     date_hierarchy = 'aul_data'

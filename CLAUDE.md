@@ -163,7 +163,7 @@ created_at = models.DateTimeField(...)
 | AgendamentoHorario | agendamento_horario | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 | AgendamentoTurmas | agendamento_turmas | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 
-### App `tecnico` — 7 models
+### App `tecnico` — 8 models
 | Model | Tabela | Observação |
 |---|---|---|
 | Aparelho | aparelho | catálogo de aparelhos; `apar_modalidade`: pilates/funcional/**ambos** |
@@ -171,7 +171,8 @@ created_at = models.DateTimeField(...)
 | Exercicio | exercicios | `exe_modalidade` + FK `exe_aparelho` + FK `exe_acessorio` + `exe_variacao` |
 | FichaTreino | ficha_treino | `fitr_nome` + `fitr_modalidade` (nullable) |
 | FichaTreinoExercicios | ficha_treino_exercicios | N:N com ordem+séries+reps+`ftex_secao`+`exe2` (combinado opcional) |
-| MinistrarAula | ministrar_aula | 1 linha = 1 aluno em 1 aula; PAS/PAD int, FC, PSE Borg 6-20; `func` (FK Funcionario, nullable) |
+| Aulas | aulas | 1 linha por aula coletiva; unique: tur+aul_data+aul_hora_inicio; `aul_nome` auto-gerado |
+| MinistrarAula | ministrar_aula | 1 linha = 1 aluno em 1 aula; FK `aula` (nullable); PAS/PAD int, FC, PSE Borg 6-20 |
 | CreditoReposicao | creditos_reposicao | gerado por signal ao registrar falta; `cred_data_geracao` é read-only |
 
 ### App `usuarios` — 1 model
@@ -327,7 +328,7 @@ ContasPagar → pag_id      ContasReceber → rec_id     Planos       → plan_i
 FolhaPag    → fopa_id     Profissao    → prof_id     Exercicio    → exe_id
 FichaTreino → fitr_id     FichaTreinoEx → ftex_id    MinistrarAula → miau_id
 Credito     → cred_id     FichaAluno   → fial_id     Aparelho     → apar_id
-Acessorio   → acess_id    User         → id (padrão Django)
+Acessorio   → acess_id    Aulas        → aul_id      User         → id (padrão Django)
 ```
 
 ### FKs no payload (CRÍTICO — sem sufixo `_id`):
@@ -348,8 +349,7 @@ Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/logout/              ✅ /api/me/               ✅ /api/agendamentos-horario/
 ✅ /api/agendamentos-turmas/ ✅ /api/fichas-treino-exercicios/
 ✅ /api/aparelhos/           ✅ /api/acessorios/       ✅ /api/ficha-aluno/
-✅ /api/ministrar-aula/
-❌ /api/aulas/               ← ERRADO (renomeado para /api/ministrar-aula/ na Fase 3.2)
+✅ /api/ministrar-aula/      ✅ /api/aulas/
 ❌ /api/operacional/alunos/  ❌ /api/tecnico/exercicios/  ← ERRADO
 ❌ /api/servicos/            ← ERRADO (correto: /api/servicos-produtos/)
 ```
@@ -562,13 +562,18 @@ git pull origin main && docker compose restart nginx
 - [x] Formulário e detalhe do Aluno atualizados no frontend
 - [x] 75 testes passando (sem regressão)
 
-### Fase 7.3 — Reajustes Estruturais 3.3 — PENDENTE
-> Nova tabela `Aulas` (1 por aula coletiva) + FK em `MinistrarAula`
-> Ver `Instrucoes_Claude_Code_Fase3.md` — Sub-fase 3.3
+### Fase 7.3 — Reajustes Estruturais 3.3 ✅ COMPLETO E EM PRODUÇÃO (10/04/2026)
+- [x] Nova tabela `Aulas` — 1 linha por aula coletiva; unique: tur+aul_data+aul_hora_inicio
+- [x] `aul_nome` auto-gerado no `save()` se deixado em branco
+- [x] FK `aula` adicionada em `MinistrarAula` (nullable — retrocompatível)
+- [x] Endpoint `/api/aulas/` com filtros: tur, func, aul_modalidade, aul_data
+- [x] Serializer com contadores: `total_presentes`, `total_faltas`, `total_registros`
+- [x] Página `AulasPage` — CRUD + filtros por modalidade e turma + stats de presença
+- [x] Sidebar Técnico: item "Aulas" adicionado
 
 ### Pendências técnicas restantes:
 - [x] Fase 7.2 — renomear Aula → MinistrarAula + campos PAS/PAD/FC/PSE Borg ✅
-- [ ] Fase 7.3 — nova tabela Aulas
+- [x] Fase 7.3 — nova tabela Aulas ✅
 - [ ] Permissões por perfil (Professor/Financeiro/Recepcionista) não implementadas
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
 - [ ] Crédito expirado — sem job automático para atualizar status

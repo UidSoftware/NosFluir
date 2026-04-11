@@ -2,13 +2,14 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from .views import (
-    AcessorioViewSet, AparelhoViewSet, MinistrarAulaViewSet, CreditoReposicaoViewSet,
-    ExercicioViewSet, FichaTreinoViewSet, FichaTreinoExerciciosViewSet,
+    AcessorioViewSet, AparelhoViewSet, AulasViewSet, MinistrarAulaViewSet,
+    CreditoReposicaoViewSet, ExercicioViewSet, FichaTreinoViewSet, FichaTreinoExerciciosViewSet,
 )
 
 router = DefaultRouter()
 router.register('acessorios', AcessorioViewSet, basename='acessorios')
 router.register('aparelhos', AparelhoViewSet, basename='aparelhos')
+router.register('aulas', AulasViewSet, basename='aulas')
 router.register('exercicios', ExercicioViewSet, basename='exercicios')
 router.register('fichas-treino', FichaTreinoViewSet, basename='fichas-treino')
 router.register('fichas-treino-exercicios', FichaTreinoExerciciosViewSet, basename='fichas-treino-exercicios')

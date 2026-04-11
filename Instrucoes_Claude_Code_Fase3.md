@@ -16,7 +16,7 @@ surgiram solicitações de reajuste estrutural no banco, backend e frontend.
 Organizado em 3 sub-fases — executar **obrigatoriamente nessa ordem**:
 - **3.1** — Alterações e criações ✅ COMPLETO (10/04/2026)
 - **3.2** — Renomear tabela `Aula` → `MinistrarAula` ✅ COMPLETO (10/04/2026)
-- **3.3** — Criar nova tabela `Aulas` — **PENDENTE**
+- **3.3** — Criar nova tabela `Aulas` ✅ COMPLETO (10/04/2026)
 
 ---
 
@@ -204,7 +204,7 @@ class MinistrarAula(BaseModel):
 
 ---
 
-## FASE 3.3 — Nova tabela `Aulas` — PENDENTE
+## FASE 3.3 — Nova tabela `Aulas` ✅ COMPLETO (10/04/2026)
 
 Tabela agregada — 1 linha por aula coletiva.
 Facilita relatórios, gráficos e página de histórico.

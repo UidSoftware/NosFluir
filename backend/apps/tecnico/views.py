@@ -6,10 +6,10 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apps.core.mixins import AuditMixin
 
-from .models import Acessorio, Aparelho, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
+from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
 from .serializers import (
-    AcessorioSerializer, AparelhoSerializer, MinistrarAulaSerializer, CreditoReposicaoSerializer,
-    ExercicioSerializer, FichaTreinoSerializer, FichaTreinoExerciciosSerializer,
+    AcessorioSerializer, AparelhoSerializer, AulasSerializer, MinistrarAulaSerializer,
+    CreditoReposicaoSerializer, ExercicioSerializer, FichaTreinoSerializer, FichaTreinoExerciciosSerializer,
 )
 
 
@@ -67,6 +67,21 @@ class FichaTreinoExerciciosViewSet(AuditMixin, ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ['fitr', 'exe']
     ordering_fields = ['ftex_ordem']
+
+
+class AulasViewSet(AuditMixin, ModelViewSet):
+    queryset = (
+        Aulas.objects
+        .filter(deleted_at__isnull=True)
+        .select_related('tur', 'func')
+        .prefetch_related('registros')
+        .order_by('-aul_data', '-aul_hora_inicio')
+    )
+    serializer_class = AulasSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['tur', 'func', 'aul_modalidade', 'aul_data']
+    search_fields = ['aul_nome', 'tur__tur_nome']
+    ordering_fields = ['aul_data', 'aul_hora_inicio']
 
 
 class MinistrarAulaViewSet(AuditMixin, ModelViewSet):

@@ -9,7 +9,6 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
@@ -24,8 +23,12 @@ export default defineConfig({
         display: 'standalone',
         start_url: '/sistema/',
         icons: [
-          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          {
+            src: '/static/landing/Icone-401x401-Sem-Fundo.png',
+            sizes: '401x401',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
         ],
       },
     }),

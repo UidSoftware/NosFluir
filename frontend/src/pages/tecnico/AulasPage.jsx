@@ -230,6 +230,8 @@ export default function AulasPage() {
     },
     {
       key: 'func_nome', header: 'Professor',
+      headerClassName: 'hidden sm:table-cell',
+      cellClassName: 'hidden sm:table-cell',
       render: r => <span className="text-sm text-muted-foreground">{r.func_nome || '—'}</span>,
     },
     {
@@ -277,9 +279,9 @@ export default function AulasPage() {
       <Card>
         <CardContent className="p-5 space-y-4">
           {/* Filtros */}
-          <div className="flex flex-wrap gap-3 items-end">
+          <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-3 sm:items-end">
             <Select value={filtroMod} onValueChange={v => { setFiltroMod(v); setPage(1) }}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="Modalidade" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Modalidade" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas modalidades</SelectItem>
                 {MODALIDADES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
@@ -287,25 +289,24 @@ export default function AulasPage() {
             </Select>
 
             <Select value={filtroTur} onValueChange={v => { setFiltroTur(v); setPage(1) }}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="Turma" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Turma" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as turmas</SelectItem>
                 {turmas?.map(t => <SelectItem key={t.tur_id} value={String(t.tur_id)}>{t.tur_nome}</SelectItem>)}
               </SelectContent>
             </Select>
 
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:flex-row sm:items-center gap-2">
               <Input
                 type="date"
-                className="w-36"
+                className="w-full sm:w-36"
                 value={dataInicio}
                 onChange={e => { setDataInicio(e.target.value); setPage(1) }}
                 title="Data início"
               />
-              <span className="text-muted-foreground text-sm">até</span>
               <Input
                 type="date"
-                className="w-36"
+                className="w-full sm:w-36"
                 value={dataFim}
                 onChange={e => { setDataFim(e.target.value); setPage(1) }}
                 title="Data fim"
@@ -313,7 +314,7 @@ export default function AulasPage() {
             </div>
 
             {temFiltro && (
-              <Button variant="ghost" size="sm" onClick={limparFiltros} className="text-muted-foreground">
+              <Button variant="ghost" size="sm" onClick={limparFiltros} className="text-muted-foreground w-full sm:w-auto">
                 Limpar filtros
               </Button>
             )}

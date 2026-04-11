@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 10/04/2026 | Versão: 7.4
+> Última atualização: 11/04/2026 | Versão: 7.5
 
 ---
 
@@ -577,6 +577,8 @@ git pull origin main && docker compose restart nginx
 - [x] `Turma` ganha `tur_modalidade` — define modalidade fixa da turma
 - [x] `MinistrarAulaViewSet.perform_create` auto-vincula ao `Aulas` via `get_or_create(tur, data, modalidade)`
 - [x] `TurmasPage`: remove campo `func` (morto), adiciona `tur_modalidade` select + badge na tabela
+- [x] Data migration `0018`: backfill `aula` FK em `MinistrarAula` existentes (reprocessa registros antigos)
+- [x] `AulasPage`: filtros responsivos mobile (grid stack) + coluna Professor oculta em telas pequenas
 
 ### Pendências técnicas restantes:
 - [x] Fase 7.2 — renomear Aula → MinistrarAula + campos PAS/PAD/FC/PSE Borg ✅

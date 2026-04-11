@@ -91,13 +91,11 @@ function AulaDetalheModal({ aula, onClose }) {
 function AulaForm({ aula, turmas, funcionarios, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: aula ? {
-      tur:             String(aula.tur),
-      func:            aula.func ? String(aula.func) : '__none__',
-      aul_data:        aula.aul_data,
-      aul_hora_inicio: aula.aul_hora_inicio,
-      aul_hora_final:  aula.aul_hora_final || '',
-      aul_modalidade:  aula.aul_modalidade || '__none__',
-      aul_nome:        aula.aul_nome || '',
+      tur:            String(aula.tur),
+      func:           aula.func ? String(aula.func) : '__none__',
+      aul_data:       aula.aul_data,
+      aul_modalidade: aula.aul_modalidade || '__none__',
+      aul_nome:       aula.aul_nome || '',
     } : {
       tur:            '__none__',
       func:           '__none__',
@@ -114,19 +112,16 @@ function AulaForm({ aula, turmas, funcionarios, onClose }) {
     const modVal  = data.aul_modalidade && data.aul_modalidade !== '__none__' ? data.aul_modalidade : null
     const funcVal = data.func && data.func !== '__none__' ? parseInt(data.func) : null
 
-    if (!turVal)  { toast({ title: 'Selecione a turma.',      variant: 'destructive' }); return }
-    if (!modVal)  { toast({ title: 'Selecione a modalidade.', variant: 'destructive' }); return }
-    if (!data.aul_data)        { toast({ title: 'Informe a data da aula.',    variant: 'destructive' }); return }
-    if (!data.aul_hora_inicio) { toast({ title: 'Informe a hora de início.',  variant: 'destructive' }); return }
+    if (!turVal) { toast({ title: 'Selecione a turma.',      variant: 'destructive' }); return }
+    if (!modVal) { toast({ title: 'Selecione a modalidade.', variant: 'destructive' }); return }
+    if (!data.aul_data) { toast({ title: 'Informe a data da aula.', variant: 'destructive' }); return }
 
     const payload = {
-      tur:             turVal,
-      func:            funcVal,
-      aul_data:        data.aul_data,
-      aul_hora_inicio: data.aul_hora_inicio,
-      aul_hora_final:  data.aul_hora_final || null,
-      aul_modalidade:  modVal,
-      aul_nome:        data.aul_nome || null,
+      tur:            turVal,
+      func:           funcVal,
+      aul_data:       data.aul_data,
+      aul_modalidade: modVal,
+      aul_nome:       data.aul_nome || null,
     }
 
     if (aula) update.mutate({ id: aula.aul_id, data: payload })
@@ -167,15 +162,6 @@ function AulaForm({ aula, turmas, funcionarios, onClose }) {
               {funcionarios?.map(f => <SelectItem key={f.func_id} value={String(f.func_id)}>{f.func_nome}</SelectItem>)}
             </SelectContent>
           </Select>
-        </FormField>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <FormField label="Hora Início" required error={errors.aul_hora_inicio?.message}>
-          <Input type="time" {...register('aul_hora_inicio', { required: 'Hora obrigatória' })} disabled={busy} />
-        </FormField>
-        <FormField label="Hora Término">
-          <Input type="time" {...register('aul_hora_final')} disabled={busy} />
         </FormField>
       </div>
 
@@ -227,9 +213,6 @@ export default function AulasPage() {
       render: r => (
         <div>
           <p className="font-medium">{new Date(r.aul_data + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
-          <p className="text-xs text-muted-foreground">
-            {r.aul_hora_inicio?.slice(0, 5)}{r.aul_hora_final ? ` – ${r.aul_hora_final.slice(0, 5)}` : ''}
-          </p>
         </div>
       ),
     },

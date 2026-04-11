@@ -85,13 +85,13 @@ class AulasViewSet(AuditMixin, ModelViewSet):
         .filter(deleted_at__isnull=True)
         .select_related('tur', 'func')
         .prefetch_related('registros')
-        .order_by('-aul_data', '-aul_hora_inicio')
+        .order_by('-aul_data')
     )
     serializer_class = AulasSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = AulasFilter
     search_fields = ['aul_nome', 'tur__tur_nome']
-    ordering_fields = ['aul_data', 'aul_hora_inicio']
+    ordering_fields = ['aul_data']
 
 
 class MinistrarAulaViewSet(AuditMixin, ModelViewSet):

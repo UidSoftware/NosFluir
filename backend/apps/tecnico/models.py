@@ -204,8 +204,6 @@ class Aulas(BaseModel):
         null=True, blank=True, verbose_name='professor'
     )
     aul_data = models.DateField('data da aula')
-    aul_hora_inicio = models.TimeField('hora de início')
-    aul_hora_final = models.TimeField('hora de término', null=True, blank=True)
     aul_modalidade = models.CharField('modalidade', max_length=20, choices=MODALIDADE_CHOICES)
     aul_nome = models.CharField(
         'nome/descrição', max_length=150, null=True, blank=True,
@@ -217,7 +215,7 @@ class Aulas(BaseModel):
         verbose_name = 'Aula'
         verbose_name_plural = 'Aulas'
         unique_together = [['tur', 'aul_data', 'aul_modalidade']]
-        ordering = ['-aul_data', '-aul_hora_inicio']
+        ordering = ['-aul_data']
 
     def save(self, *args, **kwargs):
         if not self.aul_nome:

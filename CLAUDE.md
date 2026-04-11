@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 10/04/2026 | Versão: 7.3
+> Última atualização: 10/04/2026 | Versão: 7.4
 
 ---
 
@@ -49,7 +49,7 @@ Sistema web de gestão completo para studio de Pilates e treinamento funcional, 
 **Infra:**
 - VPS Ubuntu 24.04 | Docker Compose v2 (`docker compose`, sem hífen)
 - Nginx 1.25 (SSL Let's Encrypt) | Gunicorn (3 workers)
-- `entrypoint.sh` executa makemigrations → migrate usuarios → migrate → collectstatic → gunicorn
+- `entrypoint.sh` executa migrate usuarios → migrate → collectstatic → gunicorn (**sem** makemigrations — migrations sempre commitadas do dev)
 - Repo na VPS aponta para `UidSoftware/NosFluir`
 - Projeto na VPS: `/var/www/studio-fluir/`
 - Deploy do frontend via Docker multi-stage (não requer npm na VPS) — `deploy.sh` cuida disso
@@ -171,7 +171,7 @@ created_at = models.DateTimeField(...)
 | Exercicio | exercicios | `exe_modalidade` + FK `exe_aparelho` + FK `exe_acessorio` + `exe_variacao` |
 | FichaTreino | ficha_treino | `fitr_nome` + `fitr_modalidade` (nullable) |
 | FichaTreinoExercicios | ficha_treino_exercicios | N:N com ordem+séries+reps+`ftex_secao`+`exe2` (combinado opcional) |
-| Aulas | aulas | 1 linha por aula coletiva; unique: tur+aul_data+aul_hora_inicio; `aul_nome` auto-gerado |
+| Aulas | aulas | 1 linha por aula coletiva; unique: tur+aul_data+aul_modalidade; `aul_nome` auto-gerado |
 | MinistrarAula | ministrar_aula | 1 linha = 1 aluno em 1 aula; FK `aula` (nullable); PAS/PAD int, FC, PSE Borg 6-20 |
 | CreditoReposicao | creditos_reposicao | gerado por signal ao registrar falta; `cred_data_geracao` é read-only |
 
@@ -403,6 +403,7 @@ git pull origin main && docker compose restart nginx
 - ❌ Usar `.id` genérico no frontend para PKs — usar o PK nomeado (`alu_id`, `func_id`, `tur_id`, etc.)
 - ❌ Usar `forn_id`, `alu_id` como nome do campo FK no payload — usar `forn`, `alu`, `func` (sem `_id`)
 - ❌ `bulk_create` em models que herdam `BaseModel` — `save()` não é chamado, campos auto-calculados ficam NULL
+- ❌ `makemigrations` no `entrypoint.sh` — gera ghost migrations na VPS que divergem do git; migrations sempre commitadas do dev
 
 ---
 
@@ -446,6 +447,8 @@ git pull origin main && docker compose restart nginx
 | `aul_pressao_inicio` retorna 404/erro | Campo removido na Fase 3.2 | Usar `miau_pas_inicio` + `miau_pad_inicio` (inteiros) |
 | `aul_intensidade_esforco` não existe | Renomeado para `miau_pse` (Borg 6-20) | Enviar `miau_pse` com valor entre 6 e 20 |
 | `RenameModel` não renomeia tabela DB | Django não renomeia quando `db_table` é customizado | Sempre combinar com `AlterModelTable` na migration |
+| Migration falha com "relation already exists" ao criar tabela com nome antigo | `RenameModel` renomeia a tabela mas PostgreSQL mantém constraints/indexes/sequence com prefixo antigo | Usar `RunSQL` para renomear todos os constraints/indexes/sequence antes de criar a nova tabela |
+| Ghost migration gerada na VPS (ex: `0015_alter_ministraraula_options`) | `entrypoint.sh` rodava `makemigrations` em todo boot — gerava migration que não existe no git | `makemigrations` removido do entrypoint; se ocorrer: `RunSQL DELETE FROM django_migrations WHERE app='X' AND name='Y'` |
 
 ---
 
@@ -563,7 +566,7 @@ git pull origin main && docker compose restart nginx
 - [x] 75 testes passando (sem regressão)
 
 ### Fase 7.3 — Reajustes Estruturais 3.3 ✅ COMPLETO E EM PRODUÇÃO (10/04/2026)
-- [x] Nova tabela `Aulas` — 1 linha por aula coletiva; unique: tur+aul_data+aul_hora_inicio
+- [x] Nova tabela `Aulas` — 1 linha por aula coletiva; unique: tur+aul_data+aul_modalidade
 - [x] `aul_nome` auto-gerado no `save()` se deixado em branco
 - [x] FK `aula` adicionada em `MinistrarAula` (nullable — retrocompatível)
 - [x] Endpoint `/api/aulas/` com filtros: tur, func, aul_modalidade, aul_data

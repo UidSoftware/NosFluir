@@ -92,8 +92,7 @@ class AulasSerializer(serializers.ModelSerializer):
         model = Aulas
         fields = [
             'id', 'aul_id', 'tur', 'tur_nome', 'func', 'func_nome',
-            'aul_data', 'aul_hora_inicio', 'aul_hora_final',
-            'aul_modalidade', 'aul_nome',
+            'aul_data', 'aul_modalidade', 'aul_nome',
             'total_presentes', 'total_faltas', 'total_registros',
             'created_at', 'updated_at',
         ]

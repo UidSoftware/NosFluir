@@ -90,12 +90,12 @@ NosFluir/
 │       ├── usuarios/
 │       ├── financeiro/
 │       │   ├── signals.py             ← lançamentos automáticos LivroCaixa (com transaction.atomic)
-│       │   └── tests.py               ← 18 testes
+│       │   └── tests.py               ← 22 testes
 │       ├── operacional/
 │       │   └── tests.py               ← 20 testes
 │       └── tecnico/
 │           ├── signals.py             ← geração/uso de créditos de reposição
-│           └── tests.py               ← 30 testes
+│           └── tests.py               ← 33 testes
 ├── frontend/
 │   ├── src/
 │   ├── public/
@@ -185,7 +185,7 @@ created_at = models.DateTimeField(...)
 
 > ⚠️ **Estado atual:** todos os endpoints usam apenas `IsAuthenticated` — sem restrição por grupo.
 > Exceção: `UserViewSet` usa `IsAdminUser` (403 para não-admin).
-> Permissões por perfil (Professor/Financeiro/Recepcionista) **pendentes de implementação**.
+> Grupos Django criados em 10/04/2026 (Admin/Professor/Financeiro/Recepcionista) — permissões por perfil no **backend pendentes**.
 
 | Perfil | Acesso planejado |
 |---|---|
@@ -344,7 +344,7 @@ prof   (não prof_id)   aluno  (não aluno_id)   — FichaAluno usa `aluno`
 Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/alunos/              ✅ /api/turmas/           ✅ /api/exercicios/
 ✅ /api/creditos/            ✅ /api/fichas-treino/    ✅ /api/folha-pagamento/
-✅ /api/servicos-produtos/   ✅ /api/fornecedores/     ✅ /api/aulas/
+✅ /api/servicos-produtos/   ✅ /api/fornecedores/
 ✅ /api/logout/              ✅ /api/me/               ✅ /api/agendamentos-horario/
 ✅ /api/agendamentos-turmas/ ✅ /api/fichas-treino-exercicios/
 ✅ /api/aparelhos/           ✅ /api/acessorios/       ✅ /api/ficha-aluno/
@@ -540,7 +540,7 @@ git pull origin main && docker compose restart nginx
 - [x] FichasTreinoPage: agrupamento visual por seção + suporte a combinados
 - [x] MinistrarAulaPage: exibe combinados "Exe1 + Exe2" + agrupamento por seção (Potência, Força...) + usa apar_nome
 - [x] AlunosPage: seção "Avaliações Físicas" com histórico de FichaAluno
-- [x] 68 testes passando (financeiro: 18, operacional: 20, técnico: 30)
+- [x] 70 testes passando (financeiro: 22, operacional: 20, técnico: 28)
 
 ### Fase 7.2 — Reajustes Estruturais 3.2 ✅ COMPLETO E EM PRODUÇÃO (10/04/2026)
 - [x] Model `Aula` → `MinistrarAula`, tabela `aulas` → `ministrar_aula`, prefixo `aul_` → `miau_`
@@ -553,7 +553,7 @@ git pull origin main && docker compose restart nginx
 - [x] Frontend atualizado: MinistrarAulaPage, RelPressaoPage, RelFrequenciaPage, GrafFrequenciaPage
 - [x] CreditoReposicao FKs atualizadas → MinistrarAula
 - [x] Signals atualizados para MinistrarAula
-- [x] 75 testes passando (financeiro: 18, operacional: 20, técnico: 33 — 5 novos PSE/FC/obs)
+- [x] 75 testes passando (financeiro: 22, operacional: 20, técnico: 33 — 5 novos PSE/FC/obs)
 
 ### Fase 7.2.1 — Campos de saúde e emergência no Aluno ✅ EM PRODUÇÃO (10/04/2026)
 - [x] `alu_contato_emergencia` (CharField max_length=20, nullable) — telefone de emergência

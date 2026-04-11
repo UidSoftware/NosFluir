@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarDays, Plus, Pencil, Trash2, Users, CheckCircle, XCircle, Eye } from 'lucide-react'
+import { CalendarDays, Pencil, Trash2, Users, CheckCircle, XCircle, Eye } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useForm } from 'react-hook-form'
@@ -273,7 +273,7 @@ export default function AulasPage() {
       <PageHeader
         title="Aulas"
         description="Histórico de aulas coletivas ministradas"
-        actions={<Button onClick={() => { setSelected(null); setModalOpen(true) }}><Plus className="w-4 h-4" />Nova Aula</Button>}
+        actions={null}
       />
 
       <Card>

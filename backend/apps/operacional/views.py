@@ -45,6 +45,7 @@ class TurmaViewSet(AuditMixin, ModelViewSet):
     queryset = Turma.objects.filter(deleted_at__isnull=True).order_by('tur_nome')
     serializer_class = TurmaSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['tur_modalidade']
     search_fields = ['tur_nome', 'tur_horario']
     ordering_fields = ['tur_nome']
 

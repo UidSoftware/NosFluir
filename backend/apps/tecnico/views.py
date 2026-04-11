@@ -102,6 +102,19 @@ class MinistrarAulaViewSet(AuditMixin, ModelViewSet):
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
     ordering_fields = ['miau_data', 'miau_hora_inicio']
 
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        instance = serializer.instance
+        # Auto-vincula ao Aulas agregado se turma tem modalidade definida
+        if instance.tur.tur_modalidade and not instance.aula_id:
+            aula, _ = Aulas.objects.get_or_create(
+                tur=instance.tur,
+                aul_data=instance.miau_data,
+                aul_modalidade=instance.tur.tur_modalidade,
+                defaults={'func': instance.func},
+            )
+            MinistrarAula.objects.filter(pk=instance.pk).update(aula=aula)
+
 
 class CreditoReposicaoViewSet(AuditMixin, ModelViewSet):
     queryset = CreditoReposicao.objects.filter(deleted_at__isnull=True).order_by('cred_data_expiracao')

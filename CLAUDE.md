@@ -158,7 +158,7 @@ created_at = models.DateTimeField(...)
 | FichaAluno | ficha_aluno | histórico de avaliações físicas com data; ordering: -fial_data |
 | Profissao | profissao | catálogo |
 | Funcionario | funcionario | CPF único |
-| Turma | turma | max 15 alunos — **sem campo professor** (professor fica na Aula) |
+| Turma | turma | max 15 alunos — `tur_modalidade` (pilates/funcional, nullable); **sem campo professor** (professor fica na Aula) |
 | TurmaAlunos | turma_alunos | N:N unique: turma+aluno — **no Admin aparece como "Matrícula/Matrículas"** |
 | AgendamentoHorario | agendamento_horario | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 | AgendamentoTurmas | agendamento_turmas | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
@@ -251,7 +251,8 @@ GET /api/creditos/?alu=X&cred_status=disponivel  → filtro padrão
 - PSE: **Escala de Borg 6-20** — `miau_pse` (validação: MinValueValidator(6), MaxValueValidator(20))
 - FC: `miau_fc_inicio`, `miau_fc_final` (inteiros em bpm)
 - Mesmo exercício com aparelhos diferentes = registros independentes
-- **Professor fica na Aula** (não na Turma) — turma tem só nome e horário
+- **Professor fica na Aula** (não na Turma) — turma tem nome, horário e modalidade
+- `Turma.tur_modalidade`: define a modalidade fixa da turma — usado para auto-vincular `MinistrarAula` → `Aulas` no `perform_create`
 - `FichaTreino`: `fitr_id`, `fitr_nome`, `fitr_modalidade` (nullable)
 - `FichaTreinoExercicios`: `exe` (FK obrigatório) + `exe2` (FK nullable = combinado) — compartilham séries/reps
 - `Exercicio`: `exe_modalidade` obrigatório; `exe_aparelho` FK → Aparelho (nullable); `exe_acessorio` FK → Acessorio (nullable)
@@ -565,14 +566,17 @@ git pull origin main && docker compose restart nginx
 - [x] Formulário e detalhe do Aluno atualizados no frontend
 - [x] 75 testes passando (sem regressão)
 
-### Fase 7.3 — Reajustes Estruturais 3.3 ✅ COMPLETO E EM PRODUÇÃO (10/04/2026)
+### Fase 7.3 — Reajustes Estruturais 3.3 ✅ COMPLETO E EM PRODUÇÃO (11/04/2026)
 - [x] Nova tabela `Aulas` — 1 linha por aula coletiva; unique: tur+aul_data+aul_modalidade
 - [x] `aul_nome` auto-gerado no `save()` se deixado em branco
 - [x] FK `aula` adicionada em `MinistrarAula` (nullable — retrocompatível)
-- [x] Endpoint `/api/aulas/` com filtros: tur, func, aul_modalidade, aul_data
+- [x] Endpoint `/api/aulas/` com filtros: tur, func, aul_modalidade, aul_data (range: aul_data_after/before)
 - [x] Serializer com contadores: `total_presentes`, `total_faltas`, `total_registros`
-- [x] Página `AulasPage` — CRUD + filtros por modalidade e turma + stats de presença
+- [x] Página `AulasPage` — CRUD + filtros + stats de presença + modal de alunos
 - [x] Sidebar Técnico: item "Aulas" adicionado
+- [x] `Turma` ganha `tur_modalidade` — define modalidade fixa da turma
+- [x] `MinistrarAulaViewSet.perform_create` auto-vincula ao `Aulas` via `get_or_create(tur, data, modalidade)`
+- [x] `TurmasPage`: remove campo `func` (morto), adiciona `tur_modalidade` select + badge na tabela
 
 ### Pendências técnicas restantes:
 - [x] Fase 7.2 — renomear Aula → MinistrarAula + campos PAS/PAD/FC/PSE Borg ✅

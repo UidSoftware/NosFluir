@@ -19,18 +19,19 @@ import api from '@/services/api'
 const ENDPOINT = '/turmas/'
 const KEY      = 'turmas'
 
+const MODALIDADES = [
+  { value: 'pilates',   label: 'Mat Pilates' },
+  { value: 'funcional', label: 'Funcional' },
+]
+const MODALIDADE_VARIANT = { pilates: 'cyan', funcional: 'success' }
+
 function TurmaForm({ turma, onClose }) {
   const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm({
     defaultValues: turma ? {
-      tur_nome:    turma.tur_nome,
-      tur_horario: turma.tur_horario || '',
-      func:        turma.func ? String(turma.func) : '__none__',
-    } : {},
-  })
-
-  const { data: funcionarios } = useQuery({
-    queryKey: ['funcionarios-select'],
-    queryFn: () => api.get('/funcionarios/').then(r => r.data.results),
+      tur_nome:       turma.tur_nome,
+      tur_horario:    turma.tur_horario || '',
+      tur_modalidade: turma.tur_modalidade || '__none__',
+    } : { tur_modalidade: '__none__' },
   })
 
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
@@ -38,14 +39,14 @@ function TurmaForm({ turma, onClose }) {
   const busy   = create.isPending || update.isPending
 
   const onSubmit = (data) => {
-    const funcId = data.func && data.func !== '__none__' ? parseInt(data.func) : null
-    if (!funcId) {
-      toast({ title: 'Selecione o professor responsável.', variant: 'destructive' })
+    const modVal = data.tur_modalidade && data.tur_modalidade !== '__none__' ? data.tur_modalidade : null
+    if (!modVal) {
+      toast({ title: 'Selecione a modalidade.', variant: 'destructive' })
       return
     }
-    const cleaned = { ...data, func: funcId }
-    if (turma) update.mutate({ id: turma.tur_id, data: cleaned })
-    else       create.mutate(cleaned)
+    const payload = { tur_nome: data.tur_nome, tur_horario: data.tur_horario, tur_modalidade: modVal }
+    if (turma) update.mutate({ id: turma.tur_id, data: payload })
+    else       create.mutate(payload)
   }
 
   return (
@@ -59,14 +60,12 @@ function TurmaForm({ turma, onClose }) {
           <Input {...register('tur_horario', { required: 'Horário obrigatório' })} placeholder="Seg/Qua/Sex 07:00" disabled={busy} />
         </FormField>
 
-        <FormField label="Professor responsável" required>
-          <Select value={watch('func') || '__none__'} onValueChange={v => setValue('func', v)} disabled={busy}>
-            <SelectTrigger><SelectValue placeholder="Selecionar professor..." /></SelectTrigger>
+        <FormField label="Modalidade" required>
+          <Select value={watch('tur_modalidade')} onValueChange={v => setValue('tur_modalidade', v)} disabled={busy}>
+            <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar professor...</SelectItem>
-              {funcionarios?.map(f => (
-                <SelectItem key={f.func_id} value={String(f.func_id)}>{f.func_nome}</SelectItem>
-              ))}
+              <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar...</SelectItem>
+              {MODALIDADES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </FormField>
@@ -195,8 +194,14 @@ export default function TurmasPage() {
   const openAlunos  = (t) => { setSelected(t); setAlunosOpen(true) }
 
   const columns = [
-    { key: 'tur_nome',    header: 'Turma',    render: r => <span className="font-medium">{r.tur_nome}</span> },
-    { key: 'tur_horario', header: 'Horário',  render: r => r.tur_horario || '—' },
+    { key: 'tur_nome',    header: 'Turma',      render: r => <span className="font-medium">{r.tur_nome}</span> },
+    { key: 'tur_horario', header: 'Horário',    render: r => r.tur_horario || '—' },
+    {
+      key: 'tur_modalidade', header: 'Modalidade',
+      render: r => r.tur_modalidade
+        ? <Badge variant={MODALIDADE_VARIANT[r.tur_modalidade] || 'default'}>{MODALIDADES.find(m => m.value === r.tur_modalidade)?.label}</Badge>
+        : <span className="text-muted-foreground text-xs">—</span>,
+    },
     {
       key: 'acoes', header: '', cellClassName: 'w-36',
       render: (r) => (
@@ -246,6 +251,15 @@ export default function TurmasPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="p-5 space-y-3">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase">Modalidade</p>
+              {selected?.tur_modalidade
+                ? <Badge variant={MODALIDADE_VARIANT[selected.tur_modalidade] || 'default'} className="mt-1">
+                    {MODALIDADES.find(m => m.value === selected.tur_modalidade)?.label}
+                  </Badge>
+                : <p className="text-sm text-muted-foreground">—</p>
+              }
+            </div>
             <div>
               <p className="text-[10px] text-muted-foreground uppercase">Horário</p>
               <p className="text-sm">{selected?.tur_horario || '—'}</p>

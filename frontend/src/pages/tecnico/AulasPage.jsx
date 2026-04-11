@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { CalendarDays, Plus, Pencil, Trash2, Users, CheckCircle, XCircle } from 'lucide-react'
+import { CalendarDays, Plus, Pencil, Trash2, Users, CheckCircle, XCircle, Eye } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -9,9 +10,10 @@ import { DataTable } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Input, FormField, Badge } from '@/components/ui/primitives'
+import { Input, FormField, Badge, Spinner } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/useToast'
+import api from '@/services/api'
 
 const ENDPOINT = '/aulas/'
 const KEY      = 'aulas'
@@ -23,16 +25,79 @@ const MODALIDADES = [
 
 const MODALIDADE_VARIANT = { pilates: 'cyan', funcional: 'success' }
 
+const PRESENCA_LABEL = { presente: 'Presente', falta: 'Falta', reposicao: 'Reposição' }
+const PRESENCA_VARIANT = { presente: 'success', falta: 'destructive', reposicao: 'secondary' }
+
+// ── Modal de detalhes (alunos da aula) ───────────────────────────────────────
+function AulaDetalheModal({ aula, onClose }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['ministrar-aula-by-aula', aula?.aul_id],
+    queryFn: async () => {
+      const { data } = await api.get('/ministrar-aula/', { params: { aula: aula.aul_id, page_size: 100 } })
+      return data.results ?? []
+    },
+    enabled: !!aula,
+  })
+
+  return (
+    <Dialog open={!!aula} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Alunos — {aula?.aul_nome}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="px-1 py-2 max-h-[60vh] overflow-y-auto">
+          {isLoading ? (
+            <div className="flex justify-center py-6"><Spinner /></div>
+          ) : !data?.length ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Nenhum registro de presença vinculado a esta aula.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {data.map(r => (
+                <div key={r.miau_id} className="flex items-center justify-between p-2.5 rounded-lg bg-fluir-dark-3">
+                  <div>
+                    <p className="text-sm font-medium">{r.alu_nome}</p>
+                    {r.miau_tipo_falta && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {r.miau_tipo_falta === 'sem_aviso' ? 'Sem aviso' :
+                         r.miau_tipo_falta === 'justificada' ? 'Justificada' :
+                         r.miau_tipo_falta === 'atestado' ? 'Atestado' : r.miau_tipo_falta}
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant={PRESENCA_VARIANT[r.miau_tipo_presenca] || 'default'}>
+                    {PRESENCA_LABEL[r.miau_tipo_presenca] || r.miau_tipo_presenca}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ── Formulário de criação/edição ──────────────────────────────────────────────
 function AulaForm({ aula, turmas, funcionarios, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: aula ? {
-      tur:            String(aula.tur),
-      func:           aula.func ? String(aula.func) : '__none__',
-      aul_data:       aula.aul_data,
+      tur:             String(aula.tur),
+      func:            aula.func ? String(aula.func) : '__none__',
+      aul_data:        aula.aul_data,
       aul_hora_inicio: aula.aul_hora_inicio,
       aul_hora_final:  aula.aul_hora_final || '',
-      aul_modalidade: aula.aul_modalidade || '__none__',
-      aul_nome:       aula.aul_nome || '',
+      aul_modalidade:  aula.aul_modalidade || '__none__',
+      aul_nome:        aula.aul_nome || '',
     } : {
       tur:            '__none__',
       func:           '__none__',
@@ -51,8 +116,8 @@ function AulaForm({ aula, turmas, funcionarios, onClose }) {
 
     if (!turVal)  { toast({ title: 'Selecione a turma.',      variant: 'destructive' }); return }
     if (!modVal)  { toast({ title: 'Selecione a modalidade.', variant: 'destructive' }); return }
-    if (!data.aul_data) { toast({ title: 'Informe a data da aula.', variant: 'destructive' }); return }
-    if (!data.aul_hora_inicio) { toast({ title: 'Informe a hora de início.', variant: 'destructive' }); return }
+    if (!data.aul_data)        { toast({ title: 'Informe a data da aula.',    variant: 'destructive' }); return }
+    if (!data.aul_hora_inicio) { toast({ title: 'Informe a hora de início.',  variant: 'destructive' }); return }
 
     const payload = {
       tur:             turVal,
@@ -128,22 +193,33 @@ function AulaForm({ aula, turmas, funcionarios, onClose }) {
   )
 }
 
+// ── Página principal ──────────────────────────────────────────────────────────
 export default function AulasPage() {
-  const [modalOpen, setModalOpen] = useState(false)
-  const [selected, setSelected]   = useState(null)
-  const [deleteId, setDeleteId]   = useState(null)
-  const [filtroMod, setFiltroMod] = useState('all')
-  const [filtroTur, setFiltroTur] = useState('all')
+  const [modalOpen, setModalOpen]   = useState(false)
+  const [selected, setSelected]     = useState(null)
+  const [detalhe, setDetalhe]       = useState(null)
+  const [deleteId, setDeleteId]     = useState(null)
+  const [filtroMod, setFiltroMod]   = useState('all')
+  const [filtroTur, setFiltroTur]   = useState('all')
+  const [dataInicio, setDataInicio] = useState('')
+  const [dataFim, setDataFim]       = useState('')
 
   const filters = {
-    ...(filtroMod !== 'all' ? { aul_modalidade: filtroMod } : {}),
-    ...(filtroTur !== 'all' ? { tur: filtroTur } : {}),
+    ...(filtroMod !== 'all'  ? { aul_modalidade: filtroMod }   : {}),
+    ...(filtroTur !== 'all'  ? { tur: filtroTur }               : {}),
+    ...(dataInicio           ? { aul_data_after: dataInicio }   : {}),
+    ...(dataFim              ? { aul_data_before: dataFim }     : {}),
   }
 
   const { data, isLoading, page, setPage, totalPages, count } = useList(KEY, ENDPOINT, filters)
-  const { data: turmas }       = useList('turmas', '/turmas/', {}, { pageSize: 200 })
+  const { data: turmas }       = useList('turmas',       '/turmas/',       {}, { pageSize: 200 })
   const { data: funcionarios } = useList('funcionarios', '/funcionarios/', {}, { pageSize: 200 })
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Aula excluída.' })
+
+  const limparFiltros = () => {
+    setFiltroMod('all'); setFiltroTur('all'); setDataInicio(''); setDataFim(''); setPage(1)
+  }
+  const temFiltro = filtroMod !== 'all' || filtroTur !== 'all' || dataInicio || dataFim
 
   const columns = [
     {
@@ -151,7 +227,9 @@ export default function AulasPage() {
       render: r => (
         <div>
           <p className="font-medium">{new Date(r.aul_data + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
-          <p className="text-xs text-muted-foreground">{r.aul_hora_inicio?.slice(0, 5)}{r.aul_hora_final ? ` – ${r.aul_hora_final.slice(0, 5)}` : ''}</p>
+          <p className="text-xs text-muted-foreground">
+            {r.aul_hora_inicio?.slice(0, 5)}{r.aul_hora_final ? ` – ${r.aul_hora_final.slice(0, 5)}` : ''}
+          </p>
         </div>
       ),
     },
@@ -175,26 +253,29 @@ export default function AulasPage() {
       key: 'stats', header: 'Presença',
       render: r => (
         <div className="flex items-center gap-3 text-xs">
-          <span className="flex items-center gap-1 text-green-400">
+          <span className="flex items-center gap-1 text-green-400" title="Presentes">
             <CheckCircle className="w-3.5 h-3.5" />{r.total_presentes}
           </span>
-          <span className="flex items-center gap-1 text-red-400">
+          <span className="flex items-center gap-1 text-red-400" title="Faltas">
             <XCircle className="w-3.5 h-3.5" />{r.total_faltas}
           </span>
-          <span className="flex items-center gap-1 text-muted-foreground">
+          <span className="flex items-center gap-1 text-muted-foreground" title="Total">
             <Users className="w-3.5 h-3.5" />{r.total_registros}
           </span>
         </div>
       ),
     },
     {
-      key: 'acoes', header: '', cellClassName: 'w-20',
+      key: 'acoes', header: '', cellClassName: 'w-28',
       render: r => (
         <div className="flex items-center gap-1 justify-end">
-          <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}>
+          <Button variant="ghost" size="icon-sm" title="Ver alunos" onClick={() => setDetalhe(r)}>
+            <Eye className="w-3.5 h-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" title="Editar" onClick={() => { setSelected(r); setModalOpen(true) }}>
             <Pencil className="w-3.5 h-3.5" />
           </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.aul_id)} className="text-red-400 hover:text-red-300">
+          <Button variant="ghost" size="icon-sm" title="Excluir" onClick={() => setDeleteId(r.aul_id)} className="text-red-400 hover:text-red-300">
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
         </div>
@@ -213,7 +294,7 @@ export default function AulasPage() {
       <Card>
         <CardContent className="p-5 space-y-4">
           {/* Filtros */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 items-end">
             <Select value={filtroMod} onValueChange={v => { setFiltroMod(v); setPage(1) }}>
               <SelectTrigger className="w-40"><SelectValue placeholder="Modalidade" /></SelectTrigger>
               <SelectContent>
@@ -229,6 +310,30 @@ export default function AulasPage() {
                 {turmas?.map(t => <SelectItem key={t.tur_id} value={String(t.tur_id)}>{t.tur_nome}</SelectItem>)}
               </SelectContent>
             </Select>
+
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                className="w-36"
+                value={dataInicio}
+                onChange={e => { setDataInicio(e.target.value); setPage(1) }}
+                title="Data início"
+              />
+              <span className="text-muted-foreground text-sm">até</span>
+              <Input
+                type="date"
+                className="w-36"
+                value={dataFim}
+                onChange={e => { setDataFim(e.target.value); setPage(1) }}
+                title="Data fim"
+              />
+            </div>
+
+            {temFiltro && (
+              <Button variant="ghost" size="sm" onClick={limparFiltros} className="text-muted-foreground">
+                Limpar filtros
+              </Button>
+            )}
           </div>
 
           <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhuma aula registrada." />
@@ -236,6 +341,7 @@ export default function AulasPage() {
         </CardContent>
       </Card>
 
+      {/* Modal edição/criação */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -252,6 +358,9 @@ export default function AulasPage() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Modal detalhe — alunos da aula */}
+      <AulaDetalheModal aula={detalhe} onClose={() => setDetalhe(null)} />
 
       <ConfirmDialog
         open={!!deleteId} onOpenChange={() => setDeleteId(null)}

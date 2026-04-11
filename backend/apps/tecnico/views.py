@@ -1,3 +1,4 @@
+import django_filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -69,6 +70,15 @@ class FichaTreinoExerciciosViewSet(AuditMixin, ModelViewSet):
     ordering_fields = ['ftex_ordem']
 
 
+class AulasFilter(django_filters.FilterSet):
+    aul_data_after  = django_filters.DateFilter(field_name='aul_data', lookup_expr='gte')
+    aul_data_before = django_filters.DateFilter(field_name='aul_data', lookup_expr='lte')
+
+    class Meta:
+        model = Aulas
+        fields = ['tur', 'func', 'aul_modalidade', 'aul_data']
+
+
 class AulasViewSet(AuditMixin, ModelViewSet):
     queryset = (
         Aulas.objects
@@ -79,7 +89,7 @@ class AulasViewSet(AuditMixin, ModelViewSet):
     )
     serializer_class = AulasSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['tur', 'func', 'aul_modalidade', 'aul_data']
+    filterset_class = AulasFilter
     search_fields = ['aul_nome', 'tur__tur_nome']
     ordering_fields = ['aul_data', 'aul_hora_inicio']
 
@@ -88,7 +98,7 @@ class MinistrarAulaViewSet(AuditMixin, ModelViewSet):
     queryset = MinistrarAula.objects.filter(deleted_at__isnull=True).order_by('-miau_data', '-miau_hora_inicio')
     serializer_class = MinistrarAulaSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['tur', 'alu', 'func', 'miau_tipo_presenca', 'miau_data']
+    filterset_fields = ['aula', 'tur', 'alu', 'func', 'miau_tipo_presenca', 'miau_data']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
     ordering_fields = ['miau_data', 'miau_hora_inicio']
 

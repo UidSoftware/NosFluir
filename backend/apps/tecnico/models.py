@@ -216,7 +216,7 @@ class Aulas(BaseModel):
         db_table = 'aulas'
         verbose_name = 'Aula'
         verbose_name_plural = 'Aulas'
-        unique_together = [['tur', 'aul_data', 'aul_hora_inicio']]
+        unique_together = [['tur', 'aul_data', 'aul_modalidade']]
         ordering = ['-aul_data', '-aul_hora_inicio']
 
     def save(self, *args, **kwargs):

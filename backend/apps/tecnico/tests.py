@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 
 from apps.operacional.models import Aluno, Funcionario, Profissao, Turma, TurmaAlunos
-from .models import Aparelho, MinistrarAula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
+from .models import Aparelho, Aulas, MinistrarAula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
 
 User = get_user_model()
 
@@ -35,10 +35,11 @@ def criar_funcionario():
     )
 
 
-def criar_turma():
+def criar_turma(modalidade='pilates'):
     return Turma.objects.create(
         tur_nome='Pilates Teste',
         tur_horario='Seg/Qua 07:00',
+        tur_modalidade=modalidade,
     )
 
 
@@ -48,6 +49,18 @@ def criar_matricula(turma, aluno):
         alu=aluno,
         data_matricula='2026-01-01',
         ativo=True,
+    )
+
+
+def criar_aula(turma, data='2026-04-06', func=None):
+    """Cria um registro Aulas (evento coletivo) para uso nos testes."""
+    return Aulas.objects.create(
+        tur=turma,
+        aul_data=data,
+        aul_modalidade=turma.tur_modalidade or 'pilates',
+        aul_hora_inicio='07:00',
+        aul_hora_final='08:00',
+        func=func,
     )
 
 
@@ -64,15 +77,15 @@ class MinistrarAulaValidacaoTest(TestCase):
         self.func = criar_funcionario()
         self.turma = criar_turma()
         criar_matricula(self.turma, self.aluno)
+        self.aula = criar_aula(self.turma, func=self.func)
 
     def _payload_base(self, **kwargs):
         base = {
+            'aula': self.aula.aul_id,
             'tur': self.turma.tur_id,
             'alu': self.aluno.alu_id,
             'func': self.func.func_id,
             'miau_data': '2026-04-06',
-            'miau_hora_inicio': '07:00',
-            'miau_hora_final': '08:00',
             'miau_tipo_presenca': 'presente',
         }
         base.update(kwargs)
@@ -130,12 +143,15 @@ class MinistrarAulaValidacaoTest(TestCase):
         ))
         self.assertEqual(resp.status_code, 201, resp.data)
 
-    def test_TB019_hora_final_menor_que_inicio(self):
-        """TB019: hora_final < hora_inicio → HTTP 400"""
-        resp = self.client.post('/api/ministrar-aula/', self._payload_base(
-            miau_hora_inicio='08:00',
-            miau_hora_final='07:00',
-        ))
+    def test_TB019_hora_final_menor_que_inicio_em_aulas(self):
+        """TB019: POST /api/aulas/ com hora_final < hora_inicio → HTTP 400"""
+        resp = self.client.post('/api/aulas/', {
+            'tur': self.turma.tur_id,
+            'aul_data': '2026-04-10',
+            'aul_modalidade': 'pilates',
+            'aul_hora_inicio': '08:00',
+            'aul_hora_final': '07:00',
+        })
         self.assertEqual(resp.status_code, 400)
 
     def test_miau_salvo_com_professor(self):
@@ -185,11 +201,12 @@ class CreditoReposicaoModelTest(TestCase):
         aluno = criar_aluno()
         turma = criar_turma()
         criar_matricula(turma, aluno)
+        aula = criar_aula(turma)
         miau = MinistrarAula.objects.create(
+            aula=aula,
             tur=turma,
             alu=aluno,
             miau_data='2026-04-06',
-            miau_hora_inicio='07:00',
             miau_tipo_presenca='falta',
             miau_tipo_falta='justificada',
         )
@@ -212,13 +229,14 @@ class CreditoSignalTest(TestCase):
         self.turma = criar_turma()
         criar_matricula(self.turma, self.aluno)
 
-    def _registrar_falta(self, tipo_falta, cpf_extra=None):
+    def _registrar_falta(self, tipo_falta, data='2026-04-06', cpf_extra=None):
         aluno = criar_aluno(cpf=cpf_extra) if cpf_extra else self.aluno
+        aula = criar_aula(self.turma, data=data)
         return MinistrarAula.objects.create(
+            aula=aula,
             tur=self.turma,
             alu=aluno,
-            miau_data='2026-04-06',
-            miau_hora_inicio='07:00',
+            miau_data=data,
             miau_tipo_presenca='falta',
             miau_tipo_falta=tipo_falta,
         )
@@ -254,28 +272,14 @@ class CreditoSignalTest(TestCase):
         """TB024: aluno já com 3 créditos disponíveis → nenhum novo criado"""
         # Cria 3 créditos iniciais via faltas justificadas em datas diferentes
         for i in range(3):
-            MinistrarAula.objects.create(
-                tur=self.turma,
-                alu=self.aluno,
-                miau_data=f'2026-03-0{i+1}',
-                miau_hora_inicio='07:00',
-                miau_tipo_presenca='falta',
-                miau_tipo_falta='justificada',
-            )
+            self._registrar_falta('justificada', data=f'2026-03-0{i+1}')
         self.assertEqual(
             CreditoReposicao.objects.filter(alu=self.aluno, cred_status='disponivel').count(),
             3
         )
 
         # Registra 4ª falta — não deve gerar crédito
-        MinistrarAula.objects.create(
-            tur=self.turma,
-            alu=self.aluno,
-            miau_data='2026-03-10',
-            miau_hora_inicio='07:00',
-            miau_tipo_presenca='falta',
-            miau_tipo_falta='justificada',
-        )
+        self._registrar_falta('justificada', data='2026-03-10')
         self.assertEqual(
             CreditoReposicao.objects.filter(alu=self.aluno, cred_status='disponivel').count(),
             3
@@ -298,14 +302,14 @@ class IntegracaoFluxoMinistrarAulaTest(TestCase):
 
     def test_TI002_fluxo_falta_credito_reposicao(self):
         """TI002: registrar falta justificada → crédito criado → usar em reposição"""
-        # 1. Registra falta justificada via API
+        # 1. Cria Aula coletiva e registra falta via API
+        aula_falta = criar_aula(self.turma, data='2026-04-01', func=self.func)
         resp = self.client.post('/api/ministrar-aula/', {
+            'aula': aula_falta.aul_id,
             'tur': self.turma.tur_id,
             'alu': self.aluno.alu_id,
             'func': self.func.func_id,
             'miau_data': '2026-04-01',
-            'miau_hora_inicio': '07:00',
-            'miau_hora_final': '08:00',
             'miau_tipo_presenca': 'falta',
             'miau_tipo_falta': 'justificada',
         })
@@ -319,14 +323,14 @@ class IntegracaoFluxoMinistrarAulaTest(TestCase):
         credito = creditos.first()
 
         # 3. Usa o crédito em uma reposição
+        aula_repo = criar_aula(self.turma, data='2026-04-08', func=self.func)
         resp2 = self.client.post('/api/ministrar-aula/', {
+            'aula': aula_repo.aul_id,
             'tur': self.turma.tur_id,
             'alu': self.aluno.alu_id,
             'func': self.func.func_id,
             'cred': credito.cred_id,
             'miau_data': '2026-04-08',
-            'miau_hora_inicio': '07:00',
-            'miau_hora_final': '08:00',
             'miau_tipo_presenca': 'reposicao',
         })
         self.assertEqual(resp2.status_code, 201, resp2.data)
@@ -437,16 +441,16 @@ class CamposOpcionaisMinistrarAulaTest(TestCase):
         self.func = criar_funcionario()
         self.turma = criar_turma()
         criar_matricula(self.turma, self.aluno)
+        self.aula = criar_aula(self.turma, data='2026-04-07', func=self.func)
 
     def test_TB041_presenca_sem_pa_fc_pse(self):
         """TB041: POST sem PA, FC e PSE → HTTP 201 (campos opcionais)"""
         resp = self.client.post('/api/ministrar-aula/', {
+            'aula': self.aula.aul_id,
             'tur': self.turma.tur_id,
             'alu': self.aluno.alu_id,
             'func': self.func.func_id,
             'miau_data': '2026-04-07',
-            'miau_hora_inicio': '07:00',
-            'miau_hora_final': '08:00',
             'miau_tipo_presenca': 'presente',
         })
         self.assertEqual(resp.status_code, 201, resp.data)
@@ -458,12 +462,11 @@ class CamposOpcionaisMinistrarAulaTest(TestCase):
     def test_TB041b_pse_no_meio_do_range_borg(self):
         """TB041b: PSE=13 (meio da Escala de Borg) → HTTP 201"""
         resp = self.client.post('/api/ministrar-aula/', {
+            'aula': self.aula.aul_id,
             'tur': self.turma.tur_id,
             'alu': self.aluno.alu_id,
             'func': self.func.func_id,
             'miau_data': '2026-04-07',
-            'miau_hora_inicio': '07:00',
-            'miau_hora_final': '08:00',
             'miau_tipo_presenca': 'presente',
             'miau_pse': 13,
         })
@@ -472,12 +475,11 @@ class CamposOpcionaisMinistrarAulaTest(TestCase):
     def test_TB041c_tipo_presenca_presente(self):
         """TB041c: tipo_presenca='presente' (novo padrão) → HTTP 201"""
         resp = self.client.post('/api/ministrar-aula/', {
+            'aula': self.aula.aul_id,
             'tur': self.turma.tur_id,
             'alu': self.aluno.alu_id,
             'func': self.func.func_id,
             'miau_data': '2026-04-07',
-            'miau_hora_inicio': '07:00',
-            'miau_hora_final': '08:00',
             'miau_tipo_presenca': 'presente',
         })
         self.assertEqual(resp.status_code, 201, resp.data)
@@ -499,13 +501,13 @@ class CreditosPorAlunoTest(TestCase):
 
     def test_TP021_creditos_disponiveis_ordenados(self):
         """TP021: GET /api/creditos/aluno/{id}/ → lista ordenada por expiração (FIFO)"""
-        # Cria 2 faltas em datas diferentes → 2 créditos com expirações diferentes
         for dia in ['01', '05']:
+            aula = criar_aula(self.turma, data=f'2026-04-{dia}')
             MinistrarAula.objects.create(
+                aula=aula,
                 tur=self.turma,
                 alu=self.aluno,
                 miau_data=f'2026-04-{dia}',
-                miau_hora_inicio='07:00',
                 miau_tipo_presenca='falta',
                 miau_tipo_falta='justificada',
             )
@@ -513,16 +515,17 @@ class CreditosPorAlunoTest(TestCase):
         self.assertEqual(resp.status_code, 200)
         creditos = resp.data['results']
         self.assertEqual(len(creditos), 2)
-        # Verifica ordem FIFO — primeiro crédito expira antes
         self.assertLessEqual(creditos[0]['cred_data_expiracao'], creditos[1]['cred_data_expiracao'])
         for c in creditos:
             self.assertEqual(c['cred_status'], 'disponivel')
 
     def test_credito_filtro_por_alu_e_status(self):
         """GET /api/creditos/?alu=X&cred_status=disponivel → filtra corretamente"""
+        aula = criar_aula(self.turma, data='2026-04-01')
         MinistrarAula.objects.create(
+            aula=aula,
             tur=self.turma, alu=self.aluno,
-            miau_data='2026-04-01', miau_hora_inicio='07:00',
+            miau_data='2026-04-01',
             miau_tipo_presenca='falta', miau_tipo_falta='justificada',
         )
         resp = self.client.get('/api/creditos/', {
@@ -559,14 +562,14 @@ class IntegracaoMatriculaMinistrarAulaTest(TestCase):
         })
         self.assertEqual(resp.status_code, 201)
 
-        # 2. Registra aula com PAS/PAD e PSE
+        # 2. Cria Aula coletiva e registra presença com PAS/PAD e PSE
+        aula = criar_aula(self.turma, data='2026-04-07', func=self.func)
         resp2 = self.client.post('/api/ministrar-aula/', {
+            'aula': aula.aul_id,
             'tur': self.turma.tur_id,
             'alu': self.aluno.alu_id,
             'func': self.func.func_id,
             'miau_data': '2026-04-07',
-            'miau_hora_inicio': '07:00',
-            'miau_hora_final': '08:00',
             'miau_pas_inicio': 120,
             'miau_pad_inicio': 80,
             'miau_tipo_presenca': 'presente',
@@ -600,17 +603,13 @@ class PermissoesPerfilEstadoAtualTest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        # Usuário comum sem grupos
         self.user_comum = criar_usuario()
-        # Aluno para ter algo na listagem
         criar_aluno()
 
     def test_usuario_autenticado_acessa_financeiro(self):
         """Estado atual: qualquer autenticado acessa financeiro (sem restrição de grupo)."""
         self.client.force_authenticate(user=self.user_comum)
         resp = self.client.get('/api/contas-pagar/')
-        # Comportamento ATUAL: 200. Quando permissões forem implementadas,
-        # este teste deve ser atualizado para 403 para usuários sem grupo Financeiro.
         self.assertEqual(resp.status_code, 200)
 
     def test_usuario_autenticado_acessa_operacional(self):

@@ -204,6 +204,8 @@ class Aulas(BaseModel):
         null=True, blank=True, verbose_name='professor'
     )
     aul_data = models.DateField('data da aula')
+    aul_hora_inicio = models.TimeField('hora de início', null=True, blank=True)
+    aul_hora_final = models.TimeField('hora de término', null=True, blank=True)
     aul_modalidade = models.CharField('modalidade', max_length=20, choices=MODALIDADE_CHOICES)
     aul_nome = models.CharField(
         'nome/descrição', max_length=150, null=True, blank=True,
@@ -248,8 +250,8 @@ class MinistrarAula(BaseModel):
 
     miau_id = models.AutoField(primary_key=True)
     aula = models.ForeignKey(
-        Aulas, on_delete=models.SET_NULL,
-        null=True, blank=True, verbose_name='aula',
+        Aulas, on_delete=models.PROTECT,
+        verbose_name='aula',
         related_name='registros'
     )
     tur = models.ForeignKey('operacional.Turma', on_delete=models.PROTECT, verbose_name='turma')
@@ -267,8 +269,6 @@ class MinistrarAula(BaseModel):
         null=True, blank=True, verbose_name='crédito utilizado'
     )
     miau_data = models.DateField('data da aula')
-    miau_hora_inicio = models.TimeField('hora de início')
-    miau_hora_final = models.TimeField('hora de término', null=True, blank=True)
 
     # Pressão arterial — PAS e PAD separados (inteiros em mmHg)
     miau_pas_inicio = models.IntegerField('PAS inicial (mmHg)', null=True, blank=True)
@@ -298,8 +298,8 @@ class MinistrarAula(BaseModel):
         db_table = 'ministrar_aula'
         verbose_name = 'Registro de Aula'
         verbose_name_plural = 'Registros de Aula'
-        unique_together = [['tur', 'alu', 'miau_data', 'miau_hora_inicio']]
-        ordering = ['-miau_data', '-miau_hora_inicio']
+        unique_together = [['aula', 'alu']]
+        ordering = ['-aula__aul_data']
 
     def __str__(self):
         return f'{self.alu} — {self.tur} — {self.miau_data}'

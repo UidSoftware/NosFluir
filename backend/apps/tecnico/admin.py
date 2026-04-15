@@ -60,7 +60,7 @@ class MinistrarAulaAdmin(admin.ModelAdmin):
     list_filter = ['miau_tipo_presenca', 'miau_tipo_falta', 'tur', 'func']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
     date_hierarchy = 'miau_data'
-    ordering = ['-miau_data', '-miau_hora_inicio']
+    ordering = ['-miau_data']
 
 
 @admin.register(CreditoReposicao)

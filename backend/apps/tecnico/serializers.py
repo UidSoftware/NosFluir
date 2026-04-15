@@ -92,11 +92,21 @@ class AulasSerializer(serializers.ModelSerializer):
         model = Aulas
         fields = [
             'id', 'aul_id', 'tur', 'tur_nome', 'func', 'func_nome',
-            'aul_data', 'aul_modalidade', 'aul_nome',
+            'aul_data', 'aul_hora_inicio', 'aul_hora_final',
+            'aul_modalidade', 'aul_nome',
             'total_presentes', 'total_faltas', 'total_registros',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['aul_id', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        hora_inicio = data.get('aul_hora_inicio', getattr(self.instance, 'aul_hora_inicio', None))
+        hora_final = data.get('aul_hora_final')
+        if hora_final and hora_inicio and hora_final <= hora_inicio:
+            raise serializers.ValidationError(
+                {'aul_hora_final': 'Hora de término deve ser maior que a hora de início.'}
+            )
+        return data
 
     def get_total_presentes(self, obj):
         return obj.registros.filter(
@@ -125,7 +135,7 @@ class MinistrarAulaSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'miau_id', 'aula', 'tur', 'tur_nome', 'alu', 'alu_nome', 'func', 'func_nome',
             'fitr', 'cred',
-            'miau_data', 'miau_hora_inicio', 'miau_hora_final',
+            'miau_data',
             'miau_pas_inicio', 'miau_pad_inicio',
             'miau_pas_final', 'miau_pad_final',
             'miau_fc_inicio', 'miau_fc_final',
@@ -167,14 +177,6 @@ class MinistrarAulaSerializer(serializers.ModelSerializer):
         if cred and tipo_presenca != 'reposicao':
             raise serializers.ValidationError(
                 {'cred': 'Crédito só pode ser utilizado quando tipo de presença é "reposição".'}
-            )
-
-        # RN-MIAU-01: hora_final > hora_inicio
-        hora_inicio = data.get('miau_hora_inicio', getattr(self.instance, 'miau_hora_inicio', None))
-        hora_final = data.get('miau_hora_final')
-        if hora_final and hora_inicio and hora_final <= hora_inicio:
-            raise serializers.ValidationError(
-                {'miau_hora_final': 'Hora de término deve ser maior que a hora de início.'}
             )
 
         # Validação PAS/PAD

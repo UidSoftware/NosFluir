@@ -95,25 +95,12 @@ class AulasViewSet(AuditMixin, ModelViewSet):
 
 
 class MinistrarAulaViewSet(AuditMixin, ModelViewSet):
-    queryset = MinistrarAula.objects.filter(deleted_at__isnull=True).order_by('-miau_data', '-miau_hora_inicio')
+    queryset = MinistrarAula.objects.filter(deleted_at__isnull=True).order_by('-aula__aul_data')
     serializer_class = MinistrarAulaSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['aula', 'tur', 'alu', 'func', 'miau_tipo_presenca', 'miau_data']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
-    ordering_fields = ['miau_data', 'miau_hora_inicio']
-
-    def perform_create(self, serializer):
-        super().perform_create(serializer)
-        instance = serializer.instance
-        # Auto-vincula ao Aulas agregado se turma tem modalidade definida
-        if instance.tur.tur_modalidade and not instance.aula_id:
-            aula, _ = Aulas.objects.get_or_create(
-                tur=instance.tur,
-                aul_data=instance.miau_data,
-                aul_modalidade=instance.tur.tur_modalidade,
-                defaults={'func': instance.func},
-            )
-            MinistrarAula.objects.filter(pk=instance.pk).update(aula=aula)
+    ordering_fields = ['miau_data', 'aula__aul_data']
 
 
 class CreditoReposicaoViewSet(AuditMixin, ModelViewSet):

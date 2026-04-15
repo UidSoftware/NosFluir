@@ -109,7 +109,6 @@ function AlunoRow({ aluno, state, onUpdate }) {
 
   const proximoCredito = creditos?.[0]
 
-  // Sincroniza creditoId no state quando a query retorna
   const onUpdateRef = useRef(onUpdate)
   useEffect(() => { onUpdateRef.current = onUpdate })
   useEffect(() => {
@@ -284,12 +283,14 @@ function AlunoRow({ aluno, state, onUpdate }) {
 }
 
 export default function MinistrarAulaPage() {
-  const [turmaId, setTurmaId]       = useState('')
-  const [fichaId, setFichaId]       = useState('')
-  const [funcId, setFuncId]         = useState('')
-  const [data, setDataAula]         = useState(new Date().toISOString().split('T')[0])
-  const [step, setStep]             = useState('configurar') // configurar | aula
-  const [horaInicio, setHoraInicio] = useState(null)
+  const [turmaId, setTurmaId]         = useState('')
+  const [fichaId, setFichaId]         = useState('')
+  const [funcId, setFuncId]           = useState('')
+  const [data, setDataAula]           = useState(new Date().toISOString().split('T')[0])
+  const [horaInicio, setHoraInicio]   = useState(new Date().toTimeString().slice(0, 5))
+  const [step, setStep]               = useState('configurar') // configurar | aula
+  const [aulaId, setAulaId]           = useState(null)
+  const [iniciando, setIniciando]     = useState(false)
   const [finalizando, setFinalizando] = useState(false)
   const [alunoStates, setAlunoStates] = useState({})
 
@@ -351,7 +352,9 @@ export default function MinistrarAulaPage() {
     }))
   }, [])
 
-  const iniciar = () => {
+  const turmaSelecionada = turmas?.find(t => t.tur_id === parseInt(turmaId))
+
+  const iniciar = async () => {
     if (!turmaId) {
       toast({ title: 'Selecione uma turma.', variant: 'destructive' })
       return
@@ -360,8 +363,48 @@ export default function MinistrarAulaPage() {
       toast({ title: 'Selecione o professor que está ministrando.', variant: 'destructive' })
       return
     }
-    setHoraInicio(new Date().toTimeString().slice(0, 5))
-    setStep('aula')
+    if (!horaInicio) {
+      toast({ title: 'Informe a hora de início.', variant: 'destructive' })
+      return
+    }
+    if (!turmaSelecionada?.tur_modalidade) {
+      toast({ title: 'Turma sem modalidade definida. Configure a modalidade da turma.', variant: 'destructive' })
+      return
+    }
+
+    setIniciando(true)
+    try {
+      const resp = await api.post('/aulas/', {
+        tur: parseInt(turmaId),
+        func: parseInt(funcId),
+        aul_data: data,
+        aul_modalidade: turmaSelecionada.tur_modalidade,
+        aul_hora_inicio: horaInicio,
+      })
+      setAulaId(resp.data.aul_id)
+      setStep('aula')
+    } catch (err) {
+      const status = err.response?.status
+      if (status === 400) {
+        // unique_together: já existe Aula para essa turma+data+modalidade
+        const errData = err.response?.data
+        const isUnique = JSON.stringify(errData).toLowerCase().includes('unique') ||
+                         JSON.stringify(errData).toLowerCase().includes('already')
+        if (isUnique) {
+          toast({
+            title: 'Já existe uma aula registrada para essa turma nesta data.',
+            description: 'Verifique em Aulas se já foi criada.',
+            variant: 'destructive',
+          })
+        } else {
+          toast({ title: 'Erro ao criar aula.', description: JSON.stringify(errData), variant: 'destructive' })
+        }
+      } else {
+        toast({ title: 'Erro ao iniciar aula.', variant: 'destructive' })
+      }
+    } finally {
+      setIniciando(false)
+    }
   }
 
   const finalizar = async () => {
@@ -415,8 +458,16 @@ export default function MinistrarAulaPage() {
     }
 
     setFinalizando(true)
-    let erros = 0
 
+    // 1. Atualiza hora final na Aula coletiva
+    try {
+      await api.patch(`/aulas/${aulaId}/`, { aul_hora_final: horaFinal })
+    } catch {
+      toast({ title: 'Aviso: não foi possível registrar a hora de término da aula.', variant: 'destructive' })
+    }
+
+    // 2. Salva registro individual de cada aluno
+    let erros = 0
     for (const ta of alunos) {
       const d = alunoStates[ta.alu]
       if (!d) continue
@@ -424,14 +475,13 @@ export default function MinistrarAulaPage() {
       const toInt = v => v !== '' ? parseInt(v) : null
 
       const payload = {
+        aula:               aulaId,
         tur:                parseInt(turmaId),
         alu:                ta.alu,
         func:               funcId ? parseInt(funcId) : null,
         fitr:               fichaId ? parseInt(fichaId) : null,
         cred:               d.creditoId || null,
         miau_data:          data,
-        miau_hora_inicio:   horaInicio,
-        miau_hora_final:    horaFinal,
         miau_pas_inicio:    toInt(d.pasI),
         miau_pad_inicio:    toInt(d.padI),
         miau_pas_final:     toInt(d.pasF),
@@ -462,7 +512,8 @@ export default function MinistrarAulaPage() {
       setTurmaId('')
       setFichaId('')
       setFuncId('')
-      setHoraInicio(null)
+      setAulaId(null)
+      setHoraInicio(new Date().toTimeString().slice(0, 5))
       setAlunoStates({})
     }
   }
@@ -473,7 +524,7 @@ export default function MinistrarAulaPage() {
       <div className="space-y-5">
         <PageHeader
           title="Ministrar Aula"
-          description={`${turmas?.find(t => t.tur_id === parseInt(turmaId))?.tur_nome || ''} — ${formatDate(data)}`}
+          description={`${turmaSelecionada?.tur_nome || ''} — ${formatDate(data)} — início ${horaInicio}`}
           actions={
             <Button variant="outline" onClick={() => setStep('configurar')} disabled={finalizando}>
               Voltar
@@ -594,15 +645,29 @@ export default function MinistrarAulaPage() {
             <Input type="date" value={data} onChange={e => setDataAula(e.target.value)} />
           </FormField>
 
+          <FormField label="Hora de Início" required>
+            <Input
+              type="time"
+              value={horaInicio}
+              onChange={e => setHoraInicio(e.target.value)}
+            />
+          </FormField>
+
           {turmaId && alunosTurma && (
             <div className="rounded-lg bg-fluir-dark-3 px-4 py-2 text-xs text-muted-foreground">
               {alunosTurma.length} aluno(s) matriculado(s)
+              {turmaSelecionada?.tur_modalidade && (
+                <span className="ml-2 text-fluir-cyan capitalize">· {turmaSelecionada.tur_modalidade}</span>
+              )}
             </div>
           )}
 
-          <Button onClick={iniciar} className="w-full" variant="gradient">
-            <Play className="w-4 h-4" />
-            Iniciar Aula
+          <Button onClick={iniciar} className="w-full" variant="gradient" disabled={iniciando}>
+            {iniciando ? (
+              <><Spinner className="w-4 h-4" /> Criando aula...</>
+            ) : (
+              <><Play className="w-4 h-4" /> Iniciar Aula</>
+            )}
           </Button>
         </CardContent>
       </Card>

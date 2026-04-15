@@ -87,7 +87,7 @@ function ExercicioLinha({ ex }) {
   )
 }
 
-function AlunoRow({ aluno, state, onUpdate }) {
+function AlunoRow({ aluno, state, onUpdate, exerciciosFicha }) {
   const presenca  = state?.presenca  ?? 'presente'
   const faltaTipo = state?.faltaTipo ?? 'sem_aviso'
   const pasI      = state?.pasI      ?? ''
@@ -105,6 +105,13 @@ function AlunoRow({ aluno, state, onUpdate }) {
       params: { alu: aluno.id, cred_status: 'disponivel', ordering: 'cred_data_expiracao' },
     }).then(r => r.data.results),
     enabled: presenca === 'reposicao',
+  })
+
+  const { data: ultimoRegistro } = useQuery({
+    queryKey: ['ultima-obs-aluno', aluno.id],
+    queryFn: () => api.get('/ministrar-aula/', {
+      params: { alu: aluno.id, ordering: '-miau_data', page: 1 },
+    }).then(r => r.data.results?.[0] ?? null),
   })
 
   const proximoCredito = creditos?.[0]
@@ -184,90 +191,80 @@ function AlunoRow({ aluno, state, onUpdate }) {
 
       {/* Campos de medição — apenas para Presente */}
       {presenca === 'presente' && (
-        <div className="space-y-2 mt-1">
-          {/* PAS/PAD Inicial e Final */}
+        <div className="space-y-3 mt-1">
+
+          {/* ── Medições iniciais ── */}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-xs text-gray-400">PAS Inicial (mmHg)</label>
-              <Input
-                type="number" min="50" max="250"
-                value={pasI}
+              <Input type="number" min="50" max="250" value={pasI}
                 onChange={e => onUpdate(aluno.id, { pasI: e.target.value })}
-                placeholder="120"
-                className="w-full text-sm px-2 py-1 mt-0.5"
-              />
+                placeholder="120" className="w-full text-sm px-2 py-1 mt-0.5" />
             </div>
             <div>
               <label className="text-xs text-gray-400">PAD Inicial (mmHg)</label>
-              <Input
-                type="number" min="30" max="150"
-                value={padI}
+              <Input type="number" min="30" max="150" value={padI}
                 onChange={e => onUpdate(aluno.id, { padI: e.target.value })}
-                placeholder="80"
-                className="w-full text-sm px-2 py-1 mt-0.5"
-              />
+                placeholder="80" className="w-full text-sm px-2 py-1 mt-0.5" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400">FC Inicial (bpm)</label>
+            <Input type="number" min="30" max="250" value={fcI}
+              onChange={e => onUpdate(aluno.id, { fcI: e.target.value })}
+              placeholder="70" className="w-full text-sm px-2 py-1 mt-0.5" />
+          </div>
+
+          {/* ── Exercícios da ficha ── */}
+          {exerciciosFicha?.length > 0 && (
+            <div className="rounded-md bg-fluir-dark-3 px-3 py-2">
+              <ExerciciosFicha exercicios={exerciciosFicha} />
+            </div>
+          )}
+
+          {/* ── Medições finais ── */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-gray-400">PAS Final (mmHg)</label>
+              <Input type="number" min="50" max="250" value={pasF}
+                onChange={e => onUpdate(aluno.id, { pasF: e.target.value })}
+                placeholder="120" className="w-full text-sm px-2 py-1 mt-0.5" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400">PAD Final (mmHg)</label>
+              <Input type="number" min="30" max="150" value={padF}
+                onChange={e => onUpdate(aluno.id, { padF: e.target.value })}
+                placeholder="80" className="w-full text-sm px-2 py-1 mt-0.5" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs text-gray-400">PAS Final (mmHg)</label>
-              <Input
-                type="number" min="50" max="250"
-                value={pasF}
-                onChange={e => onUpdate(aluno.id, { pasF: e.target.value })}
-                placeholder="120"
-                className="w-full text-sm px-2 py-1 mt-0.5"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400">PAD Final (mmHg)</label>
-              <Input
-                type="number" min="30" max="150"
-                value={padF}
-                onChange={e => onUpdate(aluno.id, { padF: e.target.value })}
-                placeholder="80"
-                className="w-full text-sm px-2 py-1 mt-0.5"
-              />
-            </div>
-          </div>
-
-          {/* FC e PSE */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <label className="text-xs text-gray-400">FC Inicial (bpm)</label>
-              <Input
-                type="number" min="30" max="250"
-                value={fcI}
-                onChange={e => onUpdate(aluno.id, { fcI: e.target.value })}
-                placeholder="70"
-                className="w-full text-sm px-2 py-1 mt-0.5"
-              />
-            </div>
-            <div>
               <label className="text-xs text-gray-400">FC Final (bpm)</label>
-              <Input
-                type="number" min="30" max="250"
-                value={fcF}
+              <Input type="number" min="30" max="250" value={fcF}
                 onChange={e => onUpdate(aluno.id, { fcF: e.target.value })}
-                placeholder="90"
-                className="w-full text-sm px-2 py-1 mt-0.5"
-              />
+                placeholder="90" className="w-full text-sm px-2 py-1 mt-0.5" />
             </div>
             <div>
               <label className="text-xs text-gray-400">PSE Borg (6–20)</label>
-              <Input
-                type="number" min="6" max="20"
-                value={pse}
+              <Input type="number" min="6" max="20" value={pse}
                 onChange={e => onUpdate(aluno.id, { pse: e.target.value })}
-                placeholder="13"
-                className="w-full text-sm px-2 py-1 mt-0.5"
-              />
+                placeholder="13" className="w-full text-sm px-2 py-1 mt-0.5" />
             </div>
           </div>
 
-          {/* Observações */}
+          {/* ── Obs aula anterior (read-only) ── */}
+          {ultimoRegistro?.miau_observacoes && (
+            <div>
+              <label className="text-xs text-gray-400">Obs aula anterior</label>
+              <p className="mt-0.5 rounded-md border border-border bg-fluir-dark-3/50 px-2 py-1.5 text-sm text-muted-foreground italic">
+                {ultimoRegistro.miau_observacoes}
+              </p>
+            </div>
+          )}
+
+          {/* ── Obs aula atual ── */}
           <div>
-            <label className="text-xs text-gray-400">Observações</label>
+            <label className="text-xs text-gray-400">Obs aula atual</label>
             <textarea
               value={obs}
               onChange={e => onUpdate(aluno.id, { obs: e.target.value })}
@@ -567,6 +564,7 @@ export default function MinistrarAulaPage() {
                 aluno={{ id: ta.alu, alu_nome: ta.alu_nome || `Aluno ${ta.alu}` }}
                 state={alunoStates[ta.alu]}
                 onUpdate={updateAluno}
+                exerciciosFicha={exerciciosFicha}
               />
             ))
           ) : (

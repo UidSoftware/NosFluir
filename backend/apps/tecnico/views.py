@@ -77,7 +77,7 @@ class AulasFilter(django_filters.FilterSet):
 
     class Meta:
         model = Aulas
-        fields = ['tur', 'func', 'aul_modalidade', 'aul_data']
+        fields = ['tur', 'func', 'fitr', 'aul_modalidade', 'aul_data', 'aul_numero_ciclo', 'aul_posicao_ciclo']
 
 
 class ProgramaTurmaViewSet(AuditMixin, ModelViewSet):
@@ -128,8 +128,9 @@ class MinistrarAulaViewSet(AuditMixin, ModelViewSet):
 
 
 class RegistroExercicioAlunoFilter(django_filters.FilterSet):
-    ministrar_aula__alu       = django_filters.NumberFilter(field_name='ministrar_aula__alu')
+    ministrar_aula__alu        = django_filters.NumberFilter(field_name='ministrar_aula__alu')
     ministrar_aula__aula__fitr = django_filters.NumberFilter(field_name='ministrar_aula__aula__fitr')
+    ftex__exe                  = django_filters.NumberFilter(field_name='ftex__exe')
 
     class Meta:
         model = RegistroExercicioAluno

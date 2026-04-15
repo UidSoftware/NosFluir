@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 11/04/2026 | Versão: 7.6
+> Última atualização: 15/04/2026 | Versão: 8.0
 
 ---
 
@@ -163,7 +163,7 @@ created_at = models.DateTimeField(...)
 | AgendamentoHorario | agendamento_horario | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 | AgendamentoTurmas | agendamento_turmas | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 
-### App `tecnico` — 8 models
+### App `tecnico` — 10 models
 | Model | Tabela | Observação |
 |---|---|---|
 | Aparelho | aparelho | catálogo de aparelhos; `apar_modalidade`: pilates/funcional/**ambos** |
@@ -171,9 +171,11 @@ created_at = models.DateTimeField(...)
 | Exercicio | exercicios | `exe_modalidade` + FK `exe_aparelho` + FK `exe_acessorio` + `exe_variacao` |
 | FichaTreino | ficha_treino | `fitr_nome` + `fitr_modalidade` (nullable) |
 | FichaTreinoExercicios | ficha_treino_exercicios | N:N com ordem+séries+reps+`ftex_secao`+`exe2` (combinado opcional) |
-| Aulas | aulas | 1 linha por aula coletiva; unique: tur+aul_data+aul_modalidade; `aul_nome` auto-gerado |
-| MinistrarAula | ministrar_aula | 1 linha = 1 aluno em 1 aula; FK `aula` (nullable); PAS/PAD int, FC, PSE Borg 6-20 |
+| Aulas | aulas | 1 linha por aula coletiva; unique: tur+aul_data+aul_modalidade; `aul_nome` auto-gerado; FK `fitr`; `aul_numero_ciclo`+`aul_posicao_ciclo` calculados |
+| MinistrarAula | ministrar_aula | 1 linha = 1 aluno em 1 aula; FK `aula` obrigatório (PROTECT); PAS/PAD int, FC, PSE Borg 6-20 |
 | CreditoReposicao | creditos_reposicao | gerado por signal ao registrar falta; `cred_data_geracao` é read-only |
+| ProgramaTurma | programa_turma | sequência ordenada de fichas por turma (ciclo); unique: (turma,prog_ordem) e (turma,fitr) |
+| RegistroExercicioAluno | registro_exercicio_aluno | séries/reps/carga/obs por aluno por exercício por aula; base para evolução |
 
 ### App `usuarios` — 1 model
 | Model | Tabela | Observação |
@@ -330,6 +332,7 @@ FolhaPag    → fopa_id     Profissao    → prof_id     Exercicio    → exe_id
 FichaTreino → fitr_id     FichaTreinoEx → ftex_id    MinistrarAula → miau_id
 Credito     → cred_id     FichaAluno   → fial_id     Aparelho     → apar_id
 Acessorio   → acess_id    Aulas        → aul_id      User         → id (padrão Django)
+ProgramaTurma → prog_id   RegistroExercicioAluno → reg_id
 ```
 
 ### FKs no payload (CRÍTICO — sem sufixo `_id`):
@@ -351,6 +354,7 @@ Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/agendamentos-turmas/ ✅ /api/fichas-treino-exercicios/
 ✅ /api/aparelhos/           ✅ /api/acessorios/       ✅ /api/ficha-aluno/
 ✅ /api/ministrar-aula/      ✅ /api/aulas/
+✅ /api/programa-turma/     ✅ /api/registro-exercicio-aluno/
 ❌ /api/operacional/alunos/  ❌ /api/tecnico/exercicios/  ← ERRADO
 ❌ /api/servicos/            ← ERRADO (correto: /api/servicos-produtos/)
 ```
@@ -581,13 +585,32 @@ git pull origin main && docker compose restart nginx
 - [x] `AulasPage`: filtros responsivos mobile (grid stack) + coluna Professor oculta em telas pequenas
 - [x] `AulasPage`: botão "Nova Aula" removido — criação é automática via `MinistrarAula.perform_create`
 
+### Fase 4 Refactor ✅ COMPLETO E EM PRODUÇÃO (15/04/2026)
+- [x] Hora início/fim migrada de MinistrarAula → Aulas
+- [x] FK `aula` em MinistrarAula obrigatória (PROTECT)
+- [x] unique_together MinistrarAula: (aula, alu)
+- [x] MinistrarAulaPage: POST /api/aulas/ ao iniciar, PATCH ao finalizar
+- [x] Migrations 0020–0024 aplicadas em produção
+
+### Fase 5 ✅ COMPLETO E EM PRODUÇÃO (15/04/2026)
+- [x] Model `ProgramaTurma` — sequência ordenada de fichas por turma
+- [x] `Aulas`: campos `aul_numero_ciclo` e `aul_posicao_ciclo` calculados automaticamente; FK `fitr`
+- [x] `AulasViewSet.perform_create`: calcula ciclo/posição com base no ProgramaTurma
+- [x] `ProgramaTurmaPage`: drag & drop para montar e reordenar o ciclo de fichas
+- [x] `MinistrarAulaPage`: sugestão automática da próxima ficha; envia `fitr` no POST /api/aulas/
+- [x] Model `RegistroExercicioAluno` — séries/reps/carga/obs por aluno por exercício
+- [x] `MinistrarAulaPage`: campos editáveis por exercício; referência da última vez (ciclo anterior)
+- [x] Finalizar: POST `/api/registro-exercicio-aluno/` para cada exercício com dados
+- [x] Filtros de evolução: `aul_numero_ciclo`, `aul_posicao_ciclo`, `ftex__exe`, `ministrar_aula__aula__fitr`
+- [x] Migrations 0025–0026 aplicadas
+- [x] 84 testes passando
+
 ### Pendências técnicas restantes:
-- [x] Fase 7.2 — renomear Aula → MinistrarAula + campos PAS/PAD/FC/PSE Borg ✅
-- [x] Fase 7.3 — nova tabela Aulas ✅
 - [ ] Permissões por perfil (Professor/Financeiro/Recepcionista) não implementadas
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
 - [ ] Crédito expirado — sem job automático para atualizar status
 - [ ] Agendamentos do site exigem Aluno pré-existente — design a revisar com clientes
+- [ ] Relatórios de evolução (gráfico de carga por exercício por ciclo) — Fase 6
 
 ---
 

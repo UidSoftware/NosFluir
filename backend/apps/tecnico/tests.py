@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 
 from apps.operacional.models import Aluno, Funcionario, Profissao, Turma, TurmaAlunos
-from .models import Aparelho, Aulas, MinistrarAula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios
+from .models import Aparelho, Aulas, MinistrarAula, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, ProgramaTurma, RegistroExercicioAluno
 
 User = get_user_model()
 
@@ -589,6 +589,231 @@ class IntegracaoMatriculaMinistrarAulaTest(TestCase):
         self.assertEqual(miau['miau_pad_inicio'], 80)
         self.assertEqual(miau['func'], self.func.func_id)
         self.assertEqual(miau['func_nome'], self.func.func_nome)
+
+
+# ── TB042–TB045 — ProgramaTurma ─────────────────────────────────────────────
+
+class ProgramaTurmaTest(TestCase):
+    """TB042–TB045 — CRUD e unicidade do ProgramaTurma."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.turma = criar_turma()
+        self.ficha1 = criar_ficha('Ficha A')
+        self.ficha2 = criar_ficha('Ficha B')
+
+    def test_TB042_criar_programa_turma(self):
+        """TB042: POST /api/programa-turma/ → 201 com campos corretos"""
+        resp = self.client.post('/api/programa-turma/', {
+            'turma': self.turma.tur_id,
+            'fitr': self.ficha1.fitr_id,
+            'prog_ordem': 1,
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(resp.data['prog_ordem'], 1)
+        self.assertEqual(resp.data['fitr_nome'], 'Ficha A')
+
+    def test_TB043_unique_turma_prog_ordem(self):
+        """TB043: duas fichas na mesma posição da mesma turma → 400"""
+        ProgramaTurma.objects.create(turma=self.turma, fitr=self.ficha1, prog_ordem=1)
+        resp = self.client.post('/api/programa-turma/', {
+            'turma': self.turma.tur_id,
+            'fitr': self.ficha2.fitr_id,
+            'prog_ordem': 1,
+        })
+        self.assertEqual(resp.status_code, 400)
+
+    def test_TB044_unique_turma_fitr(self):
+        """TB044: mesma ficha duas vezes no programa da turma → 400"""
+        ProgramaTurma.objects.create(turma=self.turma, fitr=self.ficha1, prog_ordem=1)
+        resp = self.client.post('/api/programa-turma/', {
+            'turma': self.turma.tur_id,
+            'fitr': self.ficha1.fitr_id,
+            'prog_ordem': 2,
+        })
+        self.assertEqual(resp.status_code, 400)
+
+    def test_TB045_filtro_por_turma(self):
+        """TB045: GET /api/programa-turma/?turma=X → retorna só fichas da turma"""
+        outra_turma = Turma.objects.create(
+            tur_nome='Outra Turma', tur_horario='Ter 09:00', tur_modalidade='funcional'
+        )
+        ProgramaTurma.objects.create(turma=self.turma, fitr=self.ficha1, prog_ordem=1)
+        ProgramaTurma.objects.create(turma=self.turma, fitr=self.ficha2, prog_ordem=2)
+        ficha3 = criar_ficha('Ficha C')
+        ProgramaTurma.objects.create(turma=outra_turma, fitr=ficha3, prog_ordem=1)
+
+        resp = self.client.get('/api/programa-turma/', {'turma': self.turma.tur_id})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['count'], 2)
+        nomes = [p['fitr_nome'] for p in resp.data['results']]
+        self.assertNotIn('Ficha C', nomes)
+
+
+# ── TB046–TB047 — Lógica de ciclo em Aulas ──────────────────────────────────
+
+class CicloAulasTest(TestCase):
+    """TB046–TB047 — cálculo automático de ciclo/posição ao criar Aulas."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.turma = criar_turma()
+        self.ficha = criar_ficha('Ciclo Test')
+        ProgramaTurma.objects.create(turma=self.turma, fitr=self.ficha, prog_ordem=1)
+
+    def test_TB046_posicao_ciclo_calculada(self):
+        """TB046: criar Aulas com fitr em programa → aul_posicao_ciclo=1 calculada"""
+        resp = self.client.post('/api/aulas/', {
+            'tur': self.turma.tur_id,
+            'aul_data': '2026-04-06',
+            'aul_modalidade': 'pilates',
+            'fitr': self.ficha.fitr_id,
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(resp.data['aul_posicao_ciclo'], 1)
+        self.assertEqual(resp.data['aul_numero_ciclo'], 1)
+
+    def test_TB047_segundo_ciclo(self):
+        """TB047: segunda vez com mesma posição/ficha → aul_numero_ciclo=2"""
+        # Primeira aula (ciclo 1)
+        Aulas.objects.create(
+            tur=self.turma,
+            aul_data='2026-04-06',
+            aul_modalidade='pilates',
+            aul_posicao_ciclo=1,
+            aul_numero_ciclo=1,
+            fitr=self.ficha,
+        )
+        # Segunda aula com mesma ficha — turma+data+modalidade deve ser diferente
+        resp = self.client.post('/api/aulas/', {
+            'tur': self.turma.tur_id,
+            'aul_data': '2026-04-13',
+            'aul_modalidade': 'pilates',
+            'fitr': self.ficha.fitr_id,
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(resp.data['aul_posicao_ciclo'], 1)
+        self.assertEqual(resp.data['aul_numero_ciclo'], 2)
+
+
+# ── TB048–TB050 — RegistroExercicioAluno + queries de evolução ───────────────
+
+class RegistroExercicioAlunoTest(TestCase):
+    """TB048–TB050 — CRUD e queries de evolução."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.aluno = criar_aluno()
+        self.turma = criar_turma()
+        self.func = criar_funcionario()
+        criar_matricula(self.turma, self.aluno)
+        self.ficha = criar_ficha('Evolucao Test')
+        self.ex = criar_exercicio('Hundred', 'Reformer')
+        self.ftex = criar_ficha_exercicio(self.ficha, self.ex, ordem=1, series=3, reps=10)
+
+    def _criar_miau(self, data, aula=None):
+        if aula is None:
+            aula = criar_aula(self.turma, data=data)
+        return MinistrarAula.objects.create(
+            aula=aula,
+            tur=self.turma,
+            alu=self.aluno,
+            func=self.func,
+            miau_data=data,
+            miau_tipo_presenca='presente',
+        )
+
+    def test_TB048_criar_registro_exercicio(self):
+        """TB048: POST /api/registro-exercicio-aluno/ → 201 com campos salvos"""
+        miau = self._criar_miau('2026-04-06')
+        resp = self.client.post('/api/registro-exercicio-aluno/', {
+            'ministrar_aula': miau.miau_id,
+            'ftex': self.ftex.ftex_id,
+            'reg_series': 3,
+            'reg_repeticoes': 12,
+            'reg_carga': '5kg',
+            'reg_observacoes': 'Boa execução',
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(resp.data['reg_carga'], '5kg')
+        self.assertEqual(resp.data['reg_series'], 3)
+        self.assertEqual(resp.data['exe_nome'], 'Hundred')
+
+    def test_TB049_unique_ministraraula_ftex(self):
+        """TB049: mesmo aluno + mesmo exercício na mesma aula → 400"""
+        miau = self._criar_miau('2026-04-06')
+        RegistroExercicioAluno.objects.create(
+            ministrar_aula=miau,
+            ftex=self.ftex,
+            reg_series=3,
+        )
+        resp = self.client.post('/api/registro-exercicio-aluno/', {
+            'ministrar_aula': miau.miau_id,
+            'ftex': self.ftex.ftex_id,
+            'reg_series': 4,
+        })
+        self.assertEqual(resp.status_code, 400)
+
+    def test_TB050_query_evolucao_por_ciclo(self):
+        """TB050: registros ordenados por ciclo — base para relatório de evolução"""
+        # Cria 2 aulas em ciclos diferentes com ficha vinculada
+        ProgramaTurma.objects.create(turma=self.turma, fitr=self.ficha, prog_ordem=1)
+
+        aula1 = Aulas.objects.create(
+            tur=self.turma, aul_data='2026-04-06', aul_modalidade='pilates',
+            fitr=self.ficha, aul_posicao_ciclo=1, aul_numero_ciclo=1,
+        )
+        aula2 = Aulas.objects.create(
+            tur=self.turma, aul_data='2026-05-06', aul_modalidade='pilates',
+            fitr=self.ficha, aul_posicao_ciclo=1, aul_numero_ciclo=2,
+        )
+        miau1 = self._criar_miau('2026-04-06', aula=aula1)
+        miau2 = self._criar_miau('2026-05-06', aula=aula2)
+
+        RegistroExercicioAluno.objects.create(
+            ministrar_aula=miau1, ftex=self.ftex, reg_carga='5kg'
+        )
+        RegistroExercicioAluno.objects.create(
+            ministrar_aula=miau2, ftex=self.ftex, reg_carga='7kg'
+        )
+
+        # Query de evolução: filtro por aluno + exercício, ordenado por ciclo
+        registros = RegistroExercicioAluno.objects.filter(
+            ministrar_aula__alu=self.aluno,
+            ftex__exe=self.ex,
+        ).select_related(
+            'ministrar_aula__aula'
+        ).order_by(
+            'ministrar_aula__aula__aul_numero_ciclo',
+            'ministrar_aula__aula__aul_posicao_ciclo',
+        )
+        self.assertEqual(registros.count(), 2)
+        self.assertEqual(registros[0].reg_carga, '5kg')  # ciclo 1
+        self.assertEqual(registros[1].reg_carga, '7kg')  # ciclo 2
+
+        # Via API: filtro por aluno + ficha
+        resp = self.client.get('/api/registro-exercicio-aluno/', {
+            'ministrar_aula__alu': self.aluno.alu_id,
+            'ministrar_aula__aula__fitr': self.ficha.fitr_id,
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['count'], 2)
+
+        # Confirma filtro por aulas de ciclo específico
+        resp2 = self.client.get('/api/aulas/', {
+            'tur': self.turma.tur_id,
+            'aul_posicao_ciclo': 1,
+        })
+        self.assertEqual(resp2.status_code, 200)
+        self.assertEqual(resp2.data['count'], 2)
+        ciclos = sorted([a['aul_numero_ciclo'] for a in resp2.data['results']])
+        self.assertEqual(ciclos, [1, 2])
 
 
 # ── Permissões por perfil — estado atual documentado ─────────────────────────

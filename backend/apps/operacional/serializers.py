@@ -94,7 +94,7 @@ class TurmaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Turma
         fields = [
-            'id', 'tur_id', 'tur_nome', 'tur_horario',
+            'id', 'tur_id', 'tur_nome', 'tur_horario', 'tur_modalidade',
             'total_alunos', 'created_at', 'updated_at',
         ]
         read_only_fields = ['tur_id', 'total_alunos', 'created_at', 'updated_at']

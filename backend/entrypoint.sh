@@ -26,10 +26,6 @@ done
 echo "🔍 Verificando configuração Django..."
 python manage.py check
 
-echo "🗄️  Criando migrations por app..."
-python manage.py makemigrations usuarios --noinput
-python manage.py makemigrations financeiro operacional tecnico --noinput
-
 echo "🗄️  Migrando usuarios primeiro..."
 python manage.py migrate usuarios --noinput
 

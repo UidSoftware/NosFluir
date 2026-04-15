@@ -184,10 +184,53 @@ class CreditoReposicao(BaseModel):
         return f'Crédito {self.alu} — {self.cred_status} (expira {self.cred_data_expiracao.date()})'
 
 
+class Aulas(BaseModel):
+    """
+    Aula coletiva — 1 linha por aula. Agregador de MinistrarAula.
+    Fase 3.3 — facilita relatórios e histórico de aulas.
+    Constraint: UNIQUE(tur, aul_data, aul_hora_inicio)
+    """
+    MODALIDADE_CHOICES = [
+        ('pilates', 'Mat Pilates'),
+        ('funcional', 'Funcional'),
+    ]
+
+    aul_id = models.AutoField(primary_key=True)
+    tur = models.ForeignKey(
+        'operacional.Turma', on_delete=models.PROTECT, verbose_name='turma'
+    )
+    func = models.ForeignKey(
+        'operacional.Funcionario', on_delete=models.PROTECT,
+        null=True, blank=True, verbose_name='professor'
+    )
+    aul_data = models.DateField('data da aula')
+    aul_modalidade = models.CharField('modalidade', max_length=20, choices=MODALIDADE_CHOICES)
+    aul_nome = models.CharField(
+        'nome/descrição', max_length=150, null=True, blank=True,
+        help_text='Ex: "Funcional Seg 17:00" — preenchido automaticamente se deixado em branco'
+    )
+
+    class Meta:
+        db_table = 'aulas'
+        verbose_name = 'Aula'
+        verbose_name_plural = 'Aulas'
+        unique_together = [['tur', 'aul_data', 'aul_modalidade']]
+        ordering = ['-aul_data']
+
+    def save(self, *args, **kwargs):
+        if not self.aul_nome:
+            self.aul_nome = f'{self.get_aul_modalidade_display()} — {self.tur} — {self.aul_data}'
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.aul_nome or f'{self.tur} — {self.aul_data}'
+
+
 class MinistrarAula(BaseModel):
     """
     Registro de aulas ministradas. 1 linha = 1 aluno em 1 aula.
     Fase 3.2 — campos PAS/PAD separados, FC, PSE Borg 6-20.
+    Fase 3.3 — FK opcional para Aulas (retrocompatível).
     Constraint: UNIQUE(tur, alu, miau_data, miau_hora_inicio)
     """
     TIPO_PRESENCA_CHOICES = [
@@ -204,6 +247,11 @@ class MinistrarAula(BaseModel):
     ]
 
     miau_id = models.AutoField(primary_key=True)
+    aula = models.ForeignKey(
+        Aulas, on_delete=models.SET_NULL,
+        null=True, blank=True, verbose_name='aula',
+        related_name='registros'
+    )
     tur = models.ForeignKey('operacional.Turma', on_delete=models.PROTECT, verbose_name='turma')
     alu = models.ForeignKey('operacional.Aluno', on_delete=models.PROTECT, verbose_name='aluno')
     func = models.ForeignKey(

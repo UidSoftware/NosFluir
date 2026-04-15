@@ -1,3 +1,4 @@
+import django_filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -6,10 +7,10 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apps.core.mixins import AuditMixin
 
-from .models import Acessorio, Aparelho, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
+from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
 from .serializers import (
-    AcessorioSerializer, AparelhoSerializer, MinistrarAulaSerializer, CreditoReposicaoSerializer,
-    ExercicioSerializer, FichaTreinoSerializer, FichaTreinoExerciciosSerializer,
+    AcessorioSerializer, AparelhoSerializer, AulasSerializer, MinistrarAulaSerializer,
+    CreditoReposicaoSerializer, ExercicioSerializer, FichaTreinoSerializer, FichaTreinoExerciciosSerializer,
 )
 
 
@@ -69,13 +70,50 @@ class FichaTreinoExerciciosViewSet(AuditMixin, ModelViewSet):
     ordering_fields = ['ftex_ordem']
 
 
+class AulasFilter(django_filters.FilterSet):
+    aul_data_after  = django_filters.DateFilter(field_name='aul_data', lookup_expr='gte')
+    aul_data_before = django_filters.DateFilter(field_name='aul_data', lookup_expr='lte')
+
+    class Meta:
+        model = Aulas
+        fields = ['tur', 'func', 'aul_modalidade', 'aul_data']
+
+
+class AulasViewSet(AuditMixin, ModelViewSet):
+    queryset = (
+        Aulas.objects
+        .filter(deleted_at__isnull=True)
+        .select_related('tur', 'func')
+        .prefetch_related('registros')
+        .order_by('-aul_data')
+    )
+    serializer_class = AulasSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = AulasFilter
+    search_fields = ['aul_nome', 'tur__tur_nome']
+    ordering_fields = ['aul_data']
+
+
 class MinistrarAulaViewSet(AuditMixin, ModelViewSet):
     queryset = MinistrarAula.objects.filter(deleted_at__isnull=True).order_by('-miau_data', '-miau_hora_inicio')
     serializer_class = MinistrarAulaSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['tur', 'alu', 'func', 'miau_tipo_presenca', 'miau_data']
+    filterset_fields = ['aula', 'tur', 'alu', 'func', 'miau_tipo_presenca', 'miau_data']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
     ordering_fields = ['miau_data', 'miau_hora_inicio']
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        instance = serializer.instance
+        # Auto-vincula ao Aulas agregado se turma tem modalidade definida
+        if instance.tur.tur_modalidade and not instance.aula_id:
+            aula, _ = Aulas.objects.get_or_create(
+                tur=instance.tur,
+                aul_data=instance.miau_data,
+                aul_modalidade=instance.tur.tur_modalidade,
+                defaults={'func': instance.func},
+            )
+            MinistrarAula.objects.filter(pk=instance.pk).update(aula=aula)
 
 
 class CreditoReposicaoViewSet(AuditMixin, ModelViewSet):

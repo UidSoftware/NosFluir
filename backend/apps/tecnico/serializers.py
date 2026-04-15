@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Acessorio, Aparelho, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
+from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
 
 
 class AcessorioSerializer(serializers.ModelSerializer):
@@ -80,6 +80,40 @@ class FichaTreinoSerializer(serializers.ModelSerializer):
         read_only_fields = ['fitr_id', 'created_at', 'updated_at']
 
 
+class AulasSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    tur_nome = serializers.CharField(source='tur.tur_nome', read_only=True)
+    func_nome = serializers.CharField(source='func.func_nome', read_only=True, allow_null=True)
+    total_presentes = serializers.SerializerMethodField()
+    total_faltas = serializers.SerializerMethodField()
+    total_registros = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Aulas
+        fields = [
+            'id', 'aul_id', 'tur', 'tur_nome', 'func', 'func_nome',
+            'aul_data', 'aul_modalidade', 'aul_nome',
+            'total_presentes', 'total_faltas', 'total_registros',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['aul_id', 'created_at', 'updated_at']
+
+    def get_total_presentes(self, obj):
+        return obj.registros.filter(
+            miau_tipo_presenca__in=['presente', 'reposicao'],
+            deleted_at__isnull=True
+        ).count()
+
+    def get_total_faltas(self, obj):
+        return obj.registros.filter(
+            miau_tipo_presenca='falta',
+            deleted_at__isnull=True
+        ).count()
+
+    def get_total_registros(self, obj):
+        return obj.registros.filter(deleted_at__isnull=True).count()
+
+
 class MinistrarAulaSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
     alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
@@ -89,7 +123,7 @@ class MinistrarAulaSerializer(serializers.ModelSerializer):
     class Meta:
         model = MinistrarAula
         fields = [
-            'id', 'miau_id', 'tur', 'tur_nome', 'alu', 'alu_nome', 'func', 'func_nome',
+            'id', 'miau_id', 'aula', 'tur', 'tur_nome', 'alu', 'alu_nome', 'func', 'func_nome',
             'fitr', 'cred',
             'miau_data', 'miau_hora_inicio', 'miau_hora_final',
             'miau_pas_inicio', 'miau_pad_inicio',

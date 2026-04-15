@@ -24,6 +24,7 @@ import TurmasPage             from '@/pages/operacional/TurmasPage'
 import AgendamentosPage       from '@/pages/operacional/AgendamentosPage'
 
 // Técnico
+import AulasPage              from '@/pages/tecnico/AulasPage'
 import MinistrarAulaPage      from '@/pages/tecnico/MinistrarAulaPage'
 import FichasTreinoPage       from '@/pages/tecnico/FichasTreinoPage'
 import ExerciciosPage         from '@/pages/tecnico/ExerciciosPage'
@@ -83,6 +84,7 @@ export const router = createBrowserRouter(
             { path: '/operacional/agendamentos',  element: <AgendamentosPage /> },
 
             // Técnico
+            { path: '/tecnico/aulas',             element: <AulasPage /> },
             { path: '/tecnico/ministrar-aula',    element: <MinistrarAulaPage /> },
             { path: '/tecnico/fichas',            element: <FichasTreinoPage /> },
             { path: '/tecnico/exercicios',        element: <ExerciciosPage /> },

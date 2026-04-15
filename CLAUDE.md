@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 10/04/2026 | Versão: 7.3
+> Última atualização: 11/04/2026 | Versão: 7.6
 
 ---
 
@@ -49,7 +49,7 @@ Sistema web de gestão completo para studio de Pilates e treinamento funcional, 
 **Infra:**
 - VPS Ubuntu 24.04 | Docker Compose v2 (`docker compose`, sem hífen)
 - Nginx 1.25 (SSL Let's Encrypt) | Gunicorn (3 workers)
-- `entrypoint.sh` executa makemigrations → migrate usuarios → migrate → collectstatic → gunicorn
+- `entrypoint.sh` executa migrate usuarios → migrate → collectstatic → gunicorn (**sem** makemigrations — migrations sempre commitadas do dev)
 - Repo na VPS aponta para `UidSoftware/NosFluir`
 - Projeto na VPS: `/var/www/studio-fluir/`
 - Deploy do frontend via Docker multi-stage (não requer npm na VPS) — `deploy.sh` cuida disso
@@ -90,12 +90,12 @@ NosFluir/
 │       ├── usuarios/
 │       ├── financeiro/
 │       │   ├── signals.py             ← lançamentos automáticos LivroCaixa (com transaction.atomic)
-│       │   └── tests.py               ← 18 testes
+│       │   └── tests.py               ← 22 testes
 │       ├── operacional/
 │       │   └── tests.py               ← 20 testes
 │       └── tecnico/
 │           ├── signals.py             ← geração/uso de créditos de reposição
-│           └── tests.py               ← 30 testes
+│           └── tests.py               ← 33 testes
 ├── frontend/
 │   ├── src/
 │   ├── public/
@@ -158,12 +158,12 @@ created_at = models.DateTimeField(...)
 | FichaAluno | ficha_aluno | histórico de avaliações físicas com data; ordering: -fial_data |
 | Profissao | profissao | catálogo |
 | Funcionario | funcionario | CPF único |
-| Turma | turma | max 15 alunos — **sem campo professor** (professor fica na Aula) |
+| Turma | turma | max 15 alunos — `tur_modalidade` (pilates/funcional, nullable); **sem campo professor** (professor fica na Aula) |
 | TurmaAlunos | turma_alunos | N:N unique: turma+aluno — **no Admin aparece como "Matrícula/Matrículas"** |
 | AgendamentoHorario | agendamento_horario | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 | AgendamentoTurmas | agendamento_turmas | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 
-### App `tecnico` — 7 models
+### App `tecnico` — 8 models
 | Model | Tabela | Observação |
 |---|---|---|
 | Aparelho | aparelho | catálogo de aparelhos; `apar_modalidade`: pilates/funcional/**ambos** |
@@ -171,7 +171,8 @@ created_at = models.DateTimeField(...)
 | Exercicio | exercicios | `exe_modalidade` + FK `exe_aparelho` + FK `exe_acessorio` + `exe_variacao` |
 | FichaTreino | ficha_treino | `fitr_nome` + `fitr_modalidade` (nullable) |
 | FichaTreinoExercicios | ficha_treino_exercicios | N:N com ordem+séries+reps+`ftex_secao`+`exe2` (combinado opcional) |
-| MinistrarAula | ministrar_aula | 1 linha = 1 aluno em 1 aula; PAS/PAD int, FC, PSE Borg 6-20; `func` (FK Funcionario, nullable) |
+| Aulas | aulas | 1 linha por aula coletiva; unique: tur+aul_data+aul_modalidade; `aul_nome` auto-gerado |
+| MinistrarAula | ministrar_aula | 1 linha = 1 aluno em 1 aula; FK `aula` (nullable); PAS/PAD int, FC, PSE Borg 6-20 |
 | CreditoReposicao | creditos_reposicao | gerado por signal ao registrar falta; `cred_data_geracao` é read-only |
 
 ### App `usuarios` — 1 model
@@ -185,7 +186,7 @@ created_at = models.DateTimeField(...)
 
 > ⚠️ **Estado atual:** todos os endpoints usam apenas `IsAuthenticated` — sem restrição por grupo.
 > Exceção: `UserViewSet` usa `IsAdminUser` (403 para não-admin).
-> Permissões por perfil (Professor/Financeiro/Recepcionista) **pendentes de implementação**.
+> Grupos Django criados em 10/04/2026 (Admin/Professor/Financeiro/Recepcionista) — permissões por perfil no **backend pendentes**.
 
 | Perfil | Acesso planejado |
 |---|---|
@@ -250,7 +251,8 @@ GET /api/creditos/?alu=X&cred_status=disponivel  → filtro padrão
 - PSE: **Escala de Borg 6-20** — `miau_pse` (validação: MinValueValidator(6), MaxValueValidator(20))
 - FC: `miau_fc_inicio`, `miau_fc_final` (inteiros em bpm)
 - Mesmo exercício com aparelhos diferentes = registros independentes
-- **Professor fica na Aula** (não na Turma) — turma tem só nome e horário
+- **Professor fica na Aula** (não na Turma) — turma tem nome, horário e modalidade
+- `Turma.tur_modalidade`: define a modalidade fixa da turma — usado para auto-vincular `MinistrarAula` → `Aulas` no `perform_create`
 - `FichaTreino`: `fitr_id`, `fitr_nome`, `fitr_modalidade` (nullable)
 - `FichaTreinoExercicios`: `exe` (FK obrigatório) + `exe2` (FK nullable = combinado) — compartilham séries/reps
 - `Exercicio`: `exe_modalidade` obrigatório; `exe_aparelho` FK → Aparelho (nullable); `exe_acessorio` FK → Acessorio (nullable)
@@ -327,7 +329,7 @@ ContasPagar → pag_id      ContasReceber → rec_id     Planos       → plan_i
 FolhaPag    → fopa_id     Profissao    → prof_id     Exercicio    → exe_id
 FichaTreino → fitr_id     FichaTreinoEx → ftex_id    MinistrarAula → miau_id
 Credito     → cred_id     FichaAluno   → fial_id     Aparelho     → apar_id
-Acessorio   → acess_id    User         → id (padrão Django)
+Acessorio   → acess_id    Aulas        → aul_id      User         → id (padrão Django)
 ```
 
 ### FKs no payload (CRÍTICO — sem sufixo `_id`):
@@ -344,12 +346,11 @@ prof   (não prof_id)   aluno  (não aluno_id)   — FichaAluno usa `aluno`
 Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/alunos/              ✅ /api/turmas/           ✅ /api/exercicios/
 ✅ /api/creditos/            ✅ /api/fichas-treino/    ✅ /api/folha-pagamento/
-✅ /api/servicos-produtos/   ✅ /api/fornecedores/     ✅ /api/aulas/
+✅ /api/servicos-produtos/   ✅ /api/fornecedores/
 ✅ /api/logout/              ✅ /api/me/               ✅ /api/agendamentos-horario/
 ✅ /api/agendamentos-turmas/ ✅ /api/fichas-treino-exercicios/
 ✅ /api/aparelhos/           ✅ /api/acessorios/       ✅ /api/ficha-aluno/
-✅ /api/ministrar-aula/
-❌ /api/aulas/               ← ERRADO (renomeado para /api/ministrar-aula/ na Fase 3.2)
+✅ /api/ministrar-aula/      ✅ /api/aulas/
 ❌ /api/operacional/alunos/  ❌ /api/tecnico/exercicios/  ← ERRADO
 ❌ /api/servicos/            ← ERRADO (correto: /api/servicos-produtos/)
 ```
@@ -403,6 +404,7 @@ git pull origin main && docker compose restart nginx
 - ❌ Usar `.id` genérico no frontend para PKs — usar o PK nomeado (`alu_id`, `func_id`, `tur_id`, etc.)
 - ❌ Usar `forn_id`, `alu_id` como nome do campo FK no payload — usar `forn`, `alu`, `func` (sem `_id`)
 - ❌ `bulk_create` em models que herdam `BaseModel` — `save()` não é chamado, campos auto-calculados ficam NULL
+- ❌ `makemigrations` no `entrypoint.sh` — gera ghost migrations na VPS que divergem do git; migrations sempre commitadas do dev
 
 ---
 
@@ -446,6 +448,8 @@ git pull origin main && docker compose restart nginx
 | `aul_pressao_inicio` retorna 404/erro | Campo removido na Fase 3.2 | Usar `miau_pas_inicio` + `miau_pad_inicio` (inteiros) |
 | `aul_intensidade_esforco` não existe | Renomeado para `miau_pse` (Borg 6-20) | Enviar `miau_pse` com valor entre 6 e 20 |
 | `RenameModel` não renomeia tabela DB | Django não renomeia quando `db_table` é customizado | Sempre combinar com `AlterModelTable` na migration |
+| Migration falha com "relation already exists" ao criar tabela com nome antigo | `RenameModel` renomeia a tabela mas PostgreSQL mantém constraints/indexes/sequence com prefixo antigo | Usar `RunSQL` para renomear todos os constraints/indexes/sequence antes de criar a nova tabela |
+| Ghost migration gerada na VPS (ex: `0015_alter_ministraraula_options`) | `entrypoint.sh` rodava `makemigrations` em todo boot — gerava migration que não existe no git | `makemigrations` removido do entrypoint; se ocorrer: `RunSQL DELETE FROM django_migrations WHERE app='X' AND name='Y'` |
 
 ---
 
@@ -540,7 +544,7 @@ git pull origin main && docker compose restart nginx
 - [x] FichasTreinoPage: agrupamento visual por seção + suporte a combinados
 - [x] MinistrarAulaPage: exibe combinados "Exe1 + Exe2" + agrupamento por seção (Potência, Força...) + usa apar_nome
 - [x] AlunosPage: seção "Avaliações Físicas" com histórico de FichaAluno
-- [x] 68 testes passando (financeiro: 18, operacional: 20, técnico: 30)
+- [x] 70 testes passando (financeiro: 22, operacional: 20, técnico: 28)
 
 ### Fase 7.2 — Reajustes Estruturais 3.2 ✅ COMPLETO E EM PRODUÇÃO (10/04/2026)
 - [x] Model `Aula` → `MinistrarAula`, tabela `aulas` → `ministrar_aula`, prefixo `aul_` → `miau_`
@@ -553,7 +557,7 @@ git pull origin main && docker compose restart nginx
 - [x] Frontend atualizado: MinistrarAulaPage, RelPressaoPage, RelFrequenciaPage, GrafFrequenciaPage
 - [x] CreditoReposicao FKs atualizadas → MinistrarAula
 - [x] Signals atualizados para MinistrarAula
-- [x] 75 testes passando (financeiro: 18, operacional: 20, técnico: 33 — 5 novos PSE/FC/obs)
+- [x] 75 testes passando (financeiro: 22, operacional: 20, técnico: 33 — 5 novos PSE/FC/obs)
 
 ### Fase 7.2.1 — Campos de saúde e emergência no Aluno ✅ EM PRODUÇÃO (10/04/2026)
 - [x] `alu_contato_emergencia` (CharField max_length=20, nullable) — telefone de emergência
@@ -562,13 +566,24 @@ git pull origin main && docker compose restart nginx
 - [x] Formulário e detalhe do Aluno atualizados no frontend
 - [x] 75 testes passando (sem regressão)
 
-### Fase 7.3 — Reajustes Estruturais 3.3 — PENDENTE
-> Nova tabela `Aulas` (1 por aula coletiva) + FK em `MinistrarAula`
-> Ver `Instrucoes_Claude_Code_Fase3.md` — Sub-fase 3.3
+### Fase 7.3 — Reajustes Estruturais 3.3 ✅ COMPLETO E EM PRODUÇÃO (11/04/2026)
+- [x] Nova tabela `Aulas` — 1 linha por aula coletiva; unique: tur+aul_data+aul_modalidade
+- [x] `aul_nome` auto-gerado no `save()` se deixado em branco
+- [x] FK `aula` adicionada em `MinistrarAula` (nullable — retrocompatível)
+- [x] Endpoint `/api/aulas/` com filtros: tur, func, aul_modalidade, aul_data (range: aul_data_after/before)
+- [x] Serializer com contadores: `total_presentes`, `total_faltas`, `total_registros`
+- [x] Página `AulasPage` — CRUD + filtros + stats de presença + modal de alunos
+- [x] Sidebar Técnico: item "Aulas" adicionado
+- [x] `Turma` ganha `tur_modalidade` — define modalidade fixa da turma
+- [x] `MinistrarAulaViewSet.perform_create` auto-vincula ao `Aulas` via `get_or_create(tur, data, modalidade)`
+- [x] `TurmasPage`: remove campo `func` (morto), adiciona `tur_modalidade` select + badge na tabela
+- [x] Data migration `0018`: backfill `aula` FK em `MinistrarAula` existentes (reprocessa registros antigos)
+- [x] `AulasPage`: filtros responsivos mobile (grid stack) + coluna Professor oculta em telas pequenas
+- [x] `AulasPage`: botão "Nova Aula" removido — criação é automática via `MinistrarAula.perform_create`
 
 ### Pendências técnicas restantes:
 - [x] Fase 7.2 — renomear Aula → MinistrarAula + campos PAS/PAD/FC/PSE Borg ✅
-- [ ] Fase 7.3 — nova tabela Aulas
+- [x] Fase 7.3 — nova tabela Aulas ✅
 - [ ] Permissões por perfil (Professor/Financeiro/Recepcionista) não implementadas
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
 - [ ] Crédito expirado — sem job automático para atualizar status

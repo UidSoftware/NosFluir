@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Acessorio, Aparelho, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
+from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
 
 
 @admin.register(Acessorio)
@@ -15,6 +15,14 @@ class AparelhoAdmin(admin.ModelAdmin):
     list_display = ['apar_nome', 'apar_modalidade', 'apar_ativo']
     list_filter = ['apar_modalidade', 'apar_ativo']
     search_fields = ['apar_nome']
+
+
+@admin.register(Aulas)
+class AulasAdmin(admin.ModelAdmin):
+    list_display = ['aul_nome', 'tur', 'aul_modalidade', 'aul_data', 'func']
+    list_filter = ['aul_modalidade', 'aul_data']
+    search_fields = ['aul_nome', 'tur__tur_nome']
+    date_hierarchy = 'aul_data'
 
 
 @admin.register(Exercicio)

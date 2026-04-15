@@ -69,9 +69,18 @@ class Funcionario(BaseModel):
 
 class Turma(BaseModel):
     """Turmas/grupos de aulas. Máximo 15 alunos."""
+    MODALIDADE_CHOICES = [
+        ('pilates', 'Mat Pilates'),
+        ('funcional', 'Funcional'),
+    ]
+
     tur_id = models.AutoField(primary_key=True)
     tur_nome = models.CharField('nome da turma', max_length=100, unique=True)
     tur_horario = models.CharField('horário', max_length=50)
+    tur_modalidade = models.CharField(
+        'modalidade', max_length=20, choices=MODALIDADE_CHOICES,
+        null=True, blank=True
+    )
 
     class Meta:
         db_table = 'turma'

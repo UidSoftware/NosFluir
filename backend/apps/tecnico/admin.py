@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
+from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula, ProgramaTurma
 
 
 @admin.register(Acessorio)
@@ -61,6 +61,14 @@ class MinistrarAulaAdmin(admin.ModelAdmin):
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
     date_hierarchy = 'miau_data'
     ordering = ['-miau_data']
+
+
+@admin.register(ProgramaTurma)
+class ProgramaTurmaAdmin(admin.ModelAdmin):
+    list_display = ['turma', 'prog_ordem', 'fitr']
+    list_filter = ['turma']
+    ordering = ['turma', 'prog_ordem']
+    search_fields = ['turma__tur_nome', 'fitr__fitr_nome']
 
 
 @admin.register(CreditoReposicao)

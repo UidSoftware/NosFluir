@@ -7,10 +7,11 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apps.core.mixins import AuditMixin
 
-from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
+from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula, ProgramaTurma
 from .serializers import (
     AcessorioSerializer, AparelhoSerializer, AulasSerializer, MinistrarAulaSerializer,
     CreditoReposicaoSerializer, ExercicioSerializer, FichaTreinoSerializer, FichaTreinoExerciciosSerializer,
+    ProgramaTurmaSerializer,
 )
 
 
@@ -79,11 +80,19 @@ class AulasFilter(django_filters.FilterSet):
         fields = ['tur', 'func', 'aul_modalidade', 'aul_data']
 
 
+class ProgramaTurmaViewSet(AuditMixin, ModelViewSet):
+    queryset = ProgramaTurma.objects.filter(deleted_at__isnull=True).select_related('fitr').order_by('turma', 'prog_ordem')
+    serializer_class = ProgramaTurmaSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['turma']
+    ordering_fields = ['prog_ordem']
+
+
 class AulasViewSet(AuditMixin, ModelViewSet):
     queryset = (
         Aulas.objects
         .filter(deleted_at__isnull=True)
-        .select_related('tur', 'func')
+        .select_related('tur', 'func', 'fitr')
         .prefetch_related('registros')
         .order_by('-aul_data')
     )
@@ -92,6 +101,21 @@ class AulasViewSet(AuditMixin, ModelViewSet):
     filterset_class = AulasFilter
     search_fields = ['aul_nome', 'tur__tur_nome']
     ordering_fields = ['aul_data']
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        aula = serializer.instance
+        if aula.fitr_id:
+            programa = ProgramaTurma.objects.filter(turma=aula.tur, fitr=aula.fitr).first()
+            if programa:
+                ciclos_anteriores = Aulas.objects.filter(
+                    tur=aula.tur,
+                    aul_posicao_ciclo=programa.prog_ordem,
+                    deleted_at__isnull=True,
+                ).exclude(aul_id=aula.aul_id).count()
+                aula.aul_posicao_ciclo = programa.prog_ordem
+                aula.aul_numero_ciclo = ciclos_anteriores + 1
+                aula.save(update_fields=['aul_posicao_ciclo', 'aul_numero_ciclo'])
 
 
 class MinistrarAulaViewSet(AuditMixin, ModelViewSet):

@@ -50,11 +50,12 @@ const MENU = [
     icon: Dumbbell,
     permission: 'tecnico',
     children: [
-      { label: 'Aulas',            path: '/tecnico/aulas',          icon: CalendarDays },
-      { label: 'Ministrar Aula',   path: '/tecnico/ministrar-aula', icon: Activity },
-      { label: 'Fichas de Treino', path: '/tecnico/fichas',         icon: FileText },
-      { label: 'Exercícios',       path: '/tecnico/exercicios',     icon: Dumbbell },
-      { label: 'Reposições',       path: '/tecnico/reposicoes',     icon: Repeat2 },
+      { label: 'Aulas',                path: '/tecnico/aulas',            icon: CalendarDays },
+      { label: 'Ministrar Aula',     path: '/tecnico/ministrar-aula',   icon: Activity },
+      { label: 'Programa das Turmas', path: '/tecnico/programa-turma',  icon: ClipboardList },
+      { label: 'Fichas de Treino',   path: '/tecnico/fichas',           icon: FileText },
+      { label: 'Exercícios',         path: '/tecnico/exercicios',       icon: Dumbbell },
+      { label: 'Reposições',         path: '/tecnico/reposicoes',       icon: Repeat2 },
     ],
   },
   {

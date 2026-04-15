@@ -188,7 +188,8 @@ class Aulas(BaseModel):
     """
     Aula coletiva — 1 linha por aula. Agregador de MinistrarAula.
     Fase 3.3 — facilita relatórios e histórico de aulas.
-    Constraint: UNIQUE(tur, aul_data, aul_hora_inicio)
+    Fase 5 — campos de ciclo: aul_numero_ciclo + aul_posicao_ciclo.
+    Constraint: UNIQUE(tur, aul_data, aul_modalidade)
     """
     MODALIDADE_CHOICES = [
         ('pilates', 'Mat Pilates'),
@@ -203,6 +204,10 @@ class Aulas(BaseModel):
         'operacional.Funcionario', on_delete=models.PROTECT,
         null=True, blank=True, verbose_name='professor'
     )
+    fitr = models.ForeignKey(
+        'FichaTreino', on_delete=models.SET_NULL,
+        null=True, blank=True, verbose_name='ficha de treino'
+    )
     aul_data = models.DateField('data da aula')
     aul_hora_inicio = models.TimeField('hora de início', null=True, blank=True)
     aul_hora_final = models.TimeField('hora de término', null=True, blank=True)
@@ -211,6 +216,8 @@ class Aulas(BaseModel):
         'nome/descrição', max_length=150, null=True, blank=True,
         help_text='Ex: "Funcional Seg 17:00" — preenchido automaticamente se deixado em branco'
     )
+    aul_numero_ciclo = models.IntegerField('número do ciclo', default=1)
+    aul_posicao_ciclo = models.IntegerField('posição no ciclo', null=True, blank=True)
 
     class Meta:
         db_table = 'aulas'
@@ -226,6 +233,36 @@ class Aulas(BaseModel):
 
     def __str__(self):
         return self.aul_nome or f'{self.tur} — {self.aul_data}'
+
+
+class ProgramaTurma(BaseModel):
+    """
+    Sequência ordenada de fichas de treino para uma turma.
+    Fase 5 — define o ciclo: posição 1→N, repete após completar.
+    """
+    prog_id = models.AutoField(primary_key=True)
+    turma = models.ForeignKey(
+        'operacional.Turma', on_delete=models.PROTECT,
+        related_name='programa', verbose_name='turma'
+    )
+    fitr = models.ForeignKey(
+        'FichaTreino', on_delete=models.PROTECT,
+        related_name='programas', verbose_name='ficha de treino'
+    )
+    prog_ordem = models.IntegerField('posição no ciclo')
+
+    class Meta:
+        db_table = 'programa_turma'
+        verbose_name = 'Programa da Turma'
+        verbose_name_plural = 'Programas das Turmas'
+        unique_together = [
+            ('turma', 'prog_ordem'),
+            ('turma', 'fitr'),
+        ]
+        ordering = ['turma', 'prog_ordem']
+
+    def __str__(self):
+        return f'{self.turma} — Posição {self.prog_ordem}: {self.fitr}'
 
 
 class MinistrarAula(BaseModel):

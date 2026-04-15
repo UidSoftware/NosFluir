@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula
+from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula, ProgramaTurma
 
 
 class AcessorioSerializer(serializers.ModelSerializer):
@@ -80,10 +80,21 @@ class FichaTreinoSerializer(serializers.ModelSerializer):
         read_only_fields = ['fitr_id', 'created_at', 'updated_at']
 
 
+class ProgramaTurmaSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    fitr_nome = serializers.CharField(source='fitr.fitr_nome', read_only=True)
+
+    class Meta:
+        model = ProgramaTurma
+        fields = ['id', 'prog_id', 'turma', 'fitr', 'fitr_nome', 'prog_ordem', 'created_at', 'updated_at']
+        read_only_fields = ['prog_id', 'created_at', 'updated_at']
+
+
 class AulasSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
     tur_nome = serializers.CharField(source='tur.tur_nome', read_only=True)
     func_nome = serializers.CharField(source='func.func_nome', read_only=True, allow_null=True)
+    fitr_nome = serializers.CharField(source='fitr.fitr_nome', read_only=True, allow_null=True)
     total_presentes = serializers.SerializerMethodField()
     total_faltas = serializers.SerializerMethodField()
     total_registros = serializers.SerializerMethodField()
@@ -92,12 +103,14 @@ class AulasSerializer(serializers.ModelSerializer):
         model = Aulas
         fields = [
             'id', 'aul_id', 'tur', 'tur_nome', 'func', 'func_nome',
+            'fitr', 'fitr_nome',
             'aul_data', 'aul_hora_inicio', 'aul_hora_final',
             'aul_modalidade', 'aul_nome',
+            'aul_numero_ciclo', 'aul_posicao_ciclo',
             'total_presentes', 'total_faltas', 'total_registros',
             'created_at', 'updated_at',
         ]
-        read_only_fields = ['aul_id', 'created_at', 'updated_at']
+        read_only_fields = ['aul_id', 'aul_numero_ciclo', 'aul_posicao_ciclo', 'created_at', 'updated_at']
 
     def validate(self, data):
         hora_inicio = data.get('aul_hora_inicio', getattr(self.instance, 'aul_hora_inicio', None))

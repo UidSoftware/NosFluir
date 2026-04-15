@@ -313,6 +313,26 @@ export default function MinistrarAulaPage() {
     enabled: !!turmaId,
   })
 
+  // Sugestão automática: última aula da turma → próxima ficha do programa
+  useQuery({
+    queryKey: ['sugestao-ficha', turmaId],
+    queryFn: async () => {
+      const [programaResp, ultimaAulaResp] = await Promise.all([
+        api.get('/programa-turma/', { params: { turma: turmaId, ordering: 'prog_ordem' } }),
+        api.get('/aulas/', { params: { tur: turmaId, ordering: '-aul_data', page: 1 } }),
+      ])
+      const programa = programaResp.data.results
+      if (!programa.length) return null
+      const ultimaPosicao = ultimaAulaResp.data.results?.[0]?.aul_posicao_ciclo ?? 0
+      const proxima = programa.find(p => p.prog_ordem === ultimaPosicao + 1) ?? programa[0]
+      return proxima?.fitr ?? null
+    },
+    enabled: !!turmaId && step === 'configurar',
+    onSuccess: (fitrId) => {
+      if (fitrId && !fichaId) setFichaId(String(fitrId))
+    },
+  })
+
   const { data: exerciciosFicha } = useQuery({
     queryKey: ['ficha-exercicios-aula', fichaId],
     queryFn: () => api.get('/fichas-treino-exercicios/', { params: { fitr: fichaId, ordering: 'ftex_ordem' } })
@@ -374,6 +394,7 @@ export default function MinistrarAulaPage() {
       const resp = await api.post('/aulas/', {
         tur: parseInt(turmaId),
         func: parseInt(funcId),
+        fitr: fichaId ? parseInt(fichaId) : null,
         aul_data: data,
         aul_modalidade: turmaSelecionada.tur_modalidade,
         aul_hora_inicio: horaInicio,

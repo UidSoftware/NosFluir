@@ -7,11 +7,11 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apps.core.mixins import AuditMixin
 
-from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula, ProgramaTurma
+from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula, ProgramaTurma, RegistroExercicioAluno
 from .serializers import (
     AcessorioSerializer, AparelhoSerializer, AulasSerializer, MinistrarAulaSerializer,
     CreditoReposicaoSerializer, ExercicioSerializer, FichaTreinoSerializer, FichaTreinoExerciciosSerializer,
-    ProgramaTurmaSerializer,
+    ProgramaTurmaSerializer, RegistroExercicioAlunoSerializer,
 )
 
 
@@ -125,6 +125,28 @@ class MinistrarAulaViewSet(AuditMixin, ModelViewSet):
     filterset_fields = ['aula', 'tur', 'alu', 'func', 'miau_tipo_presenca', 'miau_data']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
     ordering_fields = ['miau_data', 'aula__aul_data']
+
+
+class RegistroExercicioAlunoFilter(django_filters.FilterSet):
+    ministrar_aula__alu       = django_filters.NumberFilter(field_name='ministrar_aula__alu')
+    ministrar_aula__aula__fitr = django_filters.NumberFilter(field_name='ministrar_aula__aula__fitr')
+
+    class Meta:
+        model = RegistroExercicioAluno
+        fields = ['ministrar_aula', 'ftex']
+
+
+class RegistroExercicioAlunoViewSet(AuditMixin, ModelViewSet):
+    queryset = (
+        RegistroExercicioAluno.objects
+        .filter(deleted_at__isnull=True)
+        .select_related('ftex__exe')
+        .order_by('ftex__ftex_ordem')
+    )
+    serializer_class = RegistroExercicioAlunoSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = RegistroExercicioAlunoFilter
+    ordering_fields = ['ftex__ftex_ordem', 'created_at']
 
 
 class CreditoReposicaoViewSet(AuditMixin, ModelViewSet):

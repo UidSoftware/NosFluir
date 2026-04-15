@@ -265,6 +265,36 @@ class ProgramaTurma(BaseModel):
         return f'{self.turma} — Posição {self.prog_ordem}: {self.fitr}'
 
 
+class RegistroExercicioAluno(BaseModel):
+    """
+    Registro individualizado de exercício por aluno em uma aula.
+    Fase 5 — base para relatórios de evolução de carga por ciclo.
+    """
+    reg_id = models.AutoField(primary_key=True)
+    ministrar_aula = models.ForeignKey(
+        'MinistrarAula', on_delete=models.PROTECT,
+        related_name='registros_exercicios', verbose_name='registro de aula'
+    )
+    ftex = models.ForeignKey(
+        'FichaTreinoExercicios', on_delete=models.PROTECT,
+        related_name='registros_alunos', verbose_name='exercício da ficha'
+    )
+    reg_series      = models.IntegerField('séries', null=True, blank=True)
+    reg_repeticoes  = models.IntegerField('repetições', null=True, blank=True)
+    reg_carga       = models.CharField('carga', max_length=50, null=True, blank=True)
+    reg_observacoes = models.TextField('observações', null=True, blank=True)
+
+    class Meta:
+        db_table = 'registro_exercicio_aluno'
+        verbose_name = 'Registro de Exercício'
+        verbose_name_plural = 'Registros de Exercícios'
+        unique_together = [('ministrar_aula', 'ftex')]
+        ordering = ['ftex__ftex_ordem']
+
+    def __str__(self):
+        return f'{self.ministrar_aula.alu} — {self.ftex}'
+
+
 class MinistrarAula(BaseModel):
     """
     Registro de aulas ministradas. 1 linha = 1 aluno em 1 aula.

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula, ProgramaTurma
+from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula, ProgramaTurma, RegistroExercicioAluno
 
 
 class AcessorioSerializer(serializers.ModelSerializer):
@@ -208,6 +208,20 @@ class MinistrarAulaSerializer(serializers.ModelSerializer):
             )
 
         return data
+
+
+class RegistroExercicioAlunoSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    exe_nome = serializers.CharField(source='ftex.exe.exe_nome', read_only=True)
+
+    class Meta:
+        model = RegistroExercicioAluno
+        fields = [
+            'id', 'reg_id', 'ministrar_aula', 'ftex', 'exe_nome',
+            'reg_series', 'reg_repeticoes', 'reg_carga', 'reg_observacoes',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['reg_id', 'created_at', 'updated_at']
 
 
 class CreditoReposicaoSerializer(serializers.ModelSerializer):

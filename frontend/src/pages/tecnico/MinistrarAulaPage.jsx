@@ -87,7 +87,71 @@ function ExercicioLinha({ ex }) {
   )
 }
 
-function AlunoRow({ aluno, state, onUpdate, exerciciosFicha }) {
+function ExercicioEditavel({ ex, exState, onUpdateEx, ultimoReg }) {
+  const series     = exState?.reg_series      ?? ''
+  const repeticoes = exState?.reg_repeticoes  ?? ''
+  const carga      = exState?.reg_carga       ?? ''
+  const obsEx      = exState?.reg_observacoes ?? ''
+
+  return (
+    <div className="rounded-md border border-border/50 bg-fluir-dark-3 px-3 py-2 space-y-2">
+      {/* Nome do exercício */}
+      <p className="text-sm font-medium">
+        <span className="text-muted-foreground">{ex.ftex_ordem}.</span>{' '}
+        {ex.exe_nome}
+        {ex.exe2_nome && <span className="text-fluir-cyan"> + {ex.exe2_nome}</span>}
+        {ex.apar_nome && <span className="text-muted-foreground text-xs"> · {ex.apar_nome}</span>}
+      </p>
+
+      {/* Campos editáveis */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-gray-400">Séries</label>
+          <Input type="number" min="1" value={series}
+            onChange={e => onUpdateEx({ reg_series: e.target.value })}
+            placeholder={ex.ftex_series ?? '—'}
+            className="w-full text-sm px-2 py-1 mt-0.5" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Reps</label>
+          <Input type="number" min="1" value={repeticoes}
+            onChange={e => onUpdateEx({ reg_repeticoes: e.target.value })}
+            placeholder={ex.ftex_repeticoes ?? '—'}
+            className="w-full text-sm px-2 py-1 mt-0.5" />
+        </div>
+      </div>
+      <div>
+        <label className="text-xs text-gray-400">Carga</label>
+        <Input value={carga}
+          onChange={e => onUpdateEx({ reg_carga: e.target.value })}
+          placeholder="ex: 5kg, faixa amarela..."
+          className="w-full text-sm px-2 py-1 mt-0.5" />
+      </div>
+      <div>
+        <label className="text-xs text-gray-400">Obs do exercício</label>
+        <textarea
+          value={obsEx}
+          onChange={e => onUpdateEx({ reg_observacoes: e.target.value })}
+          placeholder="Observações..."
+          rows={1}
+          className="w-full mt-0.5 rounded-md border border-border bg-fluir-dark-2 px-2 py-1 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-fluir-cyan resize-none"
+        />
+      </div>
+
+      {/* Referência da última vez */}
+      {ultimoReg && (
+        <div className="rounded-md bg-fluir-dark-2/80 border border-border/30 px-2 py-1.5 text-xs text-muted-foreground">
+          <span className="text-fluir-cyan font-medium">Última vez: </span>
+          {ultimoReg.reg_series && <span>{ultimoReg.reg_series}x{ultimoReg.reg_repeticoes} </span>}
+          {ultimoReg.reg_carga && <span>· {ultimoReg.reg_carga} </span>}
+          {ultimoReg.reg_observacoes && <span className="italic">· {ultimoReg.reg_observacoes}</span>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, fichaId }) {
   const presenca  = state?.presenca  ?? 'presente'
   const faltaTipo = state?.faltaTipo ?? 'sem_aviso'
   const pasI      = state?.pasI      ?? ''
@@ -112,6 +176,26 @@ function AlunoRow({ aluno, state, onUpdate, exerciciosFicha }) {
     queryFn: () => api.get('/ministrar-aula/', {
       params: { alu: aluno.id, ordering: '-miau_data', page: 1 },
     }).then(r => r.data.results?.[0] ?? null),
+  })
+
+  // Últimos registros de exercício deste aluno nesta ficha (para referência)
+  const { data: ultimosExercicios } = useQuery({
+    queryKey: ['ultimos-exercicios-aluno', aluno.id, fichaId],
+    queryFn: () => api.get('/registro-exercicio-aluno/', {
+      params: {
+        'ministrar_aula__alu': aluno.id,
+        'ministrar_aula__aula__fitr': fichaId,
+        ordering: '-created_at',
+      },
+    }).then(r => {
+      // Agrupa por ftex_id, pega o mais recente (ordering -created_at)
+      const mapa = {}
+      r.data.results.forEach(reg => {
+        if (!mapa[reg.ftex]) mapa[reg.ftex] = reg
+      })
+      return mapa
+    }),
+    enabled: !!fichaId,
   })
 
   const proximoCredito = creditos?.[0]
@@ -215,10 +299,18 @@ function AlunoRow({ aluno, state, onUpdate, exerciciosFicha }) {
               placeholder="70" className="w-full text-sm px-2 py-1 mt-0.5" />
           </div>
 
-          {/* ── Exercícios da ficha ── */}
+          {/* ── Exercícios com campos editáveis ── */}
           {exerciciosFicha?.length > 0 && (
-            <div className="rounded-md bg-fluir-dark-3 px-3 py-2">
-              <ExerciciosFicha exercicios={exerciciosFicha} />
+            <div className="space-y-2">
+              {[...exerciciosFicha].sort((a, b) => a.ftex_ordem - b.ftex_ordem).map(ex => (
+                <ExercicioEditavel
+                  key={ex.ftex_id}
+                  ex={ex}
+                  exState={state?.exercicios?.[ex.ftex_id]}
+                  onUpdateEx={patch => onUpdateExercicio(aluno.id, ex.ftex_id, patch)}
+                  ultimoReg={ultimosExercicios?.[ex.ftex_id]}
+                />
+              ))}
             </div>
           )}
 
@@ -369,6 +461,41 @@ export default function MinistrarAulaPage() {
     }))
   }, [])
 
+  const updateExercicio = useCallback((alunoId, ftexId, patch) => {
+    setAlunoStates(prev => ({
+      ...prev,
+      [alunoId]: {
+        ...prev[alunoId],
+        exercicios: {
+          ...prev[alunoId]?.exercicios,
+          [ftexId]: { ...prev[alunoId]?.exercicios?.[ftexId], ...patch },
+        },
+      },
+    }))
+  }, [])
+
+  // Inicializa estado dos exercícios quando a ficha carrega
+  useEffect(() => {
+    if (!exerciciosFicha?.length || !alunosTurma?.length) return
+    setAlunoStates(prev => {
+      const next = { ...prev }
+      alunosTurma.forEach(ta => {
+        if (!next[ta.alu]) return
+        const exs = {}
+        exerciciosFicha.forEach(ex => {
+          exs[ex.ftex_id] = {
+            reg_series:      ex.ftex_series      != null ? String(ex.ftex_series)      : '',
+            reg_repeticoes:  ex.ftex_repeticoes  != null ? String(ex.ftex_repeticoes)  : '',
+            reg_carga:       '',
+            reg_observacoes: '',
+          }
+        })
+        next[ta.alu] = { ...next[ta.alu], exercicios: exs }
+      })
+      return next
+    })
+  }, [exerciciosFicha, alunosTurma])
+
   const turmaSelecionada = turmas?.find(t => t.tur_id === parseInt(turmaId))
 
   const iniciar = async () => {
@@ -514,7 +641,29 @@ export default function MinistrarAulaPage() {
       }
 
       try {
-        await api.post('/ministrar-aula/', payload)
+        const miauResp = await api.post('/ministrar-aula/', payload)
+        const miauId = miauResp.data.miau_id
+
+        // Salvar registros individuais de exercícios
+        const exs = d.exercicios || {}
+        for (const [ftexId, exData] of Object.entries(exs)) {
+          const temDados = exData.reg_series !== '' || exData.reg_repeticoes !== '' ||
+                           (exData.reg_carga || '').trim() !== '' ||
+                           (exData.reg_observacoes || '').trim() !== ''
+          if (!temDados) continue
+          try {
+            await api.post('/registro-exercicio-aluno/', {
+              ministrar_aula: miauId,
+              ftex:           parseInt(ftexId),
+              reg_series:     exData.reg_series !== '' ? parseInt(exData.reg_series) : null,
+              reg_repeticoes: exData.reg_repeticoes !== '' ? parseInt(exData.reg_repeticoes) : null,
+              reg_carga:      exData.reg_carga || null,
+              reg_observacoes: exData.reg_observacoes || null,
+            })
+          } catch {
+            // Não bloqueia o fluxo principal — apenas loga
+          }
+        }
       } catch (err) {
         erros++
         const nome = ta.alu_nome || `Aluno ${ta.alu}`
@@ -586,7 +735,9 @@ export default function MinistrarAulaPage() {
                 aluno={{ id: ta.alu, alu_nome: ta.alu_nome || `Aluno ${ta.alu}` }}
                 state={alunoStates[ta.alu]}
                 onUpdate={updateAluno}
+                onUpdateExercicio={updateExercicio}
                 exerciciosFicha={exerciciosFicha}
+                fichaId={fichaId}
               />
             ))
           ) : (

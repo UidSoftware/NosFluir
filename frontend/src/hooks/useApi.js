@@ -107,6 +107,19 @@ export function useDelete(key, endpoint, options = {}) {
   })
 }
 
+// ── fetchAll — busca todas as páginas (para selects/combos) ─────────────────
+export async function fetchAll(endpoint, params = {}) {
+  let results = []
+  let page = 1
+  while (true) {
+    const { data } = await api.get(endpoint, { params: { ...params, page } })
+    results = results.concat(data.results)
+    if (!data.next) break
+    page++
+  }
+  return results
+}
+
 // ── Extrai mensagem de erro da resposta ─────────────────────────────────────
 function extractError(err) {
   const data = err.response?.data

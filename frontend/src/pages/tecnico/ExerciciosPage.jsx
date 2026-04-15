@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Boxes, Dumbbell, Package, Plus, Pencil, Trash2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
+import { useList, useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SearchFilter } from '@/components/shared/SearchFilter'
@@ -30,7 +30,7 @@ const MODALIDADE_VARIANT = { pilates: 'cyan', funcional: 'success' }
 function useAparelhos() {
   return useQuery({
     queryKey: ['aparelhos-select'],
-    queryFn: () => api.get('/aparelhos/', { params: { apar_ativo: true } }).then(r => r.data.results),
+    queryFn: () => fetchAll('/aparelhos/', { apar_ativo: true }),
     staleTime: 5 * 60 * 1000,
   })
 }
@@ -38,7 +38,7 @@ function useAparelhos() {
 function useAcessorios() {
   return useQuery({
     queryKey: ['acessorios-select'],
-    queryFn: () => api.get('/acessorios/', { params: { acess_ativo: true } }).then(r => r.data.results),
+    queryFn: () => fetchAll('/acessorios/', { acess_ativo: true }),
     staleTime: 5 * 60 * 1000,
   })
 }

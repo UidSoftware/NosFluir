@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { FileText, Plus, Pencil, Trash2, Dumbbell } from 'lucide-react'
-import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
+import { useList, useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -86,7 +86,7 @@ function EditExercicioForm({ ftex, fichaId, onClose }) {
 
   const { data: exercicios } = useQuery({
     queryKey: ['exercicios-select'],
-    queryFn: () => api.get('/exercicios/').then(r => r.data.results),
+    queryFn: () => fetchAll('/exercicios/'),
   })
 
   const mutation = useMutation({
@@ -177,7 +177,7 @@ function AddExercicioForm({ fichaId, onClose }) {
 
   const { data: exercicios } = useQuery({
     queryKey: ['exercicios-select'],
-    queryFn: () => api.get('/exercicios/').then(r => r.data.results),
+    queryFn: () => fetchAll('/exercicios/'),
   })
 
   const mutation = useMutation({

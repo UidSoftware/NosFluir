@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { UserCheck, Plus, Pencil, Trash2, Eye } from 'lucide-react'
-import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
+import { useList, useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -38,7 +38,7 @@ function FuncForm({ func, onClose }) {
 
   const { data: profissoes } = useQuery({
     queryKey: ['profissoes-select'],
-    queryFn: () => api.get('/profissoes/', { params: { page_size: 100 } }).then(r => r.data.results),
+    queryFn: () => fetchAll('/profissoes/'),
   })
 
   const onSubmit = (data) => {

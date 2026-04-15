@@ -10,6 +10,7 @@ import { toast } from '@/hooks/useToast'
 import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import api from '@/services/api'
+import { fetchAll } from '@/hooks/useApi'
 
 const PRESENCA_OPTS = [
   { value: 'presente',  label: 'Presente',   Icon: CheckCircle },
@@ -294,17 +295,17 @@ export default function MinistrarAulaPage() {
 
   const { data: turmas, isLoading: loadingTurmas } = useQuery({
     queryKey: ['turmas-select'],
-    queryFn: () => api.get('/turmas/').then(r => r.data.results),
+    queryFn: () => fetchAll('/turmas/'),
   })
 
   const { data: funcionarios } = useQuery({
     queryKey: ['funcionarios-select'],
-    queryFn: () => api.get('/funcionarios/').then(r => r.data.results),
+    queryFn: () => fetchAll('/funcionarios/'),
   })
 
   const { data: fichas } = useQuery({
     queryKey: ['fichas-select'],
-    queryFn: () => api.get('/fichas-treino/').then(r => r.data.results),
+    queryFn: () => fetchAll('/fichas-treino/'),
   })
 
   const { data: alunosTurma, isLoading: loadingAlunos } = useQuery({

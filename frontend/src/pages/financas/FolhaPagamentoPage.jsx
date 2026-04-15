@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Banknote, Plus, Pencil, Trash2 } from 'lucide-react'
-import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
+import { useList, useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -49,7 +49,7 @@ function FolhaForm({ folha, onClose }) {
 
   const { data: funcionarios } = useQuery({
     queryKey: ['funcionarios-select'],
-    queryFn: () => api.get('/funcionarios/').then(r => r.data.results),
+    queryFn: () => fetchAll('/funcionarios/'),
   })
 
   const onSubmit = (data) => {

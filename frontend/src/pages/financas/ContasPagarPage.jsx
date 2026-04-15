@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { CreditCard, Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react'
-import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
+import { useList, useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -56,7 +56,7 @@ function ContaForm({ conta, onClose }) {
 
   const { data: fornecedores } = useQuery({
     queryKey: ['fornecedores-select'],
-    queryFn: () => api.get('/fornecedores/').then(r => r.data.results),
+    queryFn: () => fetchAll('/fornecedores/'),
   })
 
   const onSubmit = (data) => {

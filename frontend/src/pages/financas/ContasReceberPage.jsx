@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Wallet, Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react'
-import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
+import { useList, useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -56,12 +56,12 @@ function ContaForm({ conta, onClose }) {
 
   const { data: alunos } = useQuery({
     queryKey: ['alunos-select'],
-    queryFn: () => api.get('/alunos/').then(r => r.data.results),
+    queryFn: () => fetchAll('/alunos/'),
   })
 
   const { data: servicos } = useQuery({
     queryKey: ['servicos-select'],
-    queryFn: () => api.get('/servicos-produtos/', { params: { serv_ativo: true } }).then(r => r.data.results),
+    queryFn: () => fetchAll('/servicos-produtos/', { serv_ativo: true }),
   })
 
   const onSubmit = (data) => {

@@ -385,8 +385,9 @@ export default function MinistrarAulaPage() {
       if (status === 400) {
         // unique_together: já existe Aula para essa turma+data+modalidade
         const errData = err.response?.data
-        const isUnique = JSON.stringify(errData).toLowerCase().includes('unique') ||
-                         JSON.stringify(errData).toLowerCase().includes('already')
+        const errStr = JSON.stringify(errData).toLowerCase()
+        const isUnique = errStr.includes('unique') || errStr.includes('already') ||
+                         errStr.includes('único') || !!errData?.non_field_errors
         if (isUnique) {
           toast({
             title: 'Já existe uma aula registrada para essa turma nesta data.',

@@ -406,7 +406,7 @@ export default function MinistrarAulaPage() {
   })
 
   // Sugestão automática: última aula da turma → próxima ficha do programa
-  useQuery({
+  const { data: fichaSugerida } = useQuery({
     queryKey: ['sugestao-ficha', turmaId],
     queryFn: async () => {
       const [programaResp, ultimaAulaResp] = await Promise.all([
@@ -420,10 +420,12 @@ export default function MinistrarAulaPage() {
       return proxima?.fitr ?? null
     },
     enabled: !!turmaId && step === 'configurar',
-    onSuccess: (fitrId) => {
-      if (fitrId && !fichaId) setFichaId(String(fitrId))
-    },
   })
+
+  // onSuccess foi removido no TanStack Query v5 — usar useEffect
+  useEffect(() => {
+    if (fichaSugerida && !fichaId) setFichaId(String(fichaSugerida))
+  }, [fichaSugerida])
 
   const { data: exerciciosFicha } = useQuery({
     queryKey: ['ficha-exercicios-aula', fichaId],

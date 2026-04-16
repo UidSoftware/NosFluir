@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 15/04/2026 | Versão: 8.0
+> Última atualização: 16/04/2026 | Versão: 8.1
 
 ---
 
@@ -585,14 +585,15 @@ git pull origin main && docker compose restart nginx
 - [x] `AulasPage`: filtros responsivos mobile (grid stack) + coluna Professor oculta em telas pequenas
 - [x] `AulasPage`: botão "Nova Aula" removido — criação é automática via `MinistrarAula.perform_create`
 
-### Fase 4 Refactor ✅ COMPLETO E EM PRODUÇÃO (15/04/2026)
+### Fase 4 Refactor ✅ COMPLETO, VALIDADO E ENCERRADO (16/04/2026)
 - [x] Hora início/fim migrada de MinistrarAula → Aulas
 - [x] FK `aula` em MinistrarAula obrigatória (PROTECT)
 - [x] unique_together MinistrarAula: (aula, alu)
 - [x] MinistrarAulaPage: POST /api/aulas/ ao iniciar, PATCH ao finalizar
 - [x] Migrations 0020–0024 aplicadas em produção
+- [x] **Validado em produção com aula real** — Funcional 17:00, 15/04/2026, 3 alunos
 
-### Fase 5 ✅ COMPLETO E EM PRODUÇÃO (15/04/2026)
+### Fase 5 ✅ COMPLETO, VALIDADO E ENCERRADO (16/04/2026)
 - [x] Model `ProgramaTurma` — sequência ordenada de fichas por turma
 - [x] `Aulas`: campos `aul_numero_ciclo` e `aul_posicao_ciclo` calculados automaticamente; FK `fitr`
 - [x] `AulasViewSet.perform_create`: calcula ciclo/posição com base no ProgramaTurma
@@ -604,6 +605,7 @@ git pull origin main && docker compose restart nginx
 - [x] Filtros de evolução: `aul_numero_ciclo`, `aul_posicao_ciclo`, `ftex__exe`, `ministrar_aula__aula__fitr`
 - [x] Migrations 0025–0026 aplicadas
 - [x] 84 testes passando
+- [x] **Validado em produção com aula real**
 
 ### Pendências técnicas restantes:
 - [ ] Permissões por perfil (Professor/Financeiro/Recepcionista) não implementadas

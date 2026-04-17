@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
-import { FileText, Plus, Pencil, Trash2, Dumbbell } from 'lucide-react'
-import { useList, useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
+import { FileText, Plus, Pencil, Trash2, Dumbbell, ChevronDown, ChevronRight } from 'lucide-react'
+import { useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -8,12 +8,12 @@ import { SearchFilter } from '@/components/shared/SearchFilter'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/table'
-import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input, FormField, Spinner, Badge } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/useToast'
+import { cn } from '@/lib/utils'
 import api from '@/services/api'
 
 const ENDPOINT      = '/fichas-treino/'
@@ -27,12 +27,12 @@ const MODALIDADES = [
 
 const MODALIDADE_VARIANT = { pilates: 'cyan', funcional: 'success' }
 
-function FichaForm({ ficha, onClose }) {
+function FichaForm({ ficha, modalidadeInicial, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: ficha ? {
       fitr_nome:       ficha.fitr_nome,
       fitr_modalidade: ficha.fitr_modalidade || '__none__',
-    } : { fitr_modalidade: '__none__' },
+    } : { fitr_modalidade: modalidadeInicial || '__none__' },
   })
 
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
@@ -261,17 +261,91 @@ function AddExercicioForm({ fichaId, onClose }) {
   )
 }
 
+const GRUPOS_MODALIDADE = [
+  { key: 'pilates',   label: 'Mat Pilates', icon: '🧘' },
+  { key: 'funcional', label: 'Funcional',   icon: '💪' },
+  { key: null,        label: 'Sem modalidade', icon: null },
+]
+
+function FichaGrupoCard({ grupo, fichaDetalhe, onSelect, onEdit, onDelete, onNova }) {
+  const [aberto, setAberto] = useState(true)
+  const { key, label, icon, fichas } = grupo
+
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <button
+            className="flex items-center gap-2 text-sm font-semibold flex-1 text-left"
+            onClick={() => setAberto(v => !v)}
+          >
+            {icon && <span>{icon}</span>}
+            <span>{label}</span>
+            <Badge variant={MODALIDADE_VARIANT[key] || 'default'} className="text-[10px] px-1.5">
+              {fichas.length}
+            </Badge>
+            {aberto
+              ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+              : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+          </button>
+          <Button size="sm" variant="ghost" onClick={() => onNova(key)}>
+            <Plus className="w-3.5 h-3.5" />Nova
+          </Button>
+        </div>
+        {aberto && (
+          <div className="divide-y divide-border/40">
+            {fichas.length === 0 ? (
+              <p className="text-xs text-muted-foreground px-4 py-3">Nenhuma ficha nesta modalidade.</p>
+            ) : fichas.map(r => (
+              <div
+                key={r.fitr_id}
+                className={cn(
+                  'flex items-center justify-between px-4 py-2.5 hover:bg-fluir-dark-3 transition-colors',
+                  fichaDetalhe?.fitr_id === r.fitr_id && 'bg-fluir-dark-3'
+                )}
+              >
+                <button
+                  className="text-sm font-medium text-left flex-1"
+                  onClick={() => onSelect(r)}
+                >
+                  <Dumbbell className="w-3 h-3 inline mr-1.5 text-muted-foreground" />
+                  {r.fitr_nome}
+                </button>
+                <div className="flex gap-0.5 shrink-0">
+                  <Button variant="ghost" size="icon-sm" onClick={() => onEdit(r)}>
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" onClick={() => onDelete(r.fitr_id)} className="text-red-400 hover:text-red-300">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function FichasTreinoPage() {
   const [modalOpen, setModalOpen]       = useState(false)
   const [addExerOpen, setAddExerOpen]   = useState(false)
   const [editExerOpen, setEditExerOpen] = useState(false)
   const [selectedExer, setSelectedExer] = useState(null)
   const [selected, setSelected]         = useState(null)
+  const [modInicial, setModInicial]     = useState(null)
   const [fichaDetalhe, setFichaDetalhe] = useState(null)
   const [deleteId, setDeleteId]         = useState(null)
+  const [busca, setBusca]               = useState('')
 
   const queryClient = useQueryClient()
-  const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
+
+  const { data: todasFichas, isLoading } = useQuery({
+    queryKey: [KEY],
+    queryFn: () => fetchAll(ENDPOINT),
+  })
+
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Ficha excluída.' })
 
   const { data: exerciciosFicha, isLoading: loadingExerc } = useQuery({
@@ -290,7 +364,6 @@ export default function FichasTreinoPage() {
 
   const exerciciosOrdenados = exerciciosFicha?.slice().sort((a, b) => a.ftex_ordem - b.ftex_ordem) || []
 
-  // Agrupa por seção mantendo a ordem interna
   const gruposSecao = useMemo(() => {
     const mapa = {}
     const ordem = []
@@ -304,37 +377,21 @@ export default function FichasTreinoPage() {
 
   const temSecao = exerciciosOrdenados.some(ex => ex.ftex_secao)
 
-  const fichasCols = [
-    {
-      key: 'fitr_nome', header: 'Ficha',
-      render: r => (
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{r.fitr_nome}</span>
-          {r.fitr_modalidade && (
-            <Badge variant={MODALIDADE_VARIANT[r.fitr_modalidade] || 'default'} className="text-[10px] px-1.5 py-0">
-              {MODALIDADES.find(m => m.value === r.fitr_modalidade)?.label || r.fitr_modalidade}
-            </Badge>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'acoes', header: '', cellClassName: 'w-28',
-      render: (r) => (
-        <div className="flex items-center gap-1 justify-end">
-          <Button variant="ghost" size="icon-sm" onClick={() => setFichaDetalhe(r)} title="Ver exercícios">
-            <Dumbbell className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}>
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.fitr_id)} className="text-red-400 hover:text-red-300">
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      ),
-    },
-  ]
+  const fichasFiltradas = useMemo(() => {
+    if (!todasFichas) return []
+    if (!busca.trim()) return todasFichas
+    const q = busca.toLowerCase()
+    return todasFichas.filter(f => f.fitr_nome.toLowerCase().includes(q))
+  }, [todasFichas, busca])
+
+  const grupos = useMemo(() =>
+    GRUPOS_MODALIDADE.map(g => ({
+      ...g,
+      fichas: fichasFiltradas.filter(f => f.fitr_modalidade === g.key),
+    }))
+  , [fichasFiltradas])
+
+  const abrirNova = (mod) => { setSelected(null); setModInicial(mod); setModalOpen(true) }
 
   const exercCols = [
     { key: 'ftex_ordem',       header: '#',         cellClassName: 'w-8' },
@@ -378,17 +435,26 @@ export default function FichasTreinoPage() {
       <PageHeader
         title="Fichas de Treino"
         description="Gerenciamento de fichas e exercícios"
-        actions={<Button onClick={() => { setSelected(null); setModalOpen(true) }}><Plus className="w-4 h-4" />Nova Ficha</Button>}
       />
 
+      <SearchFilter placeholder="Buscar por nome..." onSearch={q => setBusca(q)} />
+
       <div className={fichaDetalhe ? 'grid grid-cols-1 lg:grid-cols-2 gap-4' : ''}>
-        <Card>
-          <CardContent className="p-5 space-y-4">
-            <SearchFilter placeholder="Buscar por nome..." onSearch={q => setFilters(q ? { search: q } : {})} />
-            <DataTable columns={fichasCols} data={data} isLoading={isLoading} emptyMessage="Nenhuma ficha cadastrada." />
-            <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
-          </CardContent>
-        </Card>
+        <div className="space-y-3">
+          {isLoading ? (
+            <div className="flex justify-center py-8"><Spinner /></div>
+          ) : grupos.map(g => (
+            <FichaGrupoCard
+              key={g.key ?? '__null__'}
+              grupo={g}
+              fichaDetalhe={fichaDetalhe}
+              onSelect={setFichaDetalhe}
+              onEdit={r => { setSelected(r); setModInicial(r.fitr_modalidade); setModalOpen(true) }}
+              onDelete={id => setDeleteId(id)}
+              onNova={abrirNova}
+            />
+          ))}
+        </div>
 
         {fichaDetalhe && (
           <Card>
@@ -467,7 +533,7 @@ export default function FichasTreinoPage() {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{selected ? 'Editar Ficha' : 'Nova Ficha de Treino'}</DialogTitle></DialogHeader>
-          <FichaForm ficha={selected} onClose={() => setModalOpen(false)} />
+          <FichaForm ficha={selected} modalidadeInicial={modInicial} onClose={() => setModalOpen(false)} />
         </DialogContent>
       </Dialog>
 

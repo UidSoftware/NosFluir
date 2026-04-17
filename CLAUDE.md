@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 17/04/2026 | Versão: 8.2
+> Última atualização: 17/04/2026 | Versão: 9.0
 
 ---
 
@@ -624,6 +624,14 @@ git pull origin main && docker compose restart nginx
   - Fix: eixo X usa data da aula (não posição do ciclo) — funciona sem ProgramaTurma configurado
 - [x] Sidebar: itens "Evolução de Carga" e "Evolução PSE" adicionados
 - [x] Endpoints backend: `GET /api/relatorios/evolucao-carga/` e `GET /api/relatorios/evolucao-pse/`
+
+### Fase 7 — Remodelagem UX Mobile ✅ COMPLETO E EM PRODUÇÃO (17/04/2026)
+- [x] `MinistrarAulaPage` 7.1: select de Modalidade como 1º campo — filtra turmas e fichas; limpa seleção ao trocar
+- [x] `MinistrarAulaPage` 7.2: cards de aluno colapsáveis — collapsed no mobile, expanded no desktop; nome colorido por modalidade (roxo/cyan); auto-expand ao marcar presença
+- [x] `FichasTreinoPage` 7.3: cards por modalidade (Pilates / Funcional / Sem modalidade) — botão Nova pré-seleciona modalidade; search client-side
+- [x] `BottomBar.jsx` 7.4: barra fixa no rodapé mobile com 5 ícones (Dashboard/Finanças/Operacional/Técnico/Relatórios)
+- [x] `AppLayout`: sidebar oculta no mobile; drawer com overlay ao clicar ☰; `pb-20 md:pb-5` para não cobrir conteúdo
+- [x] `Topbar`: botão ☰ hambúrguer visível só no mobile (`md:hidden`)
 
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

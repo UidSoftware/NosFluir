@@ -1,11 +1,11 @@
-import { LogOut, User, ChevronDown } from 'lucide-react'
+import { LogOut, ChevronDown, Menu } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useNavigate } from 'react-router-dom'
 import { getInitials } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
-export function Topbar() {
+export function Topbar({ onMenuClick }) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
 
@@ -21,8 +21,14 @@ export function Topbar() {
 
   return (
     <header className="h-14 flex items-center justify-between px-5 border-b border-border bg-fluir-dark-2/80 backdrop-blur-sm shrink-0">
-      {/* Breadcrumb placeholder */}
-      <div />
+      {/* Hambúrguer só no mobile */}
+      <button
+        className="md:hidden p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-fluir-dark-3 transition-colors"
+        onClick={onMenuClick}
+      >
+        <Menu size={20} />
+      </button>
+      <div className="hidden md:block" />
 
       {/* Avatar + dropdown */}
       <DropdownMenu.Root>

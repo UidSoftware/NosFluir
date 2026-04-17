@@ -32,6 +32,11 @@ const FALTA_TIPOS = [
   { value: 'cenario3',    label: 'Aviso com mais de 48h (pendente)' },
 ]
 
+const MODALIDADES = [
+  { value: 'pilates',   label: '🧘 Mat Pilates' },
+  { value: 'funcional', label: '💪 Funcional' },
+]
+
 function SortableExercicioLinha({ ex }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.ftex_id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
@@ -194,7 +199,7 @@ function ExercicioEditavel({ ex, exState, onUpdateEx, ultimoReg }) {
   )
 }
 
-function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, fichaId }) {
+function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, fichaId, expandido, onToggle, modalidade }) {
   const presenca  = state?.presenca  ?? 'presente'
   const faltaTipo = state?.faltaTipo ?? 'sem_aviso'
   const pasI      = state?.pasI      ?? ''
@@ -251,11 +256,25 @@ function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, 
     }
   }, [proximoCredito?.cred_id, presenca, aluno.id])
 
+  const corNome = modalidade === 'pilates'
+    ? 'text-fluir-purple'
+    : modalidade === 'funcional'
+    ? 'text-fluir-cyan'
+    : ''
+
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
-      {/* Nome + botões presença */}
+      {/* Nome + botões presença — sempre visível */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="font-medium text-sm">{aluno.alu_nome}</p>
+        <button
+          onClick={onToggle}
+          className={cn('font-medium text-sm text-left flex-1 flex items-center gap-1', corNome)}
+        >
+          {aluno.alu_nome}
+          {expandido
+            ? <ChevronUp size={12} className="shrink-0 opacity-50" />
+            : <ChevronDown size={12} className="shrink-0 opacity-50" />}
+        </button>
         <div className="flex gap-1.5 flex-wrap">
           {PRESENCA_OPTS.map(o => (
             <button
@@ -278,6 +297,9 @@ function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, 
           ))}
         </div>
       </div>
+
+      {/* Conteúdo colapsável */}
+      {expandido && <>
 
       {/* Tipo de falta */}
       {presenca === 'falta' && (
@@ -410,6 +432,8 @@ function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, 
           </div>
         </div>
       )}
+
+      </>}
     </div>
   )
 }
@@ -426,6 +450,8 @@ export default function MinistrarAulaPage() {
   const [finalizando, setFinalizando]       = useState(false)
   const [alunoStates, setAlunoStates]       = useState({})
   const [exerciciosOrdenados, setExOrd]     = useState([])
+  const [modalidade, setModalidade]         = useState('')
+  const [expandidos, setExpandidos]         = useState({})
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
@@ -446,6 +472,15 @@ export default function MinistrarAulaPage() {
     queryKey: ['fichas-select'],
     queryFn: () => fetchAll('/fichas-treino/'),
   })
+
+  const turmasFiltradas = turmas?.filter(t => !modalidade || t.tur_modalidade === modalidade) ?? []
+  const fichasFiltradas = fichas?.filter(f => !modalidade || !f.fitr_modalidade || f.fitr_modalidade === modalidade) ?? []
+
+  const handleModalidadeChange = useCallback((v) => {
+    setModalidade(v === '__none__' ? '' : v)
+    setTurmaId('')
+    setFichaId('')
+  }, [])
 
   const { data: alunosTurma, isLoading: loadingAlunos } = useQuery({
     queryKey: ['turma-alunos-aula', turmaId],
@@ -510,7 +545,9 @@ export default function MinistrarAulaPage() {
   // Inicializa states quando a lista de alunos carrega
   useEffect(() => {
     if (alunosTurma?.length) {
+      const isMobile = window.innerWidth < 768
       const init = {}
+      const exp = {}
       alunosTurma.forEach(ta => {
         init[ta.alu] = {
           presenca: 'presente',
@@ -522,8 +559,10 @@ export default function MinistrarAulaPage() {
           obs: '',
           creditoId: null,
         }
+        exp[ta.alu] = !isMobile
       })
       setAlunoStates(init)
+      setExpandidos(exp)
     }
   }, [alunosTurma])
 
@@ -532,6 +571,13 @@ export default function MinistrarAulaPage() {
       ...prev,
       [alunoId]: { ...prev[alunoId], ...patch },
     }))
+    if ('presenca' in patch) {
+      setExpandidos(prev => ({ ...prev, [alunoId]: true }))
+    }
+  }, [])
+
+  const updateExpandido = useCallback((alunoId, val) => {
+    setExpandidos(prev => ({ ...prev, [alunoId]: val }))
   }, [])
 
   const updateExercicio = useCallback((alunoId, ftexId, patch) => {
@@ -750,12 +796,14 @@ export default function MinistrarAulaPage() {
     if (erros === 0) {
       toast({ title: 'Aula finalizada e registrada com sucesso!', variant: 'success' })
       setStep('configurar')
+      setModalidade('')
       setTurmaId('')
       setFichaId('')
       setFuncId('')
       setAulaId(null)
       setHoraInicio(new Date().toTimeString().slice(0, 5))
       setAlunoStates({})
+      setExpandidos({})
     }
   }
 
@@ -813,6 +861,9 @@ export default function MinistrarAulaPage() {
                 onUpdateExercicio={updateExercicio}
                 exerciciosFicha={exerciciosOrdenados.length ? exerciciosOrdenados : exerciciosFicha}
                 fichaId={fichaId}
+                expandido={expandidos[ta.alu] ?? true}
+                onToggle={() => updateExpandido(ta.alu, !(expandidos[ta.alu] ?? true))}
+                modalidade={turmaSelecionada?.tur_modalidade}
               />
             ))
           ) : (
@@ -857,12 +908,22 @@ export default function MinistrarAulaPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pb-5">
+          <FormField label="Modalidade" required>
+            <Select value={modalidade || '__none__'} onValueChange={handleModalidadeChange}>
+              <SelectTrigger><SelectValue placeholder="Selecionar modalidade..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar modalidade...</SelectItem>
+                {MODALIDADES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </FormField>
+
           <FormField label="Turma" required>
-            <Select value={turmaId || '__none__'} onValueChange={v => setTurmaId(v === '__none__' ? '' : v)} disabled={loadingTurmas}>
+            <Select value={turmaId || '__none__'} onValueChange={v => setTurmaId(v === '__none__' ? '' : v)} disabled={loadingTurmas || !modalidade}>
               <SelectTrigger><SelectValue placeholder="Selecionar turma..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar turma...</SelectItem>
-                {turmas?.map(t => <SelectItem key={t.tur_id} value={String(t.tur_id)}>{t.tur_nome}</SelectItem>)}
+                {turmasFiltradas.map(t => <SelectItem key={t.tur_id} value={String(t.tur_id)}>{t.tur_nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormField>
@@ -882,7 +943,7 @@ export default function MinistrarAulaPage() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar ficha...</SelectItem>
-                {fichas?.map(f => <SelectItem key={f.fitr_id} value={String(f.fitr_id)}>{f.fitr_nome}</SelectItem>)}
+                {fichasFiltradas.map(f => <SelectItem key={f.fitr_id} value={String(f.fitr_id)}>{f.fitr_nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormField>

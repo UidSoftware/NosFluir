@@ -1,5 +1,6 @@
 import django_filters
-from rest_framework.decorators import action
+from django.db.models import Avg, Count
+from rest_framework.decorators import action, api_view, permission_classes as perm_classes
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from django_filters.rest_framework import DjangoFilterBackend
@@ -184,3 +185,79 @@ class CreditoReposicaoViewSet(AuditMixin, ModelViewSet):
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(creditos, many=True)
         return Response(serializer.data)
+
+
+@api_view(['GET'])
+@perm_classes([IsProfessorOuAdmin])
+def evolucao_carga(request):
+    """GET /api/relatorios/evolucao-carga/?alu=X&exe=Y"""
+    alu_id = request.query_params.get('alu')
+    exe_id = request.query_params.get('exe')
+    if not alu_id or not exe_id:
+        return Response({'detail': 'Parâmetros alu e exe são obrigatórios.'}, status=400)
+
+    registros = (
+        RegistroExercicioAluno.objects
+        .filter(
+            ministrar_aula__alu=alu_id,
+            ftex__exe=exe_id,
+            deleted_at__isnull=True,
+        )
+        .select_related('ministrar_aula__aula')
+        .order_by(
+            'ministrar_aula__aula__aul_numero_ciclo',
+            'ministrar_aula__aula__aul_posicao_ciclo',
+        )
+    )
+
+    data = []
+    for reg in registros:
+        aula = reg.ministrar_aula.aula if reg.ministrar_aula else None
+        data.append({
+            'ciclo':       aula.aul_numero_ciclo    if aula else None,
+            'posicao':     aula.aul_posicao_ciclo   if aula else None,
+            'data':        aula.aul_data.isoformat() if aula and aula.aul_data else None,
+            'carga':       reg.reg_carga,
+            'series':      reg.reg_series,
+            'repeticoes':  reg.reg_repeticoes,
+            'observacoes': reg.reg_observacoes,
+        })
+    return Response(data)
+
+
+@api_view(['GET'])
+@perm_classes([IsProfessorOuAdmin])
+def evolucao_pse(request):
+    """GET /api/relatorios/evolucao-pse/?tur=X"""
+    tur_id = request.query_params.get('tur')
+    if not tur_id:
+        return Response({'detail': 'Parâmetro tur é obrigatório.'}, status=400)
+
+    dados = (
+        MinistrarAula.objects
+        .filter(
+            aula__tur=tur_id,
+            miau_tipo_presenca='presente',
+            miau_pse__isnull=False,
+            deleted_at__isnull=True,
+        )
+        .values(
+            'aula__aul_numero_ciclo',
+            'aula__aul_posicao_ciclo',
+            'aula__aul_data',
+        )
+        .annotate(pse_medio=Avg('miau_pse'), total=Count('miau_id'))
+        .order_by('aula__aul_numero_ciclo', 'aula__aul_posicao_ciclo')
+    )
+
+    result = [
+        {
+            'ciclo':     d['aula__aul_numero_ciclo'],
+            'posicao':   d['aula__aul_posicao_ciclo'],
+            'data':      d['aula__aul_data'].isoformat() if d['aula__aul_data'] else None,
+            'pse_medio': round(d['pse_medio'], 1) if d['pse_medio'] else None,
+            'total':     d['total'],
+        }
+        for d in dados
+    ]
+    return Response(result)

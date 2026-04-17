@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { CalendarDays, Pencil, Trash2, Users, CheckCircle, XCircle, Eye } from 'lucide-react'
+import { CalendarDays, Pencil, Trash2, Users, CheckCircle, XCircle, Eye, GitCompareArrows } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
+import { formatDate } from '@/lib/utils'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input, FormField, Badge, Spinner } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/useToast'
+import { cn } from '@/lib/utils'
 import api from '@/services/api'
 
 const ENDPOINT = '/aulas/'
@@ -27,6 +29,102 @@ const MODALIDADE_VARIANT = { pilates: 'cyan', funcional: 'success' }
 
 const PRESENCA_LABEL = { presente: 'Presente', falta: 'Falta', reposicao: 'Reposição' }
 const PRESENCA_VARIANT = { presente: 'success', falta: 'destructive', reposicao: 'secondary' }
+
+function ComparativoCiclo({ aula, registrosAtuais }) {
+  const [aberto, setAberto] = useState(false)
+  const temCicloAnterior = aula?.aul_numero_ciclo > 1 && aula?.aul_posicao_ciclo
+
+  const { data: aulaAnterior } = useQuery({
+    queryKey: ['aula-anterior', aula?.tur, aula?.aul_posicao_ciclo, aula?.aul_numero_ciclo],
+    queryFn: () => api.get('/aulas/', {
+      params: {
+        tur: aula.tur,
+        aul_posicao_ciclo: aula.aul_posicao_ciclo,
+        aul_numero_ciclo:  aula.aul_numero_ciclo - 1,
+      }
+    }).then(r => r.data.results?.[0] ?? null),
+    enabled: !!temCicloAnterior && aberto,
+  })
+
+  const { data: registrosAnt } = useQuery({
+    queryKey: ['ministrar-aula-comp', aulaAnterior?.aul_id],
+    queryFn: () => api.get('/ministrar-aula/', { params: { aula: aulaAnterior.aul_id, page_size: 100 } })
+      .then(r => r.data.results ?? []),
+    enabled: !!aulaAnterior?.aul_id,
+  })
+
+  if (!temCicloAnterior) return null
+
+  const mapaAnt   = Object.fromEntries((registrosAnt  || []).map(r => [r.alu, r]))
+  const mapaAtual = Object.fromEntries((registrosAtuais || []).map(r => [r.alu, r]))
+  const todosIds  = [...new Set([...Object.keys(mapaAnt), ...Object.keys(mapaAtual)])]
+
+  return (
+    <div className="mt-3 border-t border-border pt-3">
+      <button
+        onClick={() => setAberto(v => !v)}
+        className="flex items-center gap-2 text-xs text-fluir-cyan hover:text-fluir-cyan/80 transition-colors"
+      >
+        <GitCompareArrows className="w-3.5 h-3.5" />
+        {aberto ? 'Ocultar' : 'Ver'} comparativo com Ciclo {aula.aul_numero_ciclo - 1}
+      </button>
+
+      {aberto && (
+        <div className="mt-3 space-y-2">
+          {!aulaAnterior ? (
+            <p className="text-xs text-muted-foreground italic">Nenhuma aula encontrada no Ciclo {aula.aul_numero_ciclo - 1} nesta posição.</p>
+          ) : (
+            <>
+              <p className="text-[10px] text-muted-foreground">
+                Ciclo {aula.aul_numero_ciclo - 1} — {formatDate(aulaAnterior.aul_data)}
+                {' '}vs{' '}
+                Ciclo {aula.aul_numero_ciclo} — {formatDate(aula.aul_data)}
+              </p>
+              <div className="grid grid-cols-2 gap-1 text-[10px] text-muted-foreground font-semibold px-1 mb-1">
+                <span>Ciclo {aula.aul_numero_ciclo - 1}</span>
+                <span>Ciclo {aula.aul_numero_ciclo} (atual)</span>
+              </div>
+              {todosIds.map(aluId => {
+                const ant   = mapaAnt[aluId]
+                const atual = mapaAtual[aluId]
+                const nome  = ant?.alu_nome || atual?.alu_nome || `Aluno ${aluId}`
+                return (
+                  <div key={aluId} className="rounded-lg border border-border/50 p-2">
+                    <p className="text-xs font-medium mb-1.5">{nome}</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="bg-fluir-dark-3 rounded p-2 space-y-1">
+                        {ant ? <>
+                          <p>PSE: <span className="font-medium">{ant.miau_pse ?? '—'}</span></p>
+                          {ant.miau_observacoes && <p className="text-muted-foreground italic text-[10px]">{ant.miau_observacoes}</p>}
+                        </> : <p className="text-muted-foreground italic text-[10px]">Ausente</p>}
+                      </div>
+                      <div className="bg-fluir-dark-2 rounded p-2 space-y-1 border border-fluir-cyan/20">
+                        {atual ? <>
+                          <p>PSE: <span className="font-medium">{atual.miau_pse ?? '—'}</span>
+                            {ant?.miau_pse != null && atual.miau_pse != null && (
+                              <span className={cn(
+                                'ml-1 font-bold',
+                                atual.miau_pse < ant.miau_pse ? 'text-green-400' :
+                                atual.miau_pse > ant.miau_pse ? 'text-red-400' : 'text-muted-foreground'
+                              )}>
+                                {atual.miau_pse < ant.miau_pse ? '↓' : atual.miau_pse > ant.miau_pse ? '↑' : '='}
+                              </span>
+                            )}
+                          </p>
+                          {atual.miau_observacoes && <p className="text-muted-foreground italic text-[10px]">{atual.miau_observacoes}</p>}
+                        </> : <p className="text-muted-foreground italic text-[10px]">Ausente</p>}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ── Modal de detalhes (alunos da aula) ───────────────────────────────────────
 function AulaDetalheModal({ aula, onClose }) {
@@ -79,7 +177,11 @@ function AulaDetalheModal({ aula, onClose }) {
           )}
         </div>
 
-        <DialogFooter>
+        {!isLoading && aula && (
+          <ComparativoCiclo aula={aula} registrosAtuais={data} />
+        )}
+
+        <DialogFooter className="mt-3">
           <Button variant="ghost" onClick={onClose}>Fechar</Button>
         </DialogFooter>
       </DialogContent>

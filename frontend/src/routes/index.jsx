@@ -37,11 +37,13 @@ import RelPressaoPage         from '@/pages/relatorios/RelPressaoPage'
 import RelContasPagarPage     from '@/pages/relatorios/RelContasPagarPage'
 import RelContasReceberPage   from '@/pages/relatorios/RelContasReceberPage'
 import RelLivroCaixaPage      from '@/pages/relatorios/RelLivroCaixaPage'
+import RelEvolucaoCargaPage   from '@/pages/relatorios/RelEvolucaoCargaPage'
 
 // Gráficos
 import GrafFinanceiroPage     from '@/pages/graficos/GrafFinanceiroPage'
 import GrafAlunosPage         from '@/pages/graficos/GrafAlunosPage'
 import GrafFrequenciaPage     from '@/pages/graficos/GrafFrequenciaPage'
+import GrafEvolucaoPsePage    from '@/pages/graficos/GrafEvolucaoPsePage'
 
 // Configuração
 import UsuariosPage           from '@/pages/configuracao/UsuariosPage'
@@ -88,6 +90,14 @@ export const router = createBrowserRouter(
             },
 
             // ── Técnico (Professor + Admin) ────────────────────────────────
+            // Evolução de Carga fica em Relatórios mas acesso Professor+Admin
+            {
+              element: <PerfilRoute perfisPermitidos={['Administrador', 'Professor']} />,
+              children: [
+                { path: '/relatorios/evolucao-carga', element: <RelEvolucaoCargaPage /> },
+                { path: '/graficos/evolucao-pse',     element: <GrafEvolucaoPsePage /> },
+              ],
+            },
             {
               element: <PerfilRoute perfisPermitidos={['Administrador', 'Professor']} />,
               children: [

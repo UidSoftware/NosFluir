@@ -65,6 +65,7 @@ const MENU = [
     children: [
       { label: 'Frequência',       path: '/relatorios/frequencia',     icon: UserCheck },
       { label: 'Pressão Arterial', path: '/relatorios/pressao',        icon: Activity },
+      { label: 'Evolução de Carga', path: '/relatorios/evolucao-carga', icon: TrendingUp },
       { label: 'Contas a Pagar',   path: '/relatorios/contas-pagar',   icon: CreditCard },
       { label: 'Contas a Receber', path: '/relatorios/contas-receber', icon: Wallet },
       { label: 'Livro Caixa',      path: '/relatorios/livro-caixa',    icon: BookOpen },
@@ -75,9 +76,10 @@ const MENU = [
     label: 'Gráficos',
     icon: PieChart,
     children: [
-      { label: 'Financeiro', path: '/graficos/financeiro', icon: TrendingUp },
-      { label: 'Alunos',     path: '/graficos/alunos',     icon: Users },
-      { label: 'Frequência', path: '/graficos/frequencia', icon: BarChart2 },
+      { label: 'Financeiro',    path: '/graficos/financeiro',   icon: TrendingUp },
+      { label: 'Alunos',       path: '/graficos/alunos',       icon: Users },
+      { label: 'Frequência',   path: '/graficos/frequencia',   icon: BarChart2 },
+      { label: 'Evolução PSE', path: '/graficos/evolucao-pse', icon: Activity },
     ],
   },
   {

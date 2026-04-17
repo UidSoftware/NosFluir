@@ -5,6 +5,7 @@ from .views import (
     AcessorioViewSet, AparelhoViewSet, AulasViewSet, MinistrarAulaViewSet,
     CreditoReposicaoViewSet, ExercicioViewSet, FichaTreinoViewSet, FichaTreinoExerciciosViewSet,
     ProgramaTurmaViewSet, RegistroExercicioAlunoViewSet,
+    evolucao_carga, evolucao_pse,
 )
 
 router = DefaultRouter()
@@ -21,4 +22,6 @@ router.register('registro-exercicio-aluno', RegistroExercicioAlunoViewSet, basen
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('relatorios/evolucao-carga/', evolucao_carga, name='evolucao-carga'),
+    path('relatorios/evolucao-pse/',   evolucao_pse,   name='evolucao-pse'),
 ]

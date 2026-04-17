@@ -6,6 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apps.core.mixins import AuditMixin
+from apps.core.permissions import IsProfessorOuAdmin
 
 from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula, ProgramaTurma, RegistroExercicioAluno
 from .serializers import (
@@ -16,6 +17,7 @@ from .serializers import (
 
 
 class AcessorioViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsProfessorOuAdmin]
     queryset = Acessorio.objects.filter(deleted_at__isnull=True).order_by('acess_nome')
     serializer_class = AcessorioSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -25,6 +27,7 @@ class AcessorioViewSet(AuditMixin, ModelViewSet):
 
 
 class AparelhoViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsProfessorOuAdmin]
     queryset = Aparelho.objects.filter(deleted_at__isnull=True).order_by('apar_modalidade', 'apar_nome')
     serializer_class = AparelhoSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -34,6 +37,7 @@ class AparelhoViewSet(AuditMixin, ModelViewSet):
 
 
 class ExercicioViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsProfessorOuAdmin]
     # select_related: evita N+1 ao serializar apar_nome e acess_nome
     queryset = (
         Exercicio.objects
@@ -49,6 +53,7 @@ class ExercicioViewSet(AuditMixin, ModelViewSet):
 
 
 class FichaTreinoViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsProfessorOuAdmin]
     queryset = FichaTreino.objects.filter(deleted_at__isnull=True).order_by('fitr_nome')
     serializer_class = FichaTreinoSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -58,6 +63,7 @@ class FichaTreinoViewSet(AuditMixin, ModelViewSet):
 
 
 class FichaTreinoExerciciosViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsProfessorOuAdmin]
     # select_related: evita N+1 ao serializar exe_nome, apar_nome e combinados
     queryset = (
         FichaTreinoExercicios.objects
@@ -81,6 +87,7 @@ class AulasFilter(django_filters.FilterSet):
 
 
 class ProgramaTurmaViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsProfessorOuAdmin]
     queryset = ProgramaTurma.objects.filter(deleted_at__isnull=True).select_related('fitr').order_by('turma', 'prog_ordem')
     serializer_class = ProgramaTurmaSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]
@@ -89,6 +96,7 @@ class ProgramaTurmaViewSet(AuditMixin, ModelViewSet):
 
 
 class AulasViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsProfessorOuAdmin]
     queryset = (
         Aulas.objects
         .filter(deleted_at__isnull=True)
@@ -119,6 +127,7 @@ class AulasViewSet(AuditMixin, ModelViewSet):
 
 
 class MinistrarAulaViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsProfessorOuAdmin]
     queryset = MinistrarAula.objects.filter(deleted_at__isnull=True).order_by('-aula__aul_data')
     serializer_class = MinistrarAulaSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -138,6 +147,7 @@ class RegistroExercicioAlunoFilter(django_filters.FilterSet):
 
 
 class RegistroExercicioAlunoViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsProfessorOuAdmin]
     queryset = (
         RegistroExercicioAluno.objects
         .filter(deleted_at__isnull=True)
@@ -151,6 +161,7 @@ class RegistroExercicioAlunoViewSet(AuditMixin, ModelViewSet):
 
 
 class CreditoReposicaoViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsProfessorOuAdmin]
     queryset = CreditoReposicao.objects.filter(deleted_at__isnull=True).order_by('cred_data_expiracao')
     serializer_class = CreditoReposicaoSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]

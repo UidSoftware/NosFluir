@@ -4,6 +4,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apps.core.mixins import AuditMixin
+from apps.core.permissions import IsRecepcionistaOuAdmin
 
 from .models import (
     AgendamentoHorario, AgendamentoTurmas,
@@ -17,6 +18,7 @@ from .serializers import (
 
 
 class AlunoViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsRecepcionistaOuAdmin]
     queryset = Aluno.objects.filter(deleted_at__isnull=True).order_by('alu_nome')
     serializer_class = AlunoSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -25,6 +27,7 @@ class AlunoViewSet(AuditMixin, ModelViewSet):
 
 
 class ProfissaoViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsRecepcionistaOuAdmin]
     queryset = Profissao.objects.filter(deleted_at__isnull=True).order_by('prof_nome')
     serializer_class = ProfissaoSerializer
     filter_backends = [SearchFilter, OrderingFilter]
@@ -33,6 +36,7 @@ class ProfissaoViewSet(AuditMixin, ModelViewSet):
 
 
 class FuncionarioViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsRecepcionistaOuAdmin]
     queryset = Funcionario.objects.filter(deleted_at__isnull=True).order_by('func_nome')
     serializer_class = FuncionarioSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -42,6 +46,7 @@ class FuncionarioViewSet(AuditMixin, ModelViewSet):
 
 
 class TurmaViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsRecepcionistaOuAdmin]
     queryset = Turma.objects.filter(deleted_at__isnull=True).order_by('tur_nome')
     serializer_class = TurmaSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -51,6 +56,7 @@ class TurmaViewSet(AuditMixin, ModelViewSet):
 
 
 class TurmaAlunosViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsRecepcionistaOuAdmin]
     queryset = TurmaAlunos.objects.filter(deleted_at__isnull=True).order_by('tur__tur_nome', 'alu__alu_nome')
     serializer_class = TurmaAlunosSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -60,6 +66,7 @@ class TurmaAlunosViewSet(AuditMixin, ModelViewSet):
 
 
 class FichaAlunoViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsRecepcionistaOuAdmin]
     queryset = FichaAluno.objects.filter(deleted_at__isnull=True).order_by('-fial_data')
     serializer_class = FichaAlunoSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]
@@ -69,6 +76,7 @@ class FichaAlunoViewSet(AuditMixin, ModelViewSet):
 
 class AgendamentoHorarioViewSet(AuditMixin, ModelViewSet):
     """Pré-agendamentos via site — aceita criação sem autenticação."""
+    permission_classes = [IsRecepcionistaOuAdmin]
     queryset = AgendamentoHorario.objects.filter(deleted_at__isnull=True).order_by('-created_at')
     serializer_class = AgendamentoHorarioSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -84,6 +92,7 @@ class AgendamentoHorarioViewSet(AuditMixin, ModelViewSet):
 
 class AgendamentoTurmasViewSet(AuditMixin, ModelViewSet):
     """Pré-cadastro em turmas via site — aceita criação sem autenticação."""
+    permission_classes = [IsRecepcionistaOuAdmin]
     queryset = AgendamentoTurmas.objects.filter(deleted_at__isnull=True).order_by('-created_at')
     serializer_class = AgendamentoTurmasSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

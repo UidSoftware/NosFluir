@@ -7,6 +7,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apps.core.mixins import AuditMixin, ReadCreateViewSet
+from apps.core.permissions import IsFinanceiroOuAdmin
+from rest_framework.permissions import IsAdminUser
 
 from .models import (
     ContasPagar, ContasReceber, FolhaPagamento,
@@ -20,6 +22,7 @@ from .serializers import (
 
 
 class FornecedorViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsFinanceiroOuAdmin]
     queryset = Fornecedor.objects.filter(deleted_at__isnull=True).order_by('forn_nome_empresa')
     serializer_class = FornecedorSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -29,6 +32,7 @@ class FornecedorViewSet(AuditMixin, ModelViewSet):
 
 
 class ServicoProdutoViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsFinanceiroOuAdmin]
     queryset = ServicoProduto.objects.filter(deleted_at__isnull=True).order_by('serv_nome')
     serializer_class = ServicoProdutoSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -38,6 +42,7 @@ class ServicoProdutoViewSet(AuditMixin, ModelViewSet):
 
 
 class ContasPagarViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsFinanceiroOuAdmin]
     queryset = ContasPagar.objects.filter(deleted_at__isnull=True).order_by('pag_data_vencimento')
     serializer_class = ContasPagarSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -56,6 +61,7 @@ class ContasPagarViewSet(AuditMixin, ModelViewSet):
 
 
 class ContasReceberViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsFinanceiroOuAdmin]
     queryset = ContasReceber.objects.filter(deleted_at__isnull=True).order_by('rec_data_vencimento')
     serializer_class = ContasReceberSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -74,6 +80,7 @@ class ContasReceberViewSet(AuditMixin, ModelViewSet):
 
 
 class PlanosPagamentosViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsFinanceiroOuAdmin]
     queryset = PlanosPagamentos.objects.filter(deleted_at__isnull=True).order_by('-plan_data_inicio')
     serializer_class = PlanosPagamentosSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -86,6 +93,7 @@ class LivroCaixaViewSet(AuditMixin, ReadCreateViewSet):
     Livro Caixa — somente leitura e criação manual.
     PUT, PATCH e DELETE retornam 405 por design (ReadCreateViewSet).
     """
+    permission_classes = [IsFinanceiroOuAdmin]
     queryset = LivroCaixa.objects.all().order_by('-lica_id')
     serializer_class = LivroCaixaSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -109,6 +117,7 @@ class LivroCaixaViewSet(AuditMixin, ReadCreateViewSet):
 
 
 class FolhaPagamentoViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsAdminUser]
     queryset = FolhaPagamento.objects.filter(deleted_at__isnull=True).order_by(
         '-fopa_ano_referencia', '-fopa_mes_referencia'
     )

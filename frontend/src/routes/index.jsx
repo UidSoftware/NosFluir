@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { ProtectedRoute, PublicRoute } from './ProtectedRoute'
+import { ProtectedRoute, PublicRoute, PerfilRoute } from './ProtectedRoute'
 
 // Auth
 import LoginPage from '@/pages/auth/LoginPage'
@@ -69,46 +69,62 @@ export const router = createBrowserRouter(
             { index: true,        element: <Navigate to="/dashboard" replace /> },
             { path: '/dashboard', element: <Dashboard /> },
 
-            // Finanças
-            { path: '/financas/livro-caixa',      element: <LivroCaixaPage /> },
-            { path: '/financas/contas-pagar',     element: <ContasPagarPage /> },
-            { path: '/financas/contas-receber',   element: <ContasReceberPage /> },
-            { path: '/financas/planos',           element: <PlanosPage /> },
-            { path: '/financas/folha-pagamento',  element: <FolhaPagamentoPage /> },
-            { path: '/financas/fornecedores',     element: <FornecedoresPage /> },
-            { path: '/financas/servicos',         element: <ServicosPage /> },
+            // ── Finanças (Financeiro + Admin) ─────────────────────────────────
+            {
+              element: <PerfilRoute perfisPermitidos={['Administrador', 'Financeiro']} />,
+              children: [
+                { path: '/financas/livro-caixa',      element: <LivroCaixaPage /> },
+                { path: '/financas/contas-pagar',     element: <ContasPagarPage /> },
+                { path: '/financas/contas-receber',   element: <ContasReceberPage /> },
+                { path: '/financas/planos',           element: <PlanosPage /> },
+                { path: '/financas/folha-pagamento',  element: <FolhaPagamentoPage /> },
+                { path: '/financas/fornecedores',     element: <FornecedoresPage /> },
+                { path: '/financas/servicos',         element: <ServicosPage /> },
+                { path: '/relatorios/contas-pagar',   element: <RelContasPagarPage /> },
+                { path: '/relatorios/contas-receber', element: <RelContasReceberPage /> },
+                { path: '/relatorios/livro-caixa',    element: <RelLivroCaixaPage /> },
+                { path: '/graficos/financeiro',       element: <GrafFinanceiroPage /> },
+              ],
+            },
 
-            // Operacional
-            { path: '/operacional/alunos',        element: <AlunosPage /> },
-            { path: '/operacional/funcionarios',  element: <FuncionariosPage /> },
-            { path: '/operacional/turmas',        element: <TurmasPage /> },
-            { path: '/operacional/agendamentos',  element: <AgendamentosPage /> },
+            // ── Técnico (Professor + Admin) ────────────────────────────────
+            {
+              element: <PerfilRoute perfisPermitidos={['Administrador', 'Professor']} />,
+              children: [
+                { path: '/tecnico/aulas',             element: <AulasPage /> },
+                { path: '/tecnico/ministrar-aula',    element: <MinistrarAulaPage /> },
+                { path: '/tecnico/programa-turma',    element: <ProgramaTurmaPage /> },
+                { path: '/tecnico/fichas',            element: <FichasTreinoPage /> },
+                { path: '/tecnico/exercicios',        element: <ExerciciosPage /> },
+                { path: '/tecnico/reposicoes',        element: <ReposicoesPage /> },
+              ],
+            },
 
-            // Técnico
-            { path: '/tecnico/aulas',             element: <AulasPage /> },
-            { path: '/tecnico/ministrar-aula',    element: <MinistrarAulaPage /> },
-            { path: '/tecnico/programa-turma',    element: <ProgramaTurmaPage /> },
-            { path: '/tecnico/fichas',            element: <FichasTreinoPage /> },
-            { path: '/tecnico/exercicios',        element: <ExerciciosPage /> },
-            { path: '/tecnico/reposicoes',        element: <ReposicoesPage /> },
+            // ── Operacional (Recepcionista + Professor + Admin) ────────────
+            {
+              element: <PerfilRoute perfisPermitidos={['Administrador', 'Recepcionista', 'Professor']} />,
+              children: [
+                { path: '/operacional/alunos',        element: <AlunosPage /> },
+                { path: '/operacional/funcionarios',  element: <FuncionariosPage /> },
+                { path: '/operacional/turmas',        element: <TurmasPage /> },
+                { path: '/operacional/agendamentos',  element: <AgendamentosPage /> },
+                { path: '/relatorios/frequencia',     element: <RelFrequenciaPage /> },
+                { path: '/relatorios/pressao',        element: <RelPressaoPage /> },
+                { path: '/graficos/alunos',           element: <GrafAlunosPage /> },
+                { path: '/graficos/frequencia',       element: <GrafFrequenciaPage /> },
+              ],
+            },
 
-            // Relatórios
-            { path: '/relatorios/frequencia',     element: <RelFrequenciaPage /> },
-            { path: '/relatorios/pressao',        element: <RelPressaoPage /> },
-            { path: '/relatorios/contas-pagar',   element: <RelContasPagarPage /> },
-            { path: '/relatorios/contas-receber', element: <RelContasReceberPage /> },
-            { path: '/relatorios/livro-caixa',    element: <RelLivroCaixaPage /> },
-
-            // Gráficos
-            { path: '/graficos/financeiro',       element: <GrafFinanceiroPage /> },
-            { path: '/graficos/alunos',           element: <GrafAlunosPage /> },
-            { path: '/graficos/frequencia',       element: <GrafFrequenciaPage /> },
-
-            // Configuração
-            { path: '/configuracao/usuarios',     element: <UsuariosPage /> },
-            { path: '/configuracao/profissoes',   element: <ProfissoesPage /> },
-            { path: '/configuracao/aparelhos',    element: <AparelhosPage /> },
-            { path: '/configuracao/acessorios',   element: <AcessoriosPage /> },
+            // ── Configuração (Admin) ───────────────────────────────────────
+            {
+              element: <PerfilRoute perfisPermitidos={['Administrador']} />,
+              children: [
+                { path: '/configuracao/usuarios',     element: <UsuariosPage /> },
+                { path: '/configuracao/profissoes',   element: <ProfissoesPage /> },
+                { path: '/configuracao/aparelhos',    element: <AparelhosPage /> },
+                { path: '/configuracao/acessorios',   element: <AcessoriosPage /> },
+              ],
+            },
           ],
         },
       ],

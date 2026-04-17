@@ -13,6 +13,12 @@ import api from '@/services/api'
 
 const COLORS = ['#01E2CD', '#5D5CE0', '#f59e0b', '#ef4444', '#10b981', '#f97316', '#8b5cf6']
 
+const fmtData = (iso) => {
+  if (!iso) return '—'
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}`
+}
+
 export default function GrafEvolucaoPsePage() {
   const [turId, setTurId] = useState('')
 
@@ -29,15 +35,18 @@ export default function GrafEvolucaoPsePage() {
     enabled: !!turId,
   })
 
-  // Pivotar: [{posicao: 1, "Ciclo 1": 12.5, "Ciclo 2": 11.0}, ...]
-  const ciclos = [...new Set((registros || []).map(r => r.ciclo).filter(Boolean))].sort((a, b) => a - b)
-  const posicoes = [...new Set((registros || []).map(r => r.posicao).filter(Boolean))].sort((a, b) => a - b)
+  // Pivotar por data (eixo X), uma linha por ciclo
+  const ciclos = [...new Set((registros || []).map(r => r.ciclo ?? 1))].sort((a, b) => a - b)
 
-  const chartData = posicoes.map(pos => {
-    const ponto = { label: `Pos ${pos}` }
+  // Cada ponto = uma aula (data única)
+  const datas = [...new Set((registros || []).map(r => r.data).filter(Boolean))].sort()
+
+  const chartData = datas.map(dt => {
+    const ponto = { label: fmtData(dt), data: dt }
     ciclos.forEach(ciclo => {
-      const reg = registros?.find(r => r.posicao === pos && r.ciclo === ciclo)
+      const reg = (registros || []).find(r => r.data === dt && (r.ciclo ?? 1) === ciclo)
       ponto[`Ciclo ${ciclo}`] = reg?.pse_medio ?? null
+      if (reg) ponto[`_total_${ciclo}`] = reg.total
     })
     return ponto
   })
@@ -48,7 +57,7 @@ export default function GrafEvolucaoPsePage() {
     <div className="space-y-5">
       <PageHeader
         title="Evolução de PSE"
-        description="Percepção Subjetiva de Esforço (Borg 6–20) por ciclo"
+        description="Percepção Subjetiva de Esforço (Borg 6–20) por aula"
       />
 
       <FormField label="Turma" className="max-w-xs">
@@ -64,7 +73,7 @@ export default function GrafEvolucaoPsePage() {
       {!turId ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground text-sm">
-            Selecione uma turma para visualizar a evolução de PSE por ciclo.
+            Selecione uma turma para visualizar a evolução de PSE por aula.
           </CardContent>
         </Card>
       ) : isLoading ? (
@@ -79,7 +88,7 @@ export default function GrafEvolucaoPsePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">
-              {turNome} — PSE médio por posição do ciclo
+              {turNome} — PSE médio por aula
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-5">
@@ -93,7 +102,13 @@ export default function GrafEvolucaoPsePage() {
                   ticks={[6, 8, 10, 12, 14, 16, 18, 20]}
                 />
                 <Tooltip
-                  formatter={(val) => val != null ? [val.toFixed(1), 'PSE médio'] : ['—', 'PSE médio']}
+                  formatter={(val, name, props) => {
+                    if (val == null) return ['—', name]
+                    const cicloNum = name.replace('Ciclo ', '')
+                    const total = props.payload[`_total_${cicloNum}`]
+                    return [`${val.toFixed(1)} (${total} alunos)`, name]
+                  }}
+                  labelFormatter={l => `Aula: ${l}`}
                   contentStyle={{ background: '#1a1833', border: '1px solid #2d2b55', fontSize: 12 }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -111,7 +126,7 @@ export default function GrafEvolucaoPsePage() {
               </LineChart>
             </ResponsiveContainer>
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              Escala de Borg: 6 = nenhum esforço · 20 = máximo. Queda ao longo dos ciclos indica condicionamento.
+              Escala de Borg: 6 = nenhum esforço · 20 = máximo. Queda ao longo das aulas indica condicionamento.
             </p>
           </CardContent>
         </Card>

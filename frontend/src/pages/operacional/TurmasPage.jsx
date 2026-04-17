@@ -1,14 +1,12 @@
 import { useState } from 'react'
-import { CalendarDays, Plus, Pencil, Trash2, Eye, Users, UserPlus, UserMinus } from 'lucide-react'
-import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
+import { CalendarDays, Plus, Pencil, Trash2, Eye, Users, UserPlus, UserMinus, ChevronDown, ChevronRight } from 'lucide-react'
+import { useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SearchFilter } from '@/components/shared/SearchFilter'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { DataTable } from '@/components/ui/table'
-import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input, FormField, Spinner, Badge } from '@/components/ui/primitives'
@@ -25,13 +23,13 @@ const MODALIDADES = [
 ]
 const MODALIDADE_VARIANT = { pilates: 'cyan', funcional: 'success' }
 
-function TurmaForm({ turma, onClose }) {
+function TurmaForm({ turma, modalidadeInicial, onClose }) {
   const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm({
     defaultValues: turma ? {
       tur_nome:       turma.tur_nome,
       tur_horario:    turma.tur_horario || '',
       tur_modalidade: turma.tur_modalidade || '__none__',
-    } : { tur_modalidade: '__none__' },
+    } : { tur_modalidade: modalidadeInicial || '__none__' },
   })
 
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
@@ -178,96 +176,140 @@ function GerenciarAlunosModal({ turma, onClose }) {
   )
 }
 
-export default function TurmasPage() {
-  const [modalOpen, setModalOpen]   = useState(false)
-  const [alunosOpen, setAlunosOpen] = useState(false)
-  const [detailOpen, setDetailOpen] = useState(false)
-  const [selected, setSelected]     = useState(null)
-  const [deleteId, setDeleteId]     = useState(null)
+const GRUPOS = [
+  { key: 'pilates',   label: 'Mat Pilates', icon: '🧘' },
+  { key: 'funcional', label: 'Funcional',   icon: '💪' },
+  { key: null,        label: 'Sem modalidade', icon: null },
+]
 
-  const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
-  const del = useDelete(KEY, ENDPOINT, { successMsg: 'Turma excluída.' })
+function TurmaGrupoCard({ grupo, turmas, onEdit, onAlunos, onDelete, onNova }) {
+  const [expandido, setExpandido] = useState(true)
+  const ChevronIcon = expandido ? ChevronDown : ChevronRight
 
-  const openEdit    = (t) => { setSelected(t); setModalOpen(true) }
-  const openCreate  = ()  => { setSelected(null); setModalOpen(true) }
-  const openDetail  = (t) => { setSelected(t); setDetailOpen(true) }
-  const openAlunos  = (t) => { setSelected(t); setAlunosOpen(true) }
-
-  const columns = [
-    { key: 'tur_nome',    header: 'Turma',      render: r => <span className="font-medium">{r.tur_nome}</span> },
-    { key: 'tur_horario', header: 'Horário',    render: r => r.tur_horario || '—' },
-    {
-      key: 'tur_modalidade', header: 'Modalidade',
-      render: r => r.tur_modalidade
-        ? <Badge variant={MODALIDADE_VARIANT[r.tur_modalidade] || 'default'}>{MODALIDADES.find(m => m.value === r.tur_modalidade)?.label}</Badge>
-        : <span className="text-muted-foreground text-xs">—</span>,
-    },
-    {
-      key: 'acoes', header: '', cellClassName: 'w-36',
-      render: (r) => (
-        <div className="flex items-center gap-1 justify-end">
-          <Button variant="ghost" size="icon-sm" onClick={() => openDetail(r)} title="Detalhes"><Eye className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => openAlunos(r)} title="Gerenciar alunos"><Users className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => openEdit(r)} title="Editar"><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.tur_id)} className="text-red-400 hover:text-red-300">
-            <Trash2 className="w-3.5 h-3.5" />
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <div
+          className="flex items-center justify-between px-5 py-3 cursor-pointer select-none hover:bg-white/5 rounded-t-lg"
+          onClick={() => setExpandido(e => !e)}
+        >
+          <div className="flex items-center gap-2">
+            <ChevronIcon className="w-4 h-4 text-muted-foreground" />
+            <span className="font-semibold text-sm">
+              {grupo.icon ? `${grupo.icon} ` : ''}{grupo.label}
+            </span>
+            <span className="text-xs text-muted-foreground">({turmas.length})</span>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs gap-1"
+            onClick={e => { e.stopPropagation(); onNova(grupo.key) }}
+          >
+            <Plus className="w-3 h-3" /> Nova
           </Button>
         </div>
-      ),
-    },
-  ]
+
+        {expandido && (
+          <div className="divide-y divide-white/5">
+            {turmas.length === 0 ? (
+              <p className="px-5 py-3 text-sm text-muted-foreground italic">Nenhuma turma.</p>
+            ) : turmas.map(t => (
+              <div key={t.tur_id} className="flex items-center justify-between px-5 py-2.5 hover:bg-white/5">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="font-medium text-sm truncate">{t.tur_nome}</span>
+                  {t.tur_horario && (
+                    <span className="text-xs text-muted-foreground hidden sm:inline">{t.tur_horario}</span>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {t.total_alunos ?? 0}/15
+                    {(t.total_alunos ?? 0) >= 15 && (
+                      <Badge variant="warning" className="ml-1 text-[10px] py-0">cheia</Badge>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="ghost" size="icon-sm" title="Gerenciar alunos" onClick={() => onAlunos(t)}>
+                    <Users className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" title="Editar" onClick={() => onEdit(t)}>
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" onClick={() => onDelete(t.tur_id)} className="text-red-400 hover:text-red-300">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+export default function TurmasPage() {
+  const [modalOpen, setModalOpen]      = useState(false)
+  const [alunosOpen, setAlunosOpen]    = useState(false)
+  const [selected, setSelected]        = useState(null)
+  const [deleteId, setDeleteId]        = useState(null)
+  const [modInicial, setModInicial]    = useState(null)
+  const [busca, setBusca]              = useState('')
+
+  const queryClient = useQueryClient()
+  const { data: todas, isLoading } = useQuery({
+    queryKey: [KEY, 'all'],
+    queryFn: () => fetchAll(ENDPOINT),
+    staleTime: 30 * 1000,
+  })
+
+  const del = useDelete(KEY, ENDPOINT, {
+    successMsg: 'Turma excluída.',
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [KEY, 'all'] }),
+  })
+
+  const filtradas = (todas || []).filter(t =>
+    !busca || t.tur_nome.toLowerCase().includes(busca.toLowerCase())
+  )
+
+  const abrirNova = (modalidade) => { setSelected(null); setModInicial(modalidade); setModalOpen(true) }
+  const abrirEditar = (t) => { setSelected(t); setModInicial(null); setModalOpen(true) }
+  const fecharModal = () => { setModalOpen(false); queryClient.invalidateQueries({ queryKey: [KEY, 'all'] }) }
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Turmas"
         description="Gestão de turmas e alunos matriculados"
-        actions={<Button onClick={openCreate}><Plus className="w-4 h-4" />Nova Turma</Button>}
+        actions={<Button onClick={() => abrirNova(null)}><Plus className="w-4 h-4" />Nova Turma</Button>}
       />
 
-      <Card>
-        <CardContent className="p-5 space-y-4">
-          <SearchFilter placeholder="Buscar por nome..." onSearch={q => setFilters(q ? { search: q } : {})} />
-          <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhuma turma cadastrada." />
-          <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
-        </CardContent>
-      </Card>
+      <SearchFilter placeholder="Buscar por nome..." onSearch={setBusca} />
+
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">Carregando...</p>
+      ) : (
+        <div className="space-y-4">
+          {GRUPOS.map(grupo => (
+            <TurmaGrupoCard
+              key={String(grupo.key)}
+              grupo={grupo}
+              turmas={filtradas.filter(t => (t.tur_modalidade || null) === grupo.key)}
+              onEdit={abrirEditar}
+              onAlunos={t => { setSelected(t); setAlunosOpen(true) }}
+              onDelete={setDeleteId}
+              onNova={abrirNova}
+            />
+          ))}
+        </div>
+      )}
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{selected ? 'Editar Turma' : 'Nova Turma'}</DialogTitle>
           </DialogHeader>
-          <TurmaForm turma={selected} onClose={() => setModalOpen(false)} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CalendarDays className="w-4 h-4 text-fluir-purple" />
-              {selected?.tur_nome}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="p-5 space-y-3">
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase">Modalidade</p>
-              {selected?.tur_modalidade
-                ? <Badge variant={MODALIDADE_VARIANT[selected.tur_modalidade] || 'default'} className="mt-1">
-                    {MODALIDADES.find(m => m.value === selected.tur_modalidade)?.label}
-                  </Badge>
-                : <p className="text-sm text-muted-foreground">—</p>
-              }
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase">Horário</p>
-              <p className="text-sm">{selected?.tur_horario || '—'}</p>
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setDetailOpen(false)}>Fechar</Button>
-            </DialogFooter>
-          </div>
+          <TurmaForm turma={selected} modalidadeInicial={modInicial} onClose={fecharModal} />
         </DialogContent>
       </Dialog>
 

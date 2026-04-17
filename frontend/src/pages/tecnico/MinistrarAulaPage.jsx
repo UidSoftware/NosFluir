@@ -1,6 +1,13 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
-import { Activity, Play, Square, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp, ClipboardList } from 'lucide-react'
+import { Activity, Play, Square, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp, ClipboardList, GripVertical } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
+import {
+  DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,46 +32,82 @@ const FALTA_TIPOS = [
   { value: 'cenario3',    label: 'Aviso com mais de 48h (pendente)' },
 ]
 
+function SortableExercicioLinha({ ex }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.ftex_id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
+  return (
+    <li ref={setNodeRef} style={style} className="list-none flex items-start gap-1.5">
+      <button
+        {...attributes}
+        {...listeners}
+        className="mt-0.5 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing shrink-0"
+        title="Arrastar para reordenar"
+      >
+        <GripVertical size={13} />
+      </button>
+      <div className="flex-1 text-sm leading-snug">
+        <span className="text-muted-foreground">{ex.ftex_ordem}.</span>{' '}
+        <span className="font-medium">
+          {ex.exe_nome}
+          {ex.exe2_nome && <span className="text-fluir-cyan"> + {ex.exe2_nome}</span>}
+        </span>
+        {ex.apar_nome && <span className="text-muted-foreground"> · {ex.apar_nome}</span>}
+        {(ex.ftex_series || ex.ftex_repeticoes) && (
+          <span className="text-muted-foreground"> — {ex.ftex_series}x{ex.ftex_repeticoes}</span>
+        )}
+        {ex.ftex_observacoes && (
+          <p className="text-xs text-muted-foreground italic ml-3">{ex.ftex_observacoes}</p>
+        )}
+      </div>
+    </li>
+  )
+}
+
 function ExerciciosFicha({ exercicios }) {
   const grupos = useMemo(() => {
     if (!exercicios) return null
-    const ordenados = [...exercicios].sort((a, b) => a.ftex_ordem - b.ftex_ordem)
     const mapa = {}
     const ordem = []
-    ordenados.forEach(ex => {
+    exercicios.forEach(ex => {
       const sec = ex.ftex_secao || ''
       if (!mapa[sec]) { mapa[sec] = []; ordem.push(sec) }
       mapa[sec].push(ex)
     })
-    return { grupos: ordem.map(s => ({ secao: s, itens: mapa[s] })), temSecao: ordenados.some(e => e.ftex_secao) }
+    return { grupos: ordem.map(s => ({ secao: s, itens: mapa[s] })), temSecao: exercicios.some(e => e.ftex_secao) }
   }, [exercicios])
 
   if (!exercicios) return <div className="flex justify-center py-3"><Spinner /></div>
   if (exercicios.length === 0) return <p className="text-xs text-muted-foreground">Nenhum exercício cadastrado nesta ficha.</p>
 
+  const ids = exercicios.map(e => e.ftex_id)
+
   if (!grupos.temSecao) {
     return (
-      <ol className="space-y-1.5">
-        {grupos.grupos[0]?.itens.map(ex => <ExercicioLinha key={ex.ftex_id} ex={ex} />)}
-      </ol>
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <ol className="space-y-1.5">
+          {exercicios.map(ex => <SortableExercicioLinha key={ex.ftex_id} ex={ex} />)}
+        </ol>
+      </SortableContext>
     )
   }
 
   return (
-    <div className="space-y-3">
-      {grupos.grupos.map(({ secao, itens }) => (
-        <div key={secao || '__sem__'}>
-          {secao && (
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-fluir-cyan mb-1">
-              {secao}
-            </p>
-          )}
-          <ol className="space-y-1.5">
-            {itens.map(ex => <ExercicioLinha key={ex.ftex_id} ex={ex} />)}
-          </ol>
-        </div>
-      ))}
-    </div>
+    <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+      <div className="space-y-3">
+        {grupos.grupos.map(({ secao, itens }) => (
+          <div key={secao || '__sem__'}>
+            {secao && (
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-fluir-cyan mb-1">
+                {secao}
+              </p>
+            )}
+            <ol className="space-y-1.5">
+              {itens.map(ex => <SortableExercicioLinha key={ex.ftex_id} ex={ex} />)}
+            </ol>
+          </div>
+        ))}
+      </div>
+    </SortableContext>
   )
 }
 
@@ -302,7 +345,7 @@ function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, 
           {/* ── Exercícios com campos editáveis ── */}
           {exerciciosFicha?.length > 0 && (
             <div className="space-y-2">
-              {[...exerciciosFicha].sort((a, b) => a.ftex_ordem - b.ftex_ordem).map(ex => (
+              {exerciciosFicha.map(ex => (
                 <ExercicioEditavel
                   key={ex.ftex_id}
                   ex={ex}
@@ -372,16 +415,22 @@ function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, 
 }
 
 export default function MinistrarAulaPage() {
-  const [turmaId, setTurmaId]         = useState('')
-  const [fichaId, setFichaId]         = useState('')
-  const [funcId, setFuncId]           = useState('')
-  const [data, setDataAula]           = useState(new Date().toISOString().split('T')[0])
-  const [horaInicio, setHoraInicio]   = useState(new Date().toTimeString().slice(0, 5))
-  const [step, setStep]               = useState('configurar') // configurar | aula
-  const [aulaId, setAulaId]           = useState(null)
-  const [iniciando, setIniciando]     = useState(false)
-  const [finalizando, setFinalizando] = useState(false)
-  const [alunoStates, setAlunoStates] = useState({})
+  const [turmaId, setTurmaId]               = useState('')
+  const [fichaId, setFichaId]               = useState('')
+  const [funcId, setFuncId]                 = useState('')
+  const [data, setDataAula]                 = useState(new Date().toISOString().split('T')[0])
+  const [horaInicio, setHoraInicio]         = useState(new Date().toTimeString().slice(0, 5))
+  const [step, setStep]                     = useState('configurar') // configurar | aula
+  const [aulaId, setAulaId]                 = useState(null)
+  const [iniciando, setIniciando]           = useState(false)
+  const [finalizando, setFinalizando]       = useState(false)
+  const [alunoStates, setAlunoStates]       = useState({})
+  const [exerciciosOrdenados, setExOrd]     = useState([])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
 
   const { data: turmas, isLoading: loadingTurmas } = useQuery({
     queryKey: ['turmas-select'],
@@ -435,6 +484,28 @@ export default function MinistrarAulaPage() {
   })
 
   const [fichaExpandida, setFichaExpandida] = useState(true)
+
+  // Sincroniza ordem local com dados da query
+  useEffect(() => {
+    if (exerciciosFicha) {
+      setExOrd([...exerciciosFicha].sort((a, b) => a.ftex_ordem - b.ftex_ordem))
+    }
+  }, [exerciciosFicha])
+
+  const handleDragEnd = useCallback(async ({ active, over }) => {
+    if (!over || active.id === over.id) return
+    setExOrd(prev => {
+      const oldIndex = prev.findIndex(e => e.ftex_id === active.id)
+      const newIndex = prev.findIndex(e => e.ftex_id === over.id)
+      if (oldIndex === -1 || newIndex === -1) return prev
+      const newList = arrayMove(prev, oldIndex, newIndex).map((ex, i) => ({ ...ex, ftex_ordem: i + 1 }))
+      const changed = newList.filter((ex, i) => ex.ftex_ordem !== prev[i]?.ftex_ordem)
+      Promise.all(changed.map(ex =>
+        api.patch(`/fichas-treino-exercicios/${ex.ftex_id}/`, { ftex_ordem: ex.ftex_ordem })
+      )).catch(() => toast({ title: 'Erro ao salvar reordenação.', variant: 'destructive' }))
+      return newList
+    })
+  }, [])
 
   // Inicializa states quando a lista de alunos carrega
   useEffect(() => {
@@ -702,29 +773,31 @@ export default function MinistrarAulaPage() {
           }
         />
 
-        {/* Card de exercícios da ficha */}
+        {/* Card de exercícios da ficha — com drag & drop */}
         {fichaId && (
-          <Card>
-            <CardHeader className="py-3 px-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <ClipboardList className="w-4 h-4 text-fluir-cyan" />
-                  {fichas?.find(f => String(f.fitr_id) === fichaId)?.fitr_nome || 'Ficha de Treino'}
-                </CardTitle>
-                <button
-                  onClick={() => setFichaExpandida(v => !v)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {fichaExpandida ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </button>
-              </div>
-            </CardHeader>
-            {fichaExpandida && (
-              <CardContent className="pt-0 pb-3 px-4">
-                <ExerciciosFicha exercicios={exerciciosFicha} />
-              </CardContent>
-            )}
-          </Card>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <Card>
+              <CardHeader className="py-3 px-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <ClipboardList className="w-4 h-4 text-fluir-cyan" />
+                    {fichas?.find(f => String(f.fitr_id) === fichaId)?.fitr_nome || 'Ficha de Treino'}
+                  </CardTitle>
+                  <button
+                    onClick={() => setFichaExpandida(v => !v)}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {fichaExpandida ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </button>
+                </div>
+              </CardHeader>
+              {fichaExpandida && (
+                <CardContent className="pt-0 pb-3 px-4">
+                  <ExerciciosFicha exercicios={exerciciosOrdenados.length ? exerciciosOrdenados : exerciciosFicha} />
+                </CardContent>
+              )}
+            </Card>
+          </DndContext>
         )}
 
         <div className="space-y-3">
@@ -738,7 +811,7 @@ export default function MinistrarAulaPage() {
                 state={alunoStates[ta.alu]}
                 onUpdate={updateAluno}
                 onUpdateExercicio={updateExercicio}
-                exerciciosFicha={exerciciosFicha}
+                exerciciosFicha={exerciciosOrdenados.length ? exerciciosOrdenados : exerciciosFicha}
                 fichaId={fichaId}
               />
             ))

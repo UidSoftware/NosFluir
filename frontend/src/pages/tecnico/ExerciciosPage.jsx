@@ -1,19 +1,16 @@
 import { useState } from 'react'
-import { Boxes, Dumbbell, Package, Plus, Pencil, Trash2 } from 'lucide-react'
+import { Boxes, Package, Plus, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useList, useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
+import { useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SearchFilter } from '@/components/shared/SearchFilter'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { DataTable } from '@/components/ui/table'
-import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input, FormField, Textarea } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/primitives'
 import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
@@ -169,7 +166,7 @@ function QuickAddAcessorio({ open, onOpenChange, onCreated }) {
   )
 }
 
-function ExercForm({ exercicio, onClose }) {
+function ExercForm({ exercicio, modalidadeInicial, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: exercicio ? {
       exe_nome:             exercicio.exe_nome,
@@ -178,7 +175,11 @@ function ExercForm({ exercicio, onClose }) {
       exe_acessorio:        exercicio.exe_acessorio ? String(exercicio.exe_acessorio) : '__none__',
       exe_variacao:         exercicio.exe_variacao || '',
       exe_descricao_tecnica: exercicio.exe_descricao_tecnica || '',
-    } : { exe_modalidade: '__none__', exe_aparelho: '__none__', exe_acessorio: '__none__' },
+    } : {
+      exe_modalidade: modalidadeInicial || '__none__',
+      exe_aparelho: '__none__',
+      exe_acessorio: '__none__',
+    },
   })
 
   const [quickAparelho, setQuickAparelho] = useState(false)
@@ -317,81 +318,143 @@ function ExercForm({ exercicio, onClose }) {
   )
 }
 
-export default function ExerciciosPage() {
-  const [modalOpen, setModalOpen]         = useState(false)
-  const [selected, setSelected]           = useState(null)
-  const [deleteId, setDeleteId]           = useState(null)
-  const [modalidadeFilter, setModalidade] = useState('all')
+const GRUPOS = [
+  { key: 'pilates',   label: 'Mat Pilates', icon: '🧘' },
+  { key: 'funcional', label: 'Funcional',   icon: '💪' },
+  { key: null,        label: 'Sem modalidade', icon: '—' },
+]
 
-  const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
-  const { data: aparelhos } = useAparelhos()
-  const del = useDelete(KEY, ENDPOINT, { successMsg: 'Exercício excluído.' })
+function GrupoCard({ grupo, exercicios, onEdit, onDelete, onNovo }) {
+  const [expandido, setExpandido] = useState(true)
+  const ChevronIcon = expandido ? ChevronDown : ChevronRight
 
-  const handleModalidadeFilter = (v) => {
-    setModalidade(v)
-    setFilters(v && v !== 'all' ? { exe_modalidade: v } : {})
-  }
-
-  const nomeAparelho = (r) => r.apar_nome || '—'
-
-  const columns = [
-    {
-      key: 'exe_nome', header: 'Exercício',
-      render: r => <span className="font-medium">{r.exe_nome}</span>,
-    },
-    {
-      key: 'exe_modalidade', header: 'Modalidade',
-      render: r => r.exe_modalidade ? (
-        <Badge variant={MODALIDADE_VARIANT[r.exe_modalidade] || 'default'}>
-          {MODALIDADES.find(m => m.value === r.exe_modalidade)?.label || r.exe_modalidade}
-        </Badge>
-      ) : '—',
-    },
-    { key: 'apar_nome',    header: 'Aparelho',  render: nomeAparelho },
-    { key: 'acess_nome',    header: 'Acessório',  render: r => r.acess_nome || '—' },
-    { key: 'exe_variacao',  header: 'Variação',  render: r => r.exe_variacao || '—' },
-    {
-      key: 'acoes', header: '', cellClassName: 'w-20',
-      render: (r) => (
-        <div className="flex items-center gap-1 justify-end">
-          <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}>
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.exe_id)} className="text-red-400 hover:text-red-300">
-            <Trash2 className="w-3.5 h-3.5" />
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <div
+          className="flex items-center justify-between px-5 py-3 cursor-pointer select-none hover:bg-white/5 rounded-t-lg"
+          onClick={() => setExpandido(e => !e)}
+        >
+          <div className="flex items-center gap-2">
+            <ChevronIcon className="w-4 h-4 text-muted-foreground" />
+            <span className="font-semibold text-sm">
+              {grupo.icon !== '—' ? `${grupo.icon} ` : ''}{grupo.label}
+            </span>
+            <span className="text-xs text-muted-foreground">({exercicios.length})</span>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs gap-1"
+            onClick={e => { e.stopPropagation(); onNovo(grupo.key) }}
+          >
+            <Plus className="w-3 h-3" /> Novo
           </Button>
         </div>
-      ),
-    },
-  ]
+
+        {expandido && (
+          <div className="divide-y divide-white/5">
+            {exercicios.length === 0 ? (
+              <p className="px-5 py-3 text-sm text-muted-foreground italic">Nenhum exercício.</p>
+            ) : exercicios.map(r => (
+              <div key={r.exe_id} className="flex items-center justify-between px-5 py-2.5 hover:bg-white/5">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="font-medium text-sm truncate">{r.exe_nome}</span>
+                  {r.apar_nome && <span className="text-xs text-muted-foreground hidden sm:inline">— {r.apar_nome}</span>}
+                  {r.exe_variacao && <span className="text-xs text-muted-foreground hidden md:inline italic">{r.exe_variacao}</span>}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="ghost" size="icon-sm" onClick={() => onEdit(r)}>
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" onClick={() => onDelete(r.exe_id)} className="text-red-400 hover:text-red-300">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+export default function ExerciciosPage() {
+  const [modalOpen, setModalOpen]       = useState(false)
+  const [selected, setSelected]         = useState(null)
+  const [deleteId, setDeleteId]         = useState(null)
+  const [modalidadeInicial, setModInicial] = useState(null)
+  const [busca, setBusca]               = useState('')
+
+  const queryClient = useQueryClient()
+  const { data: todos, isLoading } = useQuery({
+    queryKey: [KEY, 'all'],
+    queryFn: () => fetchAll(ENDPOINT),
+    staleTime: 30 * 1000,
+  })
+
+  const del = useDelete(KEY, ENDPOINT, {
+    successMsg: 'Exercício excluído.',
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [KEY, 'all'] }),
+  })
+
+  const filtrados = (todos || []).filter(e =>
+    !busca || e.exe_nome.toLowerCase().includes(busca.toLowerCase())
+  )
+
+  const abrirNovo = (modalidade) => {
+    setSelected(null)
+    setModInicial(modalidade)
+    setModalOpen(true)
+  }
+
+  const abrirEditar = (exercicio) => {
+    setSelected(exercicio)
+    setModInicial(null)
+    setModalOpen(true)
+  }
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Exercícios"
         description="Catálogo de exercícios de Pilates e Funcional"
-        actions={<Button onClick={() => { setSelected(null); setModalOpen(true) }}><Plus className="w-4 h-4" />Novo Exercício</Button>}
+        actions={<Button onClick={() => abrirNovo(null)}><Plus className="w-4 h-4" />Novo Exercício</Button>}
       />
-      <Card>
-        <CardContent className="p-5 space-y-4">
-          <SearchFilter placeholder="Buscar por nome..." onSearch={q => setFilters(q ? { search: q } : {})}>
-            <Select value={modalidadeFilter} onValueChange={handleModalidadeFilter}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="Todas" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {MODALIDADES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </SearchFilter>
-          <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum exercício cadastrado." />
-          <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
-        </CardContent>
-      </Card>
+
+      <SearchFilter
+        placeholder="Buscar por nome..."
+        onSearch={setBusca}
+      />
+
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">Carregando...</p>
+      ) : (
+        <div className="space-y-4">
+          {GRUPOS.map(grupo => (
+            <GrupoCard
+              key={String(grupo.key)}
+              grupo={grupo}
+              exercicios={filtrados.filter(e => (e.exe_modalidade || null) === grupo.key)}
+              onEdit={abrirEditar}
+              onDelete={setDeleteId}
+              onNovo={abrirNovo}
+            />
+          ))}
+        </div>
+      )}
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{selected ? 'Editar Exercício' : 'Novo Exercício'}</DialogTitle></DialogHeader>
-          <ExercForm exercicio={selected} onClose={() => setModalOpen(false)} />
+          <DialogHeader>
+            <DialogTitle>{selected ? 'Editar Exercício' : 'Novo Exercício'}</DialogTitle>
+          </DialogHeader>
+          <ExercForm
+            exercicio={selected}
+            modalidadeInicial={modalidadeInicial}
+            onClose={() => { setModalOpen(false); queryClient.invalidateQueries({ queryKey: [KEY, 'all'] }) }}
+          />
         </DialogContent>
       </Dialog>
 

@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 16/04/2026 | Versão: 8.1
+> Última atualização: 17/04/2026 | Versão: 8.2
 
 ---
 
@@ -607,12 +607,28 @@ git pull origin main && docker compose restart nginx
 - [x] 84 testes passando
 - [x] **Validado em produção com aula real**
 
+### Fase 6 — Permissões, Relatórios de Evolução e Refatorações ✅ COMPLETO E EM PRODUÇÃO (17/04/2026)
+- [x] Permissões por perfil implementadas no backend — `backend/apps/core/permissions.py`
+  - `IsAdministrador`, `IsProfessorOuAdmin`, `IsFinanceiroOuAdmin`, `IsRecepcionistaOuAdmin`
+  - `financeiro/views.py` → `IsFinanceiroOuAdmin` (FolhaPagamento usa `IsAdminUser`)
+  - `operacional/views.py` → `IsRecepcionistaOuAdmin` (AgendamentoHorario/Turmas mantém `AllowAny` no `create`)
+  - `tecnico/views.py` → `IsProfessorOuAdmin`
+- [x] Frontend: `PerfilRoute` no React Router — redireciona para `/dashboard` se sem acesso
+- [x] ExerciciosPage: redesign card-based agrupado por modalidade (Pilates / Funcional / Sem modalidade)
+- [x] TurmasPage: redesign card-based agrupado por modalidade + badge `cheia` quando 15/15 alunos
+- [x] MinistrarAulaPage: drag & drop para reordenar exercícios da ficha (@dnd-kit)
+  - Mobile fix: `PointerSensor` com `activationConstraint: { delay: 250, tolerance: 5 }`
+- [x] AulasPage: componente `ComparativoCiclo` — compara PSE e obs com aula do ciclo anterior
+- [x] RelEvolucaoCargaPage: gráfico de evolução de carga por aluno/exercício + tabela detalhada
+- [x] GrafEvolucaoPsePage: gráfico PSE médio por aula (eixo X = data, uma linha por ciclo)
+  - Fix: eixo X usa data da aula (não posição do ciclo) — funciona sem ProgramaTurma configurado
+- [x] Sidebar: itens "Evolução de Carga" e "Evolução PSE" adicionados
+- [x] Endpoints backend: `GET /api/relatorios/evolucao-carga/` e `GET /api/relatorios/evolucao-pse/`
+
 ### Pendências técnicas restantes:
-- [ ] Permissões por perfil (Professor/Financeiro/Recepcionista) não implementadas
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
 - [ ] Crédito expirado — sem job automático para atualizar status
 - [ ] Agendamentos do site exigem Aluno pré-existente — design a revisar com clientes
-- [ ] Relatórios de evolução (gráfico de carga por exercício por ciclo) — Fase 6
 
 ---
 

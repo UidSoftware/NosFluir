@@ -81,10 +81,11 @@ class ContasReceberViewSet(AuditMixin, ModelViewSet):
 
 class PlanosPagamentosViewSet(AuditMixin, ModelViewSet):
     permission_classes = [IsFinanceiroOuAdmin]
-    queryset = PlanosPagamentos.objects.filter(deleted_at__isnull=True).order_by('-plan_data_inicio')
+    queryset = PlanosPagamentos.objects.filter(deleted_at__isnull=True).select_related('alu', 'serv').order_by('-plan_data_inicio')
     serializer_class = PlanosPagamentosSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['alu', 'plan_tipo_plano', 'plan_ativo']
+    search_fields = ['alu__alu_nome', 'serv__serv_nome']
     ordering_fields = ['plan_data_inicio', 'plan_valor_plano']
 
 

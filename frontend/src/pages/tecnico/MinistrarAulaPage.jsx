@@ -526,7 +526,7 @@ export default function MinistrarAulaPage() {
 
   const { data: alunosTurma, isLoading: loadingAlunos } = useQuery({
     queryKey: ['turma-alunos-aula', turmaId],
-    queryFn: () => api.get('/turma-alunos/', { params: { tur: turmaId, ativo: true } })
+    queryFn: () => api.get('/turma-alunos/', { params: { tur: turmaId, ativo: true, alu__alu_ativo: true } })
       .then(r => r.data.results),
     enabled: !!turmaId,
   })

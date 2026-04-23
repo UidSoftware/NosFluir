@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Users, Plus, Pencil, Trash2, ChevronDown, ChevronRight, ClipboardCheck, XCircle } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { Users, Plus, Pencil, Trash2, ChevronDown, ChevronRight, ClipboardCheck, XCircle, UserCheck, UserX } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -475,13 +475,35 @@ export default function AlunosPage() {
   const [modalOpen, setModalOpen]   = useState(false)
   const [editando, setEditando]     = useState(null)
   const [deleteId, setDeleteId]     = useState(null)
-  const [detalhe, setDetalhe]       = useState(null) // aluno selecionado no Card 2
+  const [detalhe, setDetalhe]       = useState(null)
+  const [search, setSearch]         = useState('')
+  const [filtroAtivo, setFiltroAtivo] = useState('true')
 
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
   const del = useDelete(KEY, ENDPOINT, {
     successMsg: 'Aluno excluído.',
     onSuccess: () => { if (detalhe) setDetalhe(null) },
   })
+
+  const queryClient = useQueryClient()
+  const toggleAtivoMut = useMutation({
+    mutationFn: ({ id, ativo }) => api.patch(`/alunos/${id}/`, { alu_ativo: ativo }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: [KEY] })
+      setDetalhe(res.data)
+      toast({ title: res.data.alu_ativo ? 'Aluno reativado.' : 'Aluno inativado.', variant: 'success' })
+    },
+  })
+
+  const applyFilters = useCallback((s, fa) => {
+    const f = {}
+    if (s) f.search = s
+    if (fa !== 'all') f.alu_ativo = fa
+    setFilters(f)
+  }, [setFilters])
+
+  const handleSearch = (q) => { setSearch(q); applyFilters(q, filtroAtivo) }
+  const handleFiltroAtivo = (v) => { setFiltroAtivo(v); applyFilters(search, v) }
 
   const openEdit   = (a) => { setEditando(a); setModalOpen(true) }
   const openCreate = ()  => { setEditando(null); setModalOpen(true) }
@@ -501,12 +523,20 @@ export default function AlunosPage() {
         {/* Card 1 — lista de nomes */}
         <Card>
           <CardContent className="p-4 space-y-3">
-            <SearchFilter placeholder="Buscar..." onSearch={q => setFilters(q ? { search: q } : {})} />
+            <SearchFilter placeholder="Buscar..." onSearch={handleSearch} />
+            <Select value={filtroAtivo} onValueChange={handleFiltroAtivo}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="true">Ativos</SelectItem>
+                <SelectItem value="false">Inativos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
+              </SelectContent>
+            </Select>
 
             {isLoading ? (
               <div className="flex justify-center py-8"><Spinner /></div>
             ) : !data?.length ? (
-              <p className="text-sm text-muted-foreground text-center py-6">Nenhum aluno cadastrado.</p>
+              <p className="text-sm text-muted-foreground text-center py-6">Nenhum aluno encontrado.</p>
             ) : (
               <div className="space-y-0.5">
                 {data.map(a => (
@@ -521,9 +551,12 @@ export default function AlunosPage() {
                   >
                     <button
                       onClick={() => handleSelect(a)}
-                      className="flex-1 text-left text-sm font-medium"
+                      className={cn('flex-1 text-left text-sm font-medium flex items-center gap-2', !a.alu_ativo && 'text-muted-foreground')}
                     >
                       {a.alu_nome}
+                      {!a.alu_ativo && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 font-normal">Inativo</span>
+                      )}
                     </button>
                     <div className="flex items-center gap-0.5 shrink-0">
                       <Button variant="ghost" size="icon-sm" onClick={() => openEdit(a)} title="Editar">
@@ -546,11 +579,29 @@ export default function AlunosPage() {
         {detalhe ? (
           <Card>
             <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-fluir-purple">{detalhe.alu_nome}</h3>
-                <Button variant="ghost" size="icon-sm" onClick={() => setDetalhe(null)} title="Fechar">
-                  <XCircle className="w-4 h-4 text-muted-foreground" />
-                </Button>
+              <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-fluir-purple">{detalhe.alu_nome}</h3>
+                  {!detalhe.alu_ativo && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25">Inativo</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm" variant="outline"
+                    className={cn('text-xs', detalhe.alu_ativo ? 'text-red-400 hover:text-red-300 border-red-500/30' : 'text-emerald-400 hover:text-emerald-300 border-emerald-500/30')}
+                    onClick={() => toggleAtivoMut.mutate({ id: detalhe.alu_id, ativo: !detalhe.alu_ativo })}
+                    disabled={toggleAtivoMut.isPending}
+                    title={detalhe.alu_ativo ? 'Inativar aluno' : 'Reativar aluno'}
+                  >
+                    {detalhe.alu_ativo
+                      ? <><UserX className="w-3.5 h-3.5" />Inativar</>
+                      : <><UserCheck className="w-3.5 h-3.5" />Reativar</>}
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" onClick={() => setDetalhe(null)} title="Fechar">
+                    <XCircle className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                </div>
               </div>
               <AlunoDetalhe aluno={detalhe} />
             </CardContent>

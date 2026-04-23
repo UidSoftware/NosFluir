@@ -22,6 +22,7 @@ class AlunoViewSet(AuditMixin, ModelViewSet):
     queryset = Aluno.objects.filter(deleted_at__isnull=True).order_by('alu_nome')
     serializer_class = AlunoSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['alu_ativo']
     search_fields = ['alu_nome', 'alu_documento', 'alu_email', 'alu_telefone']
     ordering_fields = ['alu_nome', 'alu_data_nascimento']
 
@@ -60,7 +61,7 @@ class TurmaAlunosViewSet(AuditMixin, ModelViewSet):
     queryset = TurmaAlunos.objects.filter(deleted_at__isnull=True).order_by('tur__tur_nome', 'alu__alu_nome')
     serializer_class = TurmaAlunosSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['tur', 'alu', 'ativo']
+    filterset_fields = ['tur', 'alu', 'ativo', 'alu__alu_ativo']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
     ordering_fields = ['data_matricula']
 

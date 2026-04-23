@@ -16,6 +16,7 @@ class Aluno(BaseModel):
     alu_contato_emergencia = models.CharField('contato de emergência (telefone)', max_length=20, null=True, blank=True)
     alu_doencas_cronicas = models.TextField('doenças crônicas', null=True, blank=True)
     alu_medicamentos = models.TextField('medicamentos em uso', null=True, blank=True)
+    alu_ativo = models.BooleanField('ativo', default=True)
 
     class Meta:
         db_table = 'alunos'

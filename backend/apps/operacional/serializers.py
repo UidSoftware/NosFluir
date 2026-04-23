@@ -17,7 +17,7 @@ class AlunoSerializer(serializers.ModelSerializer):
             'id', 'alu_id', 'alu_nome', 'alu_documento', 'alu_data_nascimento',
             'alu_endereco', 'alu_email', 'alu_telefone',
             'alu_contato_emergencia', 'alu_doencas_cronicas', 'alu_medicamentos',
-            'created_at', 'updated_at',
+            'alu_ativo', 'created_at', 'updated_at',
         ]
         read_only_fields = ['alu_id', 'created_at', 'updated_at']
 

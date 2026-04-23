@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 22/04/2026 | Versão: 9.1
+> Última atualização: 23/04/2026 | Versão: 9.2
 
 ---
 
@@ -334,6 +334,7 @@ FichaTreino → fitr_id     FichaTreinoEx → ftex_id    MinistrarAula → miau_
 Credito     → cred_id     FichaAluno   → fial_id     Aparelho     → apar_id
 Acessorio   → acess_id    Aulas        → aul_id      User         → id (padrão Django)
 ProgramaTurma → prog_id   RegistroExercicioAluno → reg_id   AvisoFalta → avi_id
+AlunoPlano    → aplano_id
 ```
 
 ### FKs no payload (CRÍTICO — sem sufixo `_id`):
@@ -352,7 +353,8 @@ Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/creditos/            ✅ /api/fichas-treino/    ✅ /api/folha-pagamento/
 ✅ /api/servicos-produtos/   ✅ /api/fornecedores/
 ✅ /api/logout/              ✅ /api/me/               ✅ /api/agendamentos-horario/
-✅ /api/avisos-falta/         ✅ /api/agendamentos-turmas/ ✅ /api/fichas-treino-exercicios/
+✅ /api/avisos-falta/         ✅ /api/aluno-plano/          ✅ /api/agendamentos-turmas/
+✅ /api/fichas-treino-exercicios/
 ✅ /api/aparelhos/           ✅ /api/acessorios/       ✅ /api/ficha-aluno/
 ✅ /api/ministrar-aula/      ✅ /api/aulas/
 ✅ /api/programa-turma/     ✅ /api/registro-exercicio-aluno/
@@ -633,6 +635,15 @@ git pull origin main && docker compose restart nginx
 - [x] `BottomBar.jsx` 7.4: barra fixa no rodapé mobile com 5 ícones (Dashboard/Finanças/Operacional/Técnico/Relatórios)
 - [x] `AppLayout`: sidebar oculta no mobile; drawer com overlay ao clicar ☰; `pb-20 md:pb-5` para não cobrir conteúdo
 - [x] `Topbar`: botão ☰ hambúrguer visível só no mobile (`md:hidden`)
+
+### Fase 9.2 — Refatorações UX (23/04/2026) ✅ EM PRODUÇÃO
+- [x] ContasReceber: Serviço + Plano podem ser selecionados simultaneamente — valores somados com breakdown visual
+- [x] ContasReceber: combobox Plano busca catálogo PlanosPagamentos (não AlunoPlano) — funciona para alunos novos
+- [x] AlunosPage: layout master-detail — Card 1 (lista de nomes, LGPD) + Card 2 (detalhe ao lado)
+  - Desktop: dois cards lado a lado (320px + flex); Mobile: empilhados
+  - Nome selecionado destacado; clicar novamente fecha; botão X fecha
+- [x] AlunosPage: Novo Aluno já inclui seleção opcional de Plano de Pagamento (cria AlunoPlano automaticamente)
+- [x] AlunoForm: plano inicial opcional — ao salvar cria AlunoPlano em sequência
 
 ### Fase 8 — Sistema de Avisos de Falta ✅ COMPLETO E EM PRODUÇÃO (22/04/2026)
 - [x] Model `AvisoFalta` — calcula `avi_antecedencia_horas` e `avi_gera_credito` automaticamente no `save()`

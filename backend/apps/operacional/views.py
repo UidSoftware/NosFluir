@@ -8,12 +8,12 @@ from apps.core.permissions import IsRecepcionistaOuAdmin
 
 from .models import (
     AgendamentoHorario, AgendamentoTurmas,
-    Aluno, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos,
+    Aluno, AvisoFalta, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos,
 )
 from .serializers import (
     AgendamentoHorarioSerializer, AgendamentoTurmasSerializer,
-    AlunoSerializer, FichaAlunoSerializer, FuncionarioSerializer, ProfissaoSerializer,
-    TurmaSerializer, TurmaAlunosSerializer,
+    AlunoSerializer, AvisoFaltaSerializer, FichaAlunoSerializer, FuncionarioSerializer,
+    ProfissaoSerializer, TurmaSerializer, TurmaAlunosSerializer,
 )
 
 
@@ -72,6 +72,16 @@ class FichaAlunoViewSet(AuditMixin, ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ['aluno']
     ordering_fields = ['fial_data']
+
+
+class AvisoFaltaViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsRecepcionistaOuAdmin]
+    queryset = AvisoFalta.objects.filter(deleted_at__isnull=True).select_related('aluno', 'turma').order_by('-avi_data_hora_aviso')
+    serializer_class = AvisoFaltaSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['aluno', 'turma', 'avi_data_aula', 'avi_tipo', 'avi_gera_credito']
+    search_fields = ['aluno__alu_nome', 'turma__tur_nome']
+    ordering_fields = ['avi_data_hora_aviso', 'avi_data_aula']
 
 
 class AgendamentoHorarioViewSet(AuditMixin, ModelViewSet):

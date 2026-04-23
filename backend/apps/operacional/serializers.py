@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from .models import (
     AgendamentoHorario, AgendamentoTurmas,
-    Aluno, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos,
+    Aluno, AvisoFalta, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos,
 )
 
 
@@ -129,6 +129,25 @@ class TurmaAlunosSerializer(serializers.ModelSerializer):
                     {'tur': f'Turma "{turma.tur_nome}" já atingiu o limite de 15 alunos.'}
                 )
         return data
+
+
+class AvisoFaltaSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    alu_nome = serializers.CharField(source='aluno.alu_nome', read_only=True)
+    tur_nome = serializers.CharField(source='turma.tur_nome', read_only=True)
+
+    class Meta:
+        model = AvisoFalta
+        fields = [
+            'id', 'avi_id', 'aluno', 'alu_nome', 'turma', 'tur_nome',
+            'avi_data_hora_aviso', 'avi_data_aula', 'avi_tipo',
+            'avi_antecedencia_horas', 'avi_gera_credito', 'avi_observacoes',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = [
+            'avi_id', 'avi_antecedencia_horas', 'avi_gera_credito',
+            'created_at', 'updated_at',
+        ]
 
 
 class AgendamentoHorarioSerializer(serializers.ModelSerializer):

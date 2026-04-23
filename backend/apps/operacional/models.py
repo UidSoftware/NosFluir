@@ -136,6 +136,78 @@ class FichaAluno(BaseModel):
         return f'{self.aluno} — {self.fial_data}'
 
 
+class AvisoFalta(BaseModel):
+    """
+    Aviso de falta de aluno — pode ser registrado antes, durante ou após a aula.
+    Fase 8 — gera CreditoReposicao via signal quando elegível.
+    """
+    TIPO_CHOICES = [
+        ('justificada', 'Justificada'),
+        ('atestado', 'Atestado Médico'),
+    ]
+
+    avi_id = models.AutoField(primary_key=True)
+    aluno = models.ForeignKey(
+        'Aluno', on_delete=models.PROTECT, related_name='avisos_falta', verbose_name='aluno'
+    )
+    turma = models.ForeignKey(
+        'Turma', on_delete=models.PROTECT, related_name='avisos_falta', verbose_name='turma'
+    )
+    avi_data_hora_aviso = models.DateTimeField('quando o aluno avisou')
+    avi_data_aula = models.DateField('data da aula')
+    avi_tipo = models.CharField('tipo', max_length=20, choices=TIPO_CHOICES)
+    avi_antecedencia_horas = models.DecimalField(
+        'antecedência (horas)', max_digits=6, decimal_places=2, null=True, blank=True
+    )
+    avi_gera_credito = models.BooleanField('gera crédito?', default=False)
+    avi_observacoes = models.TextField('observações', null=True, blank=True)
+
+    class Meta:
+        db_table = 'aviso_falta'
+        verbose_name = 'Aviso de Falta'
+        verbose_name_plural = 'Avisos de Falta'
+        ordering = ['-avi_data_hora_aviso']
+
+    def save(self, *args, **kwargs):
+        from datetime import datetime
+        import re
+
+        hora_aula = self._extrair_hora_turma()
+        if hora_aula and self.avi_data_aula:
+            dt_aula = datetime.combine(self.avi_data_aula, hora_aula)
+            dt_aviso = self.avi_data_hora_aviso
+            # Normaliza timezone: remove tzinfo para comparação ingênua
+            if hasattr(dt_aviso, 'tzinfo') and dt_aviso.tzinfo is not None:
+                from django.utils import timezone as tz
+                dt_aula = tz.make_aware(dt_aula, dt_aviso.tzinfo)
+            diff = dt_aula - dt_aviso
+            self.avi_antecedencia_horas = round(diff.total_seconds() / 3600, 2)
+
+        if self.avi_tipo == 'atestado':
+            self.avi_gera_credito = True
+        elif self.avi_antecedencia_horas is not None:
+            # Entre 1h e 48h → gera crédito; >48h pendente decisão → não gera
+            self.avi_gera_credito = bool(1 <= self.avi_antecedencia_horas <= 48)
+        else:
+            self.avi_gera_credito = False
+
+        super().save(*args, **kwargs)
+
+    def _extrair_hora_turma(self):
+        """Extrai time do tur_horario ('Seg/Qua 17:00' → time(17, 0))."""
+        import re
+        from datetime import time
+        if not self.turma_id:
+            return None
+        match = re.search(r'(\d{2}):(\d{2})', self.turma.tur_horario)
+        if match:
+            return time(int(match.group(1)), int(match.group(2)))
+        return None
+
+    def __str__(self):
+        return f'Aviso {self.aluno} — {self.avi_data_aula} ({self.avi_tipo})'
+
+
 class AgendamentoHorario(BaseModel):
     """Pré-agendamento de horários disponíveis dos alunos via site."""
     agho_id = models.AutoField(primary_key=True)

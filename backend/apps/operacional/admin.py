@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from .models import (
     AgendamentoHorario, AgendamentoTurmas,
-    Aluno, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos,
+    Aluno, AvisoFalta, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos,
 )
 
 
@@ -47,6 +47,16 @@ class FichaAlunoAdmin(admin.ModelAdmin):
     search_fields = ['aluno__alu_nome']
     date_hierarchy = 'fial_data'
     ordering = ['-fial_data']
+
+
+@admin.register(AvisoFalta)
+class AvisoFaltaAdmin(admin.ModelAdmin):
+    list_display = ['aluno', 'turma', 'avi_data_aula', 'avi_tipo', 'avi_antecedencia_horas', 'avi_gera_credito']
+    list_filter = ['avi_tipo', 'avi_gera_credito', 'turma']
+    search_fields = ['aluno__alu_nome', 'turma__tur_nome']
+    date_hierarchy = 'avi_data_aula'
+    ordering = ['-avi_data_hora_aviso']
+    readonly_fields = ['avi_antecedencia_horas', 'avi_gera_credito']
 
 
 @admin.register(AgendamentoHorario)

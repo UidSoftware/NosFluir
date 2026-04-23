@@ -51,11 +51,10 @@ def marcar_credito_usado(sender, instance, **kwargs):
 def gerar_credito_reposicao(sender, instance, **kwargs):
     """
     Cria um CreditoReposicao quando uma falta justificada ou atestado é registrada.
-    Dispara tanto na criação quanto na atualização de MinistrarAula.
+    Fase 8: verifica se já existe AvisoFalta para não duplicar o crédito.
     """
     _, CreditoReposicao = _get_models()
 
-    # Só processa se for falta com tipo que gera crédito
     if instance.miau_tipo_presenca != 'falta':
         return
     if instance.miau_tipo_falta not in TIPOS_FALTA_QUE_GERAM_CREDITO:
@@ -65,7 +64,19 @@ def gerar_credito_reposicao(sender, instance, **kwargs):
     if CreditoReposicao.objects.filter(aula_origem=instance).exists():
         return
 
-    # Verifica limite de créditos simultâneos por aluno
+    # Fase 8: se já existe AvisoFalta para aluno/turma/data com crédito gerado,
+    # não duplicar — o crédito foi criado pelo signal do AvisoFalta
+    if instance.aula_id:
+        from apps.operacional.models import AvisoFalta
+        aviso_existe = AvisoFalta.objects.filter(
+            aluno=instance.alu,
+            turma=instance.aula.tur,
+            avi_data_aula=instance.aula.aul_data,
+            avi_gera_credito=True,
+        ).exists()
+        if aviso_existe:
+            return
+
     creditos_ativos = CreditoReposicao.objects.filter(
         alu=instance.alu,
         cred_status='disponivel',
@@ -75,9 +86,6 @@ def gerar_credito_reposicao(sender, instance, **kwargs):
     if creditos_ativos >= LIMITE_CREDITOS_SIMULTANEOS:
         return
 
-    # Cria o crédito
-    # cred_data_geracao usa default=timezone.now
-    # cred_data_expiracao calculado automaticamente em CreditoReposicao.save() (+30 dias)
     CreditoReposicao.objects.create(
         alu=instance.alu,
         aula_origem=instance,

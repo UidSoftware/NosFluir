@@ -152,9 +152,15 @@ class CreditoReposicao(BaseModel):
     alu = models.ForeignKey(
         'operacional.Aluno', on_delete=models.PROTECT, verbose_name='aluno'
     )
+    aviso_falta = models.OneToOneField(
+        'operacional.AvisoFalta', on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name='credito', verbose_name='aviso de falta (origem)'
+    )
     # FK usa string para evitar referência circular (MinistrarAula é definido abaixo)
     aula_origem = models.ForeignKey(
         'MinistrarAula', on_delete=models.PROTECT,
+        null=True, blank=True,
         related_name='creditos_gerados', verbose_name='aula de origem (falta)'
     )
     aula_reposicao = models.ForeignKey(

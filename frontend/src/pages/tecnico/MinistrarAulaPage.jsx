@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
-import { Activity, Play, Square, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp, ClipboardList, GripVertical } from 'lucide-react'
+import { Activity, Play, Square, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp, ClipboardList, GripVertical, ClipboardCheck } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors,
@@ -199,10 +199,11 @@ function ExercicioEditavel({ ex, exState, onUpdateEx, ultimoReg }) {
   )
 }
 
-function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, fichaId, expandido, onToggle, modalidade }) {
-  const presenca  = state?.presenca  ?? 'presente'
-  const faltaTipo = state?.faltaTipo ?? 'sem_aviso'
-  const pasI      = state?.pasI      ?? ''
+function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, fichaId, expandido, onToggle, modalidade, avisoExistente }) {
+  const presenca      = state?.presenca      ?? 'presente'
+  const faltaTipo     = state?.faltaTipo     ?? 'sem_aviso'
+  const dataHoraAviso = state?.dataHoraAviso ?? new Date().toISOString().slice(0, 16)
+  const pasI          = state?.pasI          ?? ''
   const padI      = state?.padI      ?? ''
   const pasF      = state?.pasF      ?? ''
   const padF      = state?.padF      ?? ''
@@ -264,17 +265,24 @@ function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, 
 
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
-      {/* Nome + botões presença — sempre visível */}
+      {/* Nome + badge aviso + botões presença — sempre visível */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <button
-          onClick={onToggle}
-          className={cn('font-medium text-sm text-left flex-1 flex items-center gap-1', corNome)}
-        >
-          {aluno.alu_nome}
-          {expandido
-            ? <ChevronUp size={12} className="shrink-0 opacity-50" />
-            : <ChevronDown size={12} className="shrink-0 opacity-50" />}
-        </button>
+        <div className="flex items-center gap-1.5 flex-1">
+          <button
+            onClick={onToggle}
+            className={cn('font-medium text-sm text-left flex items-center gap-1', corNome)}
+          >
+            {aluno.alu_nome}
+            {expandido
+              ? <ChevronUp size={12} className="shrink-0 opacity-50" />
+              : <ChevronDown size={12} className="shrink-0 opacity-50" />}
+          </button>
+          {avisoExistente && (
+            <span className="flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" title="Aviso de falta registrado">
+              <ClipboardCheck size={10} />Avisou
+            </span>
+          )}
+        </div>
         <div className="flex gap-1.5 flex-wrap">
           {PRESENCA_OPTS.map(o => (
             <button
@@ -303,7 +311,7 @@ function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, 
 
       {/* Tipo de falta */}
       {presenca === 'falta' && (
-        <div>
+        <div className="space-y-2">
           <p className="text-xs text-muted-foreground mb-1.5">Tipo de falta:</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
             {FALTA_TIPOS.map(t => (
@@ -321,6 +329,20 @@ function AlunoRow({ aluno, state, onUpdate, onUpdateExercicio, exerciciosFicha, 
               </button>
             ))}
           </div>
+          {['justificada', 'atestado'].includes(faltaTipo) && !avisoExistente && (
+            <div>
+              <label className="text-xs text-gray-400">Quando o aluno avisou?</label>
+              <Input
+                type="datetime-local"
+                value={dataHoraAviso}
+                onChange={e => onUpdate(aluno.id, { dataHoraAviso: e.target.value })}
+                className="w-full text-sm px-2 py-1 mt-0.5"
+              />
+            </div>
+          )}
+          {avisoExistente && ['justificada', 'atestado'].includes(faltaTipo) && (
+            <p className="text-xs text-emerald-400">Aviso já registrado previamente — crédito será gerado automaticamente.</p>
+          )}
         </div>
       )}
 
@@ -518,6 +540,18 @@ export default function MinistrarAulaPage() {
     enabled: !!fichaId && step === 'aula',
   })
 
+  // Avisos de falta já registrados para esta turma/data — badge "Avisou"
+  const { data: avisosHoje } = useQuery({
+    queryKey: ['avisos-falta-turma', turmaId, data],
+    queryFn: () => api.get('/avisos-falta/', { params: { turma: turmaId, avi_data_aula: data } })
+      .then(r => {
+        const mapa = {}
+        r.data.results.forEach(av => { mapa[av.aluno] = av })
+        return mapa
+      }),
+    enabled: !!turmaId && step === 'aula',
+  })
+
   const [fichaExpandida, setFichaExpandida] = useState(true)
 
   // Sincroniza ordem local com dados da query
@@ -552,6 +586,7 @@ export default function MinistrarAulaPage() {
         init[ta.alu] = {
           presenca: 'presente',
           faltaTipo: 'sem_aviso',
+          dataHoraAviso: new Date().toISOString().slice(0, 16),
           pasI: '', padI: '',
           pasF: '', padF: '',
           fcI: '', fcF: '',
@@ -763,6 +798,25 @@ export default function MinistrarAulaPage() {
         const miauResp = await api.post('/ministrar-aula/', payload)
         const miauId = miauResp.data.miau_id
 
+        // Criar AvisoFalta se falta justificada/atestado e sem aviso prévio
+        if (
+          d.presenca === 'falta' &&
+          ['justificada', 'atestado'].includes(d.faltaTipo) &&
+          !(avisosHoje?.[ta.alu])
+        ) {
+          try {
+            await api.post('/avisos-falta/', {
+              aluno: ta.alu,
+              turma: parseInt(turmaId),
+              avi_data_hora_aviso: d.dataHoraAviso || new Date().toISOString().slice(0, 16),
+              avi_data_aula: data,
+              avi_tipo: d.faltaTipo,
+            })
+          } catch {
+            // AvisoFalta não crítico — não bloqueia o fluxo
+          }
+        }
+
         // Salvar registros individuais de exercícios
         const exs = d.exercicios || {}
         for (const [ftexId, exData] of Object.entries(exs)) {
@@ -864,6 +918,7 @@ export default function MinistrarAulaPage() {
                 expandido={expandidos[ta.alu] ?? true}
                 onToggle={() => updateExpandido(ta.alu, !(expandidos[ta.alu] ?? true))}
                 modalidade={turmaSelecionada?.tur_modalidade}
+                avisoExistente={avisosHoje?.[ta.alu] ?? null}
               />
             ))
           ) : (

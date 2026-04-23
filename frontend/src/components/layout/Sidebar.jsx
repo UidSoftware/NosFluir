@@ -5,7 +5,7 @@ import {
   PieChart, Settings, ChevronDown, ChevronLeft,
   ChevronRightIcon, BookOpen, CreditCard, Wallet, ClipboardList,
   UserCheck, CalendarDays, ListTodo, FileText, Activity,
-  TrendingUp, Repeat2, Building2, Package, Banknote, UserCog,
+  TrendingUp, Repeat2, Building2, Package, Banknote, UserCog, BellOff,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -38,10 +38,11 @@ const MENU = [
     icon: Users,
     permission: 'operacional',
     children: [
-      { label: 'Alunos',       path: '/operacional/alunos',       icon: Users },
-      { label: 'Funcionários', path: '/operacional/funcionarios', icon: UserCheck },
-      { label: 'Turmas',       path: '/operacional/turmas',       icon: CalendarDays },
-      { label: 'Agendamentos', path: '/operacional/agendamentos', icon: ListTodo },
+      { label: 'Alunos',         path: '/operacional/alunos',        icon: Users },
+      { label: 'Funcionários',   path: '/operacional/funcionarios',  icon: UserCheck },
+      { label: 'Turmas',         path: '/operacional/turmas',        icon: CalendarDays },
+      { label: 'Avisos de Falta', path: '/operacional/avisos-falta', icon: BellOff },
+      { label: 'Agendamentos',   path: '/operacional/agendamentos',  icon: ListTodo },
     ],
   },
   {

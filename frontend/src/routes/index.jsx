@@ -22,6 +22,7 @@ import AlunosPage             from '@/pages/operacional/AlunosPage'
 import FuncionariosPage       from '@/pages/operacional/FuncionariosPage'
 import TurmasPage             from '@/pages/operacional/TurmasPage'
 import AgendamentosPage       from '@/pages/operacional/AgendamentosPage'
+import AvisosPage             from '@/pages/operacional/AvisosPage'
 
 // Técnico
 import AulasPage              from '@/pages/tecnico/AulasPage'
@@ -117,6 +118,7 @@ export const router = createBrowserRouter(
                 { path: '/operacional/alunos',        element: <AlunosPage /> },
                 { path: '/operacional/funcionarios',  element: <FuncionariosPage /> },
                 { path: '/operacional/turmas',        element: <TurmasPage /> },
+                { path: '/operacional/avisos-falta',  element: <AvisosPage /> },
                 { path: '/operacional/agendamentos',  element: <AgendamentosPage /> },
                 { path: '/relatorios/frequencia',     element: <RelFrequenciaPage /> },
                 { path: '/relatorios/pressao',        element: <RelPressaoPage /> },

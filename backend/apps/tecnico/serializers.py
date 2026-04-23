@@ -231,7 +231,7 @@ class CreditoReposicaoSerializer(serializers.ModelSerializer):
     class Meta:
         model = CreditoReposicao
         fields = [
-            'id', 'cred_id', 'alu', 'alu_nome', 'aula_origem', 'aula_reposicao',
+            'id', 'cred_id', 'alu', 'alu_nome', 'aviso_falta', 'aula_origem', 'aula_reposicao',
             'cred_data_geracao', 'cred_data_expiracao',
             'cred_usado', 'cred_status', 'created_at', 'updated_at',
         ]

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Users, Plus, Pencil, Trash2, Eye, ClipboardList } from 'lucide-react'
+import { Users, Plus, Pencil, Trash2, Eye, ClipboardList, ClipboardCheck, XCircle } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -12,7 +12,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input, FormField, Spinner } from '@/components/ui/primitives'
-import { formatDate, formatCPF, onlyNumbers } from '@/lib/utils'
+import { formatDate, formatCPF, formatDateTime, onlyNumbers } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
@@ -264,6 +264,76 @@ function AvaliacoesSection({ alunoId }) {
   )
 }
 
+// ─── Seção de Avisos e Créditos ──────────────────────────────────────────────
+
+const TIPO_AVISO_LABELS = { justificada: 'Justificada', atestado: 'Atestado Médico' }
+
+function AvisosSection({ alunoId }) {
+  const { data: avisos, isLoading: loadingAvisos } = useQuery({
+    queryKey: ['avisos-aluno', alunoId],
+    queryFn: () => api.get('/avisos-falta/', { params: { aluno: alunoId, ordering: '-avi_data_hora_aviso' } })
+      .then(r => r.data.results),
+    enabled: !!alunoId,
+  })
+
+  const { data: creditos, isLoading: loadingCred } = useQuery({
+    queryKey: ['creditos-aluno', alunoId],
+    queryFn: () => api.get('/creditos/', { params: { alu: alunoId, cred_status: 'disponivel', ordering: 'cred_data_expiracao' } })
+      .then(r => r.data.results),
+    enabled: !!alunoId,
+  })
+
+  const creditosDisponiveis = creditos?.length ?? 0
+  const proximoExpira = creditos?.[0]?.cred_data_expiracao
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Avisos e Créditos</p>
+
+      {/* Créditos disponíveis */}
+      <div className="rounded-md border border-border bg-fluir-dark-3/40 px-3 py-2 text-sm flex items-center gap-3">
+        <span className="text-fluir-cyan font-medium">
+          {'🪙'.repeat(creditosDisponiveis) || '—'}
+        </span>
+        <div>
+          <p className="text-xs">
+            {creditosDisponiveis === 0
+              ? 'Nenhum crédito disponível'
+              : `${creditosDisponiveis} crédito${creditosDisponiveis > 1 ? 's' : ''} disponível${creditosDisponiveis > 1 ? 's' : ''}`}
+          </p>
+          {proximoExpira && (
+            <p className="text-[10px] text-muted-foreground">Próximo expira: {formatDate(proximoExpira)}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Histórico de avisos */}
+      {loadingAvisos ? (
+        <div className="flex justify-center py-3"><Spinner /></div>
+      ) : !avisos?.length ? (
+        <p className="text-xs text-muted-foreground text-center py-2">Nenhum aviso registrado.</p>
+      ) : (
+        <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+          {avisos.map(av => (
+            <div key={av.avi_id} className="flex items-center justify-between gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs">
+              <div>
+                <span className="font-medium">{formatDate(av.avi_data_aula)}</span>
+                <span className="text-muted-foreground mx-1.5">·</span>
+                <span className="text-muted-foreground">{av.tur_nome || '—'}</span>
+                <span className="text-muted-foreground mx-1.5">·</span>
+                <span>{TIPO_AVISO_LABELS[av.avi_tipo] || av.avi_tipo}</span>
+              </div>
+              {av.avi_gera_credito
+                ? <span className="flex items-center gap-0.5 text-emerald-400 shrink-0"><ClipboardCheck size={11} />crédito</span>
+                : <span className="flex items-center gap-0.5 text-red-400/70 shrink-0"><XCircle size={11} />sem crédito</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Detalhe do Aluno ────────────────────────────────────────────────────────
 
 function AlunoDetail({ aluno, onClose }) {
@@ -299,6 +369,8 @@ function AlunoDetail({ aluno, onClose }) {
       </div>
 
       <AvaliacoesSection alunoId={aluno.alu_id} />
+
+      <AvisosSection alunoId={aluno.alu_id} />
 
       <DialogFooter>
         <Button variant="ghost" onClick={onClose}>Fechar</Button>

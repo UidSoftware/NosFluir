@@ -422,11 +422,9 @@ function AvisosSection({ alunoId }) {
   )
 }
 
-// ─── Card colapsável do aluno ─────────────────────────────────────────────────
+// ─── Detalhe do aluno (Card 2) ───────────────────────────────────────────────
 
-function AlunoCard({ aluno, onEdit, onDelete }) {
-  const [expandido, setExpandido] = useState(false)
-
+function AlunoDetalhe({ aluno }) {
   const F = ({ label, value }) => value ? (
     <div>
       <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
@@ -435,65 +433,38 @@ function AlunoCard({ aluno, onEdit, onDelete }) {
   ) : null
 
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
-      {/* Header — somente nome (LGPD) */}
-      <div className="flex items-center gap-2 px-4 py-3">
-        <button
-          onClick={() => setExpandido(v => !v)}
-          className="flex items-center gap-2 flex-1 text-left group"
-        >
-          {expandido
-            ? <ChevronDown size={15} className="text-muted-foreground shrink-0" />
-            : <ChevronRight size={15} className="text-muted-foreground shrink-0" />}
-          <span className="font-medium group-hover:text-fluir-cyan transition-colors">{aluno.alu_nome}</span>
-        </button>
-        <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="icon-sm" onClick={() => onEdit(aluno)} title="Editar">
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => onDelete(aluno.alu_id)} title="Excluir" className="text-red-400 hover:text-red-300">
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <F label="CPF"                    value={formatCPF(aluno.alu_documento)} />
+        <F label="Nascimento"             value={formatDate(aluno.alu_data_nascimento)} />
+        <F label="E-mail"                 value={aluno.alu_email} />
+        <F label="Telefone"               value={aluno.alu_telefone} />
+        <F label="Contato de Emergência"  value={aluno.alu_contato_emergencia} />
+        {aluno.alu_endereco && (
+          <div className="col-span-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Endereço</p>
+            <p className="text-sm mt-0.5">{aluno.alu_endereco}</p>
+          </div>
+        )}
+        {aluno.alu_doencas_cronicas && (
+          <div className="col-span-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Doenças Crônicas</p>
+            <p className="text-sm mt-0.5 whitespace-pre-wrap">{aluno.alu_doencas_cronicas}</p>
+          </div>
+        )}
+        {aluno.alu_medicamentos && (
+          <div className="col-span-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Medicamentos em Uso</p>
+            <p className="text-sm mt-0.5 whitespace-pre-wrap">{aluno.alu_medicamentos}</p>
+          </div>
+        )}
       </div>
 
-      {/* Card 2 — detalhe expandido */}
-      {expandido && (
-        <div className="mx-3 mb-3 rounded-lg border border-border/60 bg-fluir-dark-3/40 p-4 space-y-4">
-          {/* Dados pessoais */}
-          <div className="grid grid-cols-2 gap-3">
-            <F label="CPF"        value={formatCPF(aluno.alu_documento)} />
-            <F label="Nascimento" value={formatDate(aluno.alu_data_nascimento)} />
-            <F label="E-mail"     value={aluno.alu_email} />
-            <F label="Telefone"   value={aluno.alu_telefone} />
-            <F label="Contato de Emergência" value={aluno.alu_contato_emergencia} />
-            {aluno.alu_endereco && (
-              <div className="col-span-2">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Endereço</p>
-                <p className="text-sm mt-0.5">{aluno.alu_endereco}</p>
-              </div>
-            )}
-            {aluno.alu_doencas_cronicas && (
-              <div className="col-span-2">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Doenças Crônicas</p>
-                <p className="text-sm mt-0.5 whitespace-pre-wrap">{aluno.alu_doencas_cronicas}</p>
-              </div>
-            )}
-            {aluno.alu_medicamentos && (
-              <div className="col-span-2">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Medicamentos em Uso</p>
-                <p className="text-sm mt-0.5 whitespace-pre-wrap">{aluno.alu_medicamentos}</p>
-              </div>
-            )}
-          </div>
-
-          <div className="border-t border-border/40 pt-3 space-y-4">
-            <PlanosSection     alunoId={aluno.alu_id} />
-            <AvaliacoesSection alunoId={aluno.alu_id} />
-            <AvisosSection     alunoId={aluno.alu_id} />
-          </div>
-        </div>
-      )}
+      <div className="border-t border-border/40 pt-3 space-y-4">
+        <PlanosSection     alunoId={aluno.alu_id} />
+        <AvaliacoesSection alunoId={aluno.alu_id} />
+        <AvisosSection     alunoId={aluno.alu_id} />
+      </div>
     </div>
   )
 }
@@ -501,55 +472,102 @@ function AlunoCard({ aluno, onEdit, onDelete }) {
 // ─── Página principal ────────────────────────────────────────────────────────
 
 export default function AlunosPage() {
-  const [modalOpen, setModalOpen] = useState(false)
-  const [selected, setSelected]   = useState(null)
-  const [deleteId, setDeleteId]   = useState(null)
+  const [modalOpen, setModalOpen]   = useState(false)
+  const [editando, setEditando]     = useState(null)
+  const [deleteId, setDeleteId]     = useState(null)
+  const [detalhe, setDetalhe]       = useState(null) // aluno selecionado no Card 2
 
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
-  const del = useDelete(KEY, ENDPOINT, { successMsg: 'Aluno excluído.' })
+  const del = useDelete(KEY, ENDPOINT, {
+    successMsg: 'Aluno excluído.',
+    onSuccess: () => { if (detalhe) setDetalhe(null) },
+  })
 
-  const openEdit   = (a) => { setSelected(a); setModalOpen(true) }
-  const openCreate = ()  => { setSelected(null); setModalOpen(true) }
+  const openEdit   = (a) => { setEditando(a); setModalOpen(true) }
+  const openCreate = ()  => { setEditando(null); setModalOpen(true) }
+
+  const handleSelect = (a) => setDetalhe(prev => prev?.alu_id === a.alu_id ? null : a)
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Alunos"
-        description="Clique no nome do aluno para ver os detalhes"
+        description="Clique no nome para ver os detalhes"
         actions={<Button onClick={openCreate}><Plus className="w-4 h-4" />Novo Aluno</Button>}
       />
 
-      <Card>
-        <CardContent className="p-5 space-y-4">
-          <SearchFilter placeholder="Buscar por nome, CPF ou e-mail..." onSearch={q => setFilters(q ? { search: q } : {})} />
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 items-start">
 
-          {isLoading ? (
-            <div className="flex justify-center py-8"><Spinner /></div>
-          ) : !data?.length ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Nenhum aluno cadastrado ainda.</p>
-          ) : (
-            <div className="space-y-2">
-              {data.map(a => (
-                <AlunoCard
-                  key={a.alu_id}
-                  aluno={a}
-                  onEdit={openEdit}
-                  onDelete={(id) => setDeleteId(id)}
-                />
-              ))}
-            </div>
-          )}
+        {/* Card 1 — lista de nomes */}
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <SearchFilter placeholder="Buscar..." onSearch={q => setFilters(q ? { search: q } : {})} />
 
-          <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
-        </CardContent>
-      </Card>
+            {isLoading ? (
+              <div className="flex justify-center py-8"><Spinner /></div>
+            ) : !data?.length ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Nenhum aluno cadastrado.</p>
+            ) : (
+              <div className="space-y-0.5">
+                {data.map(a => (
+                  <div
+                    key={a.alu_id}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-2.5 rounded-md transition-colors',
+                      detalhe?.alu_id === a.alu_id
+                        ? 'bg-fluir-purple/15 border border-fluir-purple/30'
+                        : 'hover:bg-fluir-dark-3/60'
+                    )}
+                  >
+                    <button
+                      onClick={() => handleSelect(a)}
+                      className="flex-1 text-left text-sm font-medium"
+                    >
+                      {a.alu_nome}
+                    </button>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <Button variant="ghost" size="icon-sm" onClick={() => openEdit(a)} title="Editar">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(a.alu_id)} title="Excluir" className="text-red-400 hover:text-red-300">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
+          </CardContent>
+        </Card>
+
+        {/* Card 2 — detalhe do aluno selecionado */}
+        {detalhe ? (
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-fluir-purple">{detalhe.alu_nome}</h3>
+                <Button variant="ghost" size="icon-sm" onClick={() => setDetalhe(null)} title="Fechar">
+                  <XCircle className="w-4 h-4 text-muted-foreground" />
+                </Button>
+              </div>
+              <AlunoDetalhe aluno={detalhe} />
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="hidden lg:flex items-center justify-center rounded-lg border border-dashed border-border/40 min-h-[200px] text-sm text-muted-foreground">
+            Selecione um aluno para ver os detalhes
+          </div>
+        )}
+      </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selected ? 'Editar Aluno' : 'Novo Aluno'}</DialogTitle>
+            <DialogTitle>{editando ? 'Editar Aluno' : 'Novo Aluno'}</DialogTitle>
           </DialogHeader>
-          <AlunoForm aluno={selected} onClose={() => setModalOpen(false)} />
+          <AlunoForm aluno={editando} onClose={() => setModalOpen(false)} />
         </DialogContent>
       </Dialog>
 

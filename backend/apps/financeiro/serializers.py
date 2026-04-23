@@ -134,12 +134,13 @@ class AlunoPlanoSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
     alu_nome = serializers.CharField(source='aluno.alu_nome', read_only=True)
     plan_descricao = serializers.SerializerMethodField()
+    plan_valor_plano = serializers.SerializerMethodField()
 
     class Meta:
         model = AlunoPlano
         fields = [
             'id', 'aplano_id', 'aluno', 'alu_nome',
-            'plano', 'plan_descricao',
+            'plano', 'plan_descricao', 'plan_valor_plano',
             'aplano_data_inicio', 'aplano_data_fim',
             'aplano_ativo', 'aplano_observacoes',
             'created_at', 'updated_at',
@@ -148,6 +149,9 @@ class AlunoPlanoSerializer(serializers.ModelSerializer):
 
     def get_plan_descricao(self, obj):
         return f"{obj.plano.serv.serv_nome} — {obj.plano.get_plan_tipo_plano_display()}"
+
+    def get_plan_valor_plano(self, obj):
+        return obj.plano.plan_valor_plano
 
 
 class LivroCaixaSerializer(serializers.ModelSerializer):

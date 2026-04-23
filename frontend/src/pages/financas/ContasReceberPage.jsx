@@ -24,21 +24,25 @@ const KEY      = 'contas-receber'
 function ContaForm({ conta, onClose }) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: conta ? {
+      alu:                  conta.alu ? String(conta.alu) : '__none__',
       rec_descricao:        conta.rec_descricao,
-      rec_valor_unitario:   conta.rec_valor_unitario || '',
-      rec_quantidade:       conta.rec_quantidade || 1,
-      rec_desconto:         conta.rec_desconto || '',
       rec_data_emissao:     conta.rec_data_emissao ? conta.rec_data_emissao.split('T')[0] : '',
       rec_data_vencimento:  conta.rec_data_vencimento ? conta.rec_data_vencimento.split('T')[0] : '',
-      rec_data_recebimento: conta.rec_data_recebimento ? conta.rec_data_recebimento.split('T')[0] : '',
       rec_status:           conta.rec_status || 'pendente',
-      alu:                  conta.alu ? String(conta.alu) : '',
-      serv:                 conta.serv ? String(conta.serv) : '',
+      rec_data_recebimento: conta.rec_data_recebimento ? conta.rec_data_recebimento.split('T')[0] : '',
       rec_forma_recebimento: conta.rec_forma_recebimento || '',
-      rec_plano_tipo:       conta.rec_plano_tipo || '',
+      serv:                 conta.serv ? String(conta.serv) : '__none__',
+      aplano:               conta.aplano ? String(conta.aplano) : '__none__',
+      rec_valor_unitario:   conta.rec_valor_unitario || '',
+      rec_quantidade:       conta.rec_quantidade || 1,
+      rec_desconto:         conta.rec_desconto || 0,
     } : {
+      alu:            '__none__',
+      serv:           '__none__',
+      aplano:         '__none__',
       rec_quantidade: 1,
-      rec_status: 'pendente',
+      rec_desconto:   0,
+      rec_status:     'pendente',
       rec_data_emissao: new Date().toISOString().split('T')[0],
     },
   })
@@ -47,14 +51,12 @@ function ContaForm({ conta, onClose }) {
   const update = useUpdate(KEY, ENDPOINT, { onSuccess: onClose })
   const busy   = create.isPending || update.isPending
   const status = watch('rec_status')
+  const aluId  = watch('alu')
 
-  // Total em tempo real: (qtd × unit) - desconto
   const qtd   = parseFloat(watch('rec_quantidade') || 1)
   const unit  = parseFloat(watch('rec_valor_unitario') || 0)
   const desc  = parseFloat(watch('rec_desconto') || 0)
   const total = Math.max(0, qtd * unit - desc)
-
-  const aluId = watch('alu')
 
   const { data: alunos } = useQuery({
     queryKey: ['alunos-select'],
@@ -73,47 +75,69 @@ function ContaForm({ conta, onClose }) {
     enabled: !!aluId && aluId !== '__none__',
   })
 
-  const onSubmit = (data) => {
-    const cleaned = Object.fromEntries(
-      Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
-    )
-    const aluIdVal = cleaned.alu && cleaned.alu !== '__none__' ? parseInt(cleaned.alu) : null
-    if (!aluIdVal) {
-      toast({ title: 'Selecione o aluno.', variant: 'destructive' })
-      return
+  const handleServChange = (v) => {
+    setValue('serv', v)
+    setValue('aplano', '__none__')
+    if (v !== '__none__') {
+      const s = servicos?.find(x => String(x.serv_id) === v)
+      if (s) setValue('rec_valor_unitario', s.serv_valor_base)
     }
-    cleaned.alu    = aluIdVal
-    cleaned.serv   = cleaned.serv && cleaned.serv !== '__none__' ? parseInt(cleaned.serv) : null
-    cleaned.aplano = cleaned.aplano && cleaned.aplano !== '__none__' ? parseInt(cleaned.aplano) : null
-    cleaned.rec_plano_tipo = cleaned.rec_plano_tipo && cleaned.rec_plano_tipo !== '__none__' ? cleaned.rec_plano_tipo : null
-    if (conta) update.mutate({ id: conta.rec_id, data: cleaned })
-    else       create.mutate(cleaned)
+  }
+
+  const handleAplanoChange = (v) => {
+    setValue('aplano', v)
+    setValue('serv', '__none__')
+    if (v !== '__none__') {
+      const ap = planosDoAluno?.find(x => String(x.aplano_id) === v)
+      if (ap) setValue('rec_valor_unitario', ap.plan_valor_plano)
+    }
+  }
+
+  const onSubmit = (data) => {
+    const aluVal = data.alu !== '__none__' ? parseInt(data.alu) : null
+    if (!aluVal) { toast({ title: 'Selecione o aluno.', variant: 'destructive' }); return }
+    if (!data.rec_descricao) { toast({ title: 'Informe a descrição.', variant: 'destructive' }); return }
+    if (!data.rec_valor_unitario) { toast({ title: 'Informe o valor.', variant: 'destructive' }); return }
+
+    const payload = {
+      alu:                  aluVal,
+      rec_descricao:        data.rec_descricao,
+      rec_data_emissao:     data.rec_data_emissao || null,
+      rec_data_vencimento:  data.rec_data_vencimento || null,
+      rec_status:           data.rec_status,
+      rec_data_recebimento: status === 'recebido' ? (data.rec_data_recebimento || null) : null,
+      rec_forma_recebimento: status === 'recebido' ? (data.rec_forma_recebimento || null) : null,
+      serv:                 data.serv !== '__none__' ? parseInt(data.serv) : null,
+      aplano:               data.aplano !== '__none__' ? parseInt(data.aplano) : null,
+      rec_valor_unitario:   data.rec_valor_unitario,
+      rec_quantidade:       parseInt(data.rec_quantidade) || 1,
+      rec_desconto:         parseFloat(data.rec_desconto) || 0,
+    }
+
+    if (conta) update.mutate({ id: conta.rec_id, data: payload })
+    else       create.mutate(payload)
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
-      <FormField label="Descrição" required error={errors.rec_descricao?.message}>
-        <Input {...register('rec_descricao', { required: 'Descrição obrigatória' })} placeholder="Mensalidade Pilates" disabled={busy} />
+
+      {/* 1. Aluno */}
+      <FormField label="Aluno" required>
+        <Select value={watch('alu')} onValueChange={v => { setValue('alu', v); setValue('aplano', '__none__') }} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Selecionar aluno..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar aluno...</SelectItem>
+            {alunos?.map(a => <SelectItem key={a.alu_id} value={String(a.alu_id)}>{a.alu_nome}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </FormField>
 
-      <div className="grid grid-cols-3 gap-3">
-        <FormField label="Valor Unit. (R$)" required>
-          <Input type="number" step="0.01" {...register('rec_valor_unitario', { required: true })} placeholder="0.00" disabled={busy} />
-        </FormField>
-        <FormField label="Qtd">
-          <Input type="number" {...register('rec_quantidade')} placeholder="1" disabled={busy} />
-        </FormField>
-        <FormField label="Desconto (R$)">
-          <Input type="number" step="0.01" {...register('rec_desconto')} placeholder="0.00" disabled={busy} />
-        </FormField>
-      </div>
+      {/* 2. Descrição */}
+      <FormField label="Descrição" required error={errors.rec_descricao?.message}>
+        <Input {...register('rec_descricao', { required: true })} placeholder="ex: Mensalidade Pilates — Abril/2026" disabled={busy} />
+      </FormField>
 
-      {/* Total em tempo real */}
-      <div className="rounded-lg bg-fluir-dark-3 px-4 py-2 flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">Total calculado:</span>
-        <span className="text-sm font-semibold text-fluir-cyan">{formatCurrency(total)}</span>
-      </div>
-
+      {/* 3+4. Emissão + Vencimento */}
       <div className="grid grid-cols-2 gap-3">
         <FormField label="Emissão" required>
           <Input type="date" {...register('rec_data_emissao', { required: true })} disabled={busy} />
@@ -123,6 +147,7 @@ function ContaForm({ conta, onClose }) {
         </FormField>
       </div>
 
+      {/* 5. Status */}
       <FormField label="Status">
         <Select value={watch('rec_status')} onValueChange={v => setValue('rec_status', v)} disabled={busy}>
           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -136,65 +161,66 @@ function ContaForm({ conta, onClose }) {
       </FormField>
 
       {status === 'recebido' && (
-        <>
+        <div className="grid grid-cols-2 gap-3">
           <FormField label="Data do Recebimento" required>
-            <Input type="date" {...register('rec_data_recebimento', { required: true })} disabled={busy} />
+            <Input type="date" {...register('rec_data_recebimento')} disabled={busy} />
           </FormField>
           <FormField label="Forma de Recebimento">
             <Input {...register('rec_forma_recebimento')} placeholder="Pix, Dinheiro, Cartão..." disabled={busy} />
           </FormField>
-        </>
+        </div>
       )}
 
-      <FormField label="Aluno" required>
-        <Select value={watch('alu') || '__none__'} onValueChange={v => { setValue('alu', v); setValue('aplano', '__none__') }} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Selecionar aluno..." /></SelectTrigger>
+      {/* 6a. Serviço/Produto → preenche valor */}
+      <FormField label="Serviço/Produto">
+        <Select value={watch('serv')} onValueChange={handleServChange} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Selecionar serviço (opcional)..." /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar aluno...</SelectItem>
-            {alunos?.map(a => (
-              <SelectItem key={a.alu_id} value={String(a.alu_id)}>{a.alu_nome}</SelectItem>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
+            {servicos?.map(s => (
+              <SelectItem key={s.serv_id} value={String(s.serv_id)}>
+                {s.serv_nome} — {formatCurrency(s.serv_valor_base)}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </FormField>
 
-      {planosDoAluno?.length > 0 && (
-        <FormField label="Plano do Aluno (opcional)">
-          <Select value={watch('aplano') || '__none__'} onValueChange={v => setValue('aplano', v)} disabled={busy}>
-            <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+      {/* 6b. Plano de Pagamento do aluno → preenche valor */}
+      {aluId && aluId !== '__none__' && (
+        <FormField label="Plano de Pagamento">
+          <Select value={watch('aplano')} onValueChange={handleAplanoChange} disabled={busy}>
+            <SelectTrigger><SelectValue placeholder="Selecionar plano (opcional)..." /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum (avulso)</SelectItem>
-              {planosDoAluno.map(ap => (
-                <SelectItem key={ap.aplano_id} value={String(ap.aplano_id)}>{ap.plan_descricao}</SelectItem>
+              {planosDoAluno?.map(ap => (
+                <SelectItem key={ap.aplano_id} value={String(ap.aplano_id)}>
+                  {ap.plan_descricao} — {formatCurrency(ap.plan_valor_plano)}/mês
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </FormField>
       )}
 
-      <FormField label="Serviço/Produto">
-        <Select value={watch('serv') || '__none__'} onValueChange={v => setValue('serv', v)} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Selecionar serviço (opcional)..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
-            {servicos?.map(s => (
-              <SelectItem key={s.serv_id} value={String(s.serv_id)}>{s.serv_nome}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
+      {/* 7+8+9. Valor + Qtd + Desconto */}
+      <div className="grid grid-cols-3 gap-3">
+        <FormField label="Valor Unit. (R$)" required>
+          <Input type="number" step="0.01" {...register('rec_valor_unitario', { required: true })} placeholder="0.00" disabled={busy} />
+        </FormField>
+        <FormField label="Qtd">
+          <Input type="number" min="1" {...register('rec_quantidade')} disabled={busy} />
+        </FormField>
+        <FormField label="Desconto (R$)">
+          <Input type="number" step="0.01" {...register('rec_desconto')} placeholder="0.00" disabled={busy} />
+        </FormField>
+      </div>
 
-      <FormField label="Tipo de Plano">
-        <Select value={watch('rec_plano_tipo') || '__none__'} onValueChange={v => setValue('rec_plano_tipo', v)} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Tipo de plano..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
-            <SelectItem value="mensal">Mensal</SelectItem>
-            <SelectItem value="trimestral">Trimestral</SelectItem>
-            <SelectItem value="semestral">Semestral</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
+      {/* Total calculado */}
+      <div className="rounded-lg bg-fluir-dark-3 px-4 py-2.5 flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">Total calculado:</span>
+        <span className="text-base font-semibold text-fluir-cyan">{formatCurrency(total)}</span>
+      </div>
 
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>

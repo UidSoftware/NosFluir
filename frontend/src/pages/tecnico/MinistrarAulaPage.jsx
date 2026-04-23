@@ -475,6 +475,26 @@ export default function MinistrarAulaPage() {
   const [modalidade, setModalidade]         = useState('')
   const [expandidos, setExpandidos]         = useState({})
 
+  const STORAGE_KEY = 'nosfluir_aula_em_andamento'
+
+  // Restaura aula em andamento do localStorage (sobrevive a refresh/voltar)
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null')
+      if (!saved?.aulaId) return
+      api.get(`/aulas/${saved.aulaId}/`).then(r => {
+        if (r.data.aul_hora_final) { localStorage.removeItem(STORAGE_KEY); return }
+        setAulaId(saved.aulaId)
+        setModalidade(saved.modalidade || '')
+        setTurmaId(String(saved.turmaId || ''))
+        setFichaId(saved.fichaId ? String(saved.fichaId) : '')
+        setFuncId(String(saved.funcId || ''))
+        setDataAula(saved.data)
+        setHoraInicio(saved.horaInicio)
+      }).catch(() => localStorage.removeItem(STORAGE_KEY))
+    } catch {}
+  }, [])
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -681,6 +701,15 @@ export default function MinistrarAulaPage() {
         aul_hora_inicio: horaInicio,
       })
       setAulaId(resp.data.aul_id)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        aulaId: resp.data.aul_id,
+        turmaId: parseInt(turmaId),
+        fichaId: fichaId ? parseInt(fichaId) : null,
+        funcId: parseInt(funcId),
+        modalidade: turmaSelecionada.tur_modalidade,
+        data,
+        horaInicio,
+      }))
       setStep('aula')
     } catch (err) {
       const status = err.response?.status
@@ -848,6 +877,7 @@ export default function MinistrarAulaPage() {
     setFinalizando(false)
 
     if (erros === 0) {
+      localStorage.removeItem(STORAGE_KEY)
       toast({ title: 'Aula finalizada e registrada com sucesso!', variant: 'success' })
       setStep('configurar')
       setModalidade('')
@@ -954,6 +984,35 @@ export default function MinistrarAulaPage() {
         title="Ministrar Aula"
         description="Configure a turma e inicie o registro da aula"
       />
+
+      {/* Banner de retomar aula em andamento */}
+      {aulaId && (
+        <div className="rounded-lg border border-fluir-cyan/30 bg-fluir-cyan/10 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-sm font-medium text-fluir-cyan">Aula em andamento</p>
+            <p className="text-xs text-muted-foreground">
+              {turmas?.find(t => t.tur_id === parseInt(turmaId))?.tur_nome || '—'} — {formatDate(data)} às {horaInicio}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="gradient" onClick={() => setStep('aula')}>
+              Retomar Aula
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => {
+              localStorage.removeItem(STORAGE_KEY)
+              setAulaId(null)
+              setModalidade('')
+              setTurmaId('')
+              setFichaId('')
+              setFuncId('')
+              setAlunoStates({})
+              setExpandidos({})
+            }}>
+              Descartar
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Card className="max-w-lg">
         <CardHeader>

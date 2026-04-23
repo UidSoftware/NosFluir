@@ -204,7 +204,7 @@ export default function AvisosPage() {
         description="Registro de avisos de falta dos alunos — gera crédito de reposição automaticamente"
         action={
           <Button onClick={() => setModalOpen(true)}>
-            <Plus className="w-4 h-4 mr-1.5" />Novo Aviso
+            <Plus className="w-4 h-4 mr-1.5" />Nova Falta
           </Button>
         }
       />

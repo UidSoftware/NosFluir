@@ -100,9 +100,13 @@ class ContasReceber(BaseModel):
     ]
 
     rec_id = models.AutoField(primary_key=True)
-    # FK para Aluno — importado via string para evitar import circular
     alu = models.ForeignKey(
         'operacional.Aluno', on_delete=models.PROTECT, verbose_name='aluno'
+    )
+    aplano = models.ForeignKey(
+        'AlunoPlano', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='cobranças', verbose_name='plano do aluno'
     )
     serv = models.ForeignKey(
         ServicoProduto, on_delete=models.SET_NULL,
@@ -135,7 +139,7 @@ class ContasReceber(BaseModel):
 
 
 class PlanosPagamentos(BaseModel):
-    """Planos de pagamento recorrentes dos alunos."""
+    """Template de plano — catálogo de planos disponíveis. Fase 9."""
     TIPO_PLANO_CHOICES = [
         ('mensal', 'Mensal'),
         ('trimestral', 'Trimestral'),
@@ -143,25 +147,45 @@ class PlanosPagamentos(BaseModel):
     ]
 
     plan_id = models.AutoField(primary_key=True)
-    alu = models.ForeignKey(
-        'operacional.Aluno', on_delete=models.PROTECT, verbose_name='aluno'
-    )
     serv = models.ForeignKey(ServicoProduto, on_delete=models.PROTECT, verbose_name='serviço')
     plan_tipo_plano = models.CharField('tipo do plano', max_length=20, choices=TIPO_PLANO_CHOICES)
     plan_valor_plano = models.DecimalField('valor mensal', max_digits=10, decimal_places=2)
-    plan_data_inicio = models.DateField('data de início')
-    plan_data_fim = models.DateField('data de término', null=True, blank=True)
     plan_dia_vencimento = models.IntegerField('dia de vencimento')
-    plan_ativo = models.BooleanField('ativo', default=True)
 
     class Meta:
         db_table = 'planos_pagamentos'
         verbose_name = 'Plano de Pagamento'
         verbose_name_plural = 'Planos de Pagamento'
-        ordering = ['-plan_data_inicio']
+        ordering = ['serv__serv_nome', 'plan_tipo_plano']
 
     def __str__(self):
-        return f'{self.alu} — {self.get_plan_tipo_plano_display()}'
+        return f'{self.serv.serv_nome} — {self.get_plan_tipo_plano_display()}'
+
+
+class AlunoPlano(BaseModel):
+    """Contrato individual: aluno vinculado a um plano. Fase 9."""
+    aplano_id = models.AutoField(primary_key=True)
+    aluno = models.ForeignKey(
+        'operacional.Aluno', on_delete=models.PROTECT,
+        related_name='planos', verbose_name='aluno'
+    )
+    plano = models.ForeignKey(
+        PlanosPagamentos, on_delete=models.PROTECT,
+        related_name='alunos', verbose_name='plano'
+    )
+    aplano_data_inicio   = models.DateField('data de início')
+    aplano_data_fim      = models.DateField('data de término', null=True, blank=True)
+    aplano_ativo         = models.BooleanField('ativo', default=True)
+    aplano_observacoes   = models.TextField('observações', null=True, blank=True)
+
+    class Meta:
+        db_table = 'aluno_plano'
+        verbose_name = 'Plano do Aluno'
+        verbose_name_plural = 'Planos dos Alunos'
+        ordering = ['-aplano_data_inicio']
+
+    def __str__(self):
+        return f"{self.aluno} — {self.plano} ({'ativo' if self.aplano_ativo else 'inativo'})"
 
 
 class LivroCaixa(BaseModel):

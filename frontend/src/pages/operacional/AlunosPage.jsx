@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Users, Plus, Pencil, Trash2, Eye, ClipboardList, ClipboardCheck, XCircle } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SearchFilter } from '@/components/shared/SearchFilter'
@@ -12,7 +13,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input, FormField, Spinner } from '@/components/ui/primitives'
-import { formatDate, formatCPF, formatDateTime, onlyNumbers } from '@/lib/utils'
+import { formatDate, formatCPF, formatCurrency, formatDateTime, onlyNumbers } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
@@ -334,6 +335,156 @@ function AvisosSection({ alunoId }) {
   )
 }
 
+// ─── Seção de Planos Ativos ───────────────────────────────────────────────────
+
+const TIPO_PLANO_LABELS = { mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral' }
+
+function PlanosSection({ alunoId }) {
+  const queryClient = useQueryClient()
+  const [vincularOpen, setVincularOpen] = useState(false)
+  const [encerrarId, setEncerrarId]     = useState(null)
+
+  const { data: planosAluno, isLoading } = useQuery({
+    queryKey: ['aluno-plano', alunoId],
+    queryFn: () => api.get('/aluno-plano/', { params: { aluno: alunoId, ordering: '-aplano_ativo,-aplano_data_inicio' } })
+      .then(r => r.data.results),
+    enabled: !!alunoId,
+  })
+
+  const { data: planos } = useQuery({
+    queryKey: ['planos-select'],
+    queryFn: () => api.get('/planos-pagamentos/').then(r => r.data.results),
+    enabled: vincularOpen,
+  })
+
+  const vincularMut = useMutation({
+    mutationFn: (payload) => api.post('/aluno-plano/', payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aluno-plano', alunoId] })
+      toast({ title: 'Plano vinculado.', variant: 'success' })
+      setVincularOpen(false)
+    },
+  })
+
+  const encerrarMut = useMutation({
+    mutationFn: (id) => api.patch(`/aluno-plano/${id}/`, {
+      aplano_ativo: false,
+      aplano_data_fim: new Date().toISOString().slice(0, 10),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aluno-plano', alunoId] })
+      toast({ title: 'Plano encerrado.', variant: 'success' })
+      setEncerrarId(null)
+    },
+  })
+
+  const [novoPlano, setNovoPlano] = useState({ plano: '__none__', aplano_data_inicio: new Date().toISOString().slice(0, 10), aplano_observacoes: '' })
+
+  const handleVincular = () => {
+    if (novoPlano.plano === '__none__') { toast({ title: 'Selecione um plano.', variant: 'destructive' }); return }
+    vincularMut.mutate({
+      aluno: alunoId,
+      plano: parseInt(novoPlano.plano),
+      aplano_data_inicio: novoPlano.aplano_data_inicio,
+      aplano_observacoes: novoPlano.aplano_observacoes || null,
+    })
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Planos Ativos</p>
+        <Button size="sm" variant="outline" onClick={() => setVincularOpen(true)}>
+          <Plus className="w-3.5 h-3.5" />Vincular Plano
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-3"><Spinner /></div>
+      ) : !planosAluno?.length ? (
+        <p className="text-xs text-muted-foreground text-center py-2">Nenhum plano vinculado.</p>
+      ) : (
+        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+          {planosAluno.map(ap => (
+            <div key={ap.aplano_id} className={`rounded-md border px-3 py-2 text-xs ${ap.aplano_ativo ? 'border-border' : 'border-border/40 opacity-60'}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium text-sm">{ap.plan_descricao}</p>
+                  <p className="text-muted-foreground mt-0.5">
+                    Início: {formatDate(ap.aplano_data_inicio)}
+                    {ap.aplano_data_fim && ` · Fim: ${formatDate(ap.aplano_data_fim)}`}
+                    {' · '}
+                    <span className={ap.aplano_ativo ? 'text-emerald-400' : 'text-red-400'}>
+                      {ap.aplano_ativo ? 'Ativo' : 'Encerrado'}
+                    </span>
+                  </p>
+                  {ap.aplano_observacoes && <p className="italic text-muted-foreground mt-0.5">{ap.aplano_observacoes}</p>}
+                </div>
+                {ap.aplano_ativo && (
+                  <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 shrink-0 text-xs h-7"
+                    onClick={() => setEncerrarId(ap.aplano_id)}>
+                    Encerrar
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal vincular plano */}
+      <Dialog open={vincularOpen} onOpenChange={setVincularOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Vincular Plano</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <FormField label="Plano *">
+              <Select value={novoPlano.plano} onValueChange={v => setNovoPlano(p => ({ ...p, plano: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecionar plano..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar plano...</SelectItem>
+                  {planos?.map(p => (
+                    <SelectItem key={p.plan_id} value={String(p.plan_id)}>
+                      {p.serv_nome} — {TIPO_PLANO_LABELS[p.plan_tipo_plano]} — {formatCurrency(p.plan_valor_plano)}/mês
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField label="Data de Início *">
+              <Input type="date" value={novoPlano.aplano_data_inicio}
+                onChange={e => setNovoPlano(p => ({ ...p, aplano_data_inicio: e.target.value }))} />
+            </FormField>
+            <FormField label="Observações">
+              <textarea
+                rows={2}
+                value={novoPlano.aplano_observacoes}
+                onChange={e => setNovoPlano(p => ({ ...p, aplano_observacoes: e.target.value }))}
+                placeholder="Necessidades específicas..."
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </FormField>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setVincularOpen(false)}>Cancelar</Button>
+            <Button onClick={handleVincular} disabled={vincularMut.isPending}>
+              {vincularMut.isPending ? 'Salvando...' : 'Vincular'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={!!encerrarId} onOpenChange={() => setEncerrarId(null)}
+        title="Encerrar Plano"
+        description="Encerra o plano hoje. O histórico é mantido."
+        confirmLabel="Encerrar"
+        onConfirm={() => encerrarMut.mutate(encerrarId)}
+        isLoading={encerrarMut.isPending}
+      />
+    </div>
+  )
+}
+
 // ─── Detalhe do Aluno ────────────────────────────────────────────────────────
 
 function AlunoDetail({ aluno, onClose }) {
@@ -367,6 +518,8 @@ function AlunoDetail({ aluno, onClose }) {
           </div>
         )}
       </div>
+
+      <PlanosSection alunoId={aluno.alu_id} />
 
       <AvaliacoesSection alunoId={aluno.alu_id} />
 

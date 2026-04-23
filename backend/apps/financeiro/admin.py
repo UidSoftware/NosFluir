@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .models import (
-    ContasPagar, ContasReceber, FolhaPagamento,
+    AlunoPlano, ContasPagar, ContasReceber, FolhaPagamento,
     Fornecedor, LivroCaixa, PlanosPagamentos, ServicoProduto,
 )
 
@@ -38,8 +38,16 @@ class ContasReceberAdmin(admin.ModelAdmin):
 
 @admin.register(PlanosPagamentos)
 class PlanosPagamentosAdmin(admin.ModelAdmin):
-    list_display = ['alu', 'serv', 'plan_tipo_plano', 'plan_valor_plano', 'plan_ativo']
-    list_filter = ['plan_tipo_plano', 'plan_ativo']
+    list_display = ['serv', 'plan_tipo_plano', 'plan_valor_plano', 'plan_dia_vencimento']
+    list_filter = ['plan_tipo_plano']
+    search_fields = ['serv__serv_nome']
+
+
+@admin.register(AlunoPlano)
+class AlunoPlanoAdmin(admin.ModelAdmin):
+    list_display = ['aluno', 'plano', 'aplano_data_inicio', 'aplano_ativo']
+    list_filter = ['aplano_ativo', 'plano']
+    search_fields = ['aluno__alu_nome', 'plano__serv__serv_nome']
 
 
 @admin.register(LivroCaixa)

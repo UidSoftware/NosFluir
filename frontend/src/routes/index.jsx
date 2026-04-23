@@ -39,6 +39,7 @@ import RelContasPagarPage     from '@/pages/relatorios/RelContasPagarPage'
 import RelContasReceberPage   from '@/pages/relatorios/RelContasReceberPage'
 import RelLivroCaixaPage      from '@/pages/relatorios/RelLivroCaixaPage'
 import RelEvolucaoCargaPage   from '@/pages/relatorios/RelEvolucaoCargaPage'
+import RelPlanosPage          from '@/pages/relatorios/RelPlanosPage'
 
 // Gráficos
 import GrafFinanceiroPage     from '@/pages/graficos/GrafFinanceiroPage'
@@ -86,6 +87,7 @@ export const router = createBrowserRouter(
                 { path: '/relatorios/contas-pagar',   element: <RelContasPagarPage /> },
                 { path: '/relatorios/contas-receber', element: <RelContasReceberPage /> },
                 { path: '/relatorios/livro-caixa',    element: <RelLivroCaixaPage /> },
+                { path: '/relatorios/planos',         element: <RelPlanosPage /> },
                 { path: '/graficos/financeiro',       element: <GrafFinanceiroPage /> },
               ],
             },

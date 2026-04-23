@@ -11,13 +11,13 @@ from apps.core.permissions import IsFinanceiroOuAdmin
 from rest_framework.permissions import IsAdminUser
 
 from .models import (
-    ContasPagar, ContasReceber, FolhaPagamento,
+    AlunoPlano, ContasPagar, ContasReceber, FolhaPagamento,
     Fornecedor, LivroCaixa, PlanosPagamentos, ServicoProduto,
 )
 from .serializers import (
-    ContasPagarSerializer, ContasReceberSerializer, FolhaPagamentoSerializer,
-    FornecedorSerializer, LivroCaixaSerializer, PlanosPagamentosSerializer,
-    ServicoProdutoSerializer,
+    AlunoPlanoSerializer, ContasPagarSerializer, ContasReceberSerializer,
+    FolhaPagamentoSerializer, FornecedorSerializer, LivroCaixaSerializer,
+    PlanosPagamentosSerializer, ServicoProdutoSerializer,
 )
 
 
@@ -81,12 +81,22 @@ class ContasReceberViewSet(AuditMixin, ModelViewSet):
 
 class PlanosPagamentosViewSet(AuditMixin, ModelViewSet):
     permission_classes = [IsFinanceiroOuAdmin]
-    queryset = PlanosPagamentos.objects.filter(deleted_at__isnull=True).select_related('alu', 'serv').order_by('-plan_data_inicio')
+    queryset = PlanosPagamentos.objects.filter(deleted_at__isnull=True).select_related('serv').order_by('serv__serv_nome', 'plan_tipo_plano')
     serializer_class = PlanosPagamentosSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['alu', 'plan_tipo_plano', 'plan_ativo']
-    search_fields = ['alu__alu_nome', 'serv__serv_nome']
-    ordering_fields = ['plan_data_inicio', 'plan_valor_plano']
+    filterset_fields = ['plan_tipo_plano']
+    search_fields = ['serv__serv_nome']
+    ordering_fields = ['plan_valor_plano', 'plan_tipo_plano']
+
+
+class AlunoPlanoViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsFinanceiroOuAdmin]
+    queryset = AlunoPlano.objects.filter(deleted_at__isnull=True).select_related('aluno', 'plano__serv').order_by('-aplano_data_inicio')
+    serializer_class = AlunoPlanoSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['aluno', 'plano', 'aplano_ativo']
+    search_fields = ['aluno__alu_nome', 'plano__serv__serv_nome']
+    ordering_fields = ['aplano_data_inicio', 'aplano_ativo']
 
 
 class LivroCaixaViewSet(AuditMixin, ReadCreateViewSet):

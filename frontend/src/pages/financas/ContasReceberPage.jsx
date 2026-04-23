@@ -54,6 +54,8 @@ function ContaForm({ conta, onClose }) {
   const desc  = parseFloat(watch('rec_desconto') || 0)
   const total = Math.max(0, qtd * unit - desc)
 
+  const aluId = watch('alu')
+
   const { data: alunos } = useQuery({
     queryKey: ['alunos-select'],
     queryFn: () => fetchAll('/alunos/'),
@@ -64,17 +66,25 @@ function ContaForm({ conta, onClose }) {
     queryFn: () => fetchAll('/servicos-produtos/', { serv_ativo: true }),
   })
 
+  const { data: planosDoAluno } = useQuery({
+    queryKey: ['aluno-plano-select', aluId],
+    queryFn: () => api.get('/aluno-plano/', { params: { aluno: aluId, aplano_ativo: true } })
+      .then(r => r.data.results),
+    enabled: !!aluId && aluId !== '__none__',
+  })
+
   const onSubmit = (data) => {
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
-    const aluId = cleaned.alu && cleaned.alu !== '__none__' ? parseInt(cleaned.alu) : null
-    if (!aluId) {
+    const aluIdVal = cleaned.alu && cleaned.alu !== '__none__' ? parseInt(cleaned.alu) : null
+    if (!aluIdVal) {
       toast({ title: 'Selecione o aluno.', variant: 'destructive' })
       return
     }
-    cleaned.alu  = aluId
-    cleaned.serv = cleaned.serv && cleaned.serv !== '__none__' ? parseInt(cleaned.serv) : null
+    cleaned.alu    = aluIdVal
+    cleaned.serv   = cleaned.serv && cleaned.serv !== '__none__' ? parseInt(cleaned.serv) : null
+    cleaned.aplano = cleaned.aplano && cleaned.aplano !== '__none__' ? parseInt(cleaned.aplano) : null
     cleaned.rec_plano_tipo = cleaned.rec_plano_tipo && cleaned.rec_plano_tipo !== '__none__' ? cleaned.rec_plano_tipo : null
     if (conta) update.mutate({ id: conta.rec_id, data: cleaned })
     else       create.mutate(cleaned)
@@ -137,7 +147,7 @@ function ContaForm({ conta, onClose }) {
       )}
 
       <FormField label="Aluno" required>
-        <Select value={watch('alu') || '__none__'} onValueChange={v => setValue('alu', v)} disabled={busy}>
+        <Select value={watch('alu') || '__none__'} onValueChange={v => { setValue('alu', v); setValue('aplano', '__none__') }} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Selecionar aluno..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar aluno...</SelectItem>
@@ -147,6 +157,20 @@ function ContaForm({ conta, onClose }) {
           </SelectContent>
         </Select>
       </FormField>
+
+      {planosDoAluno?.length > 0 && (
+        <FormField label="Plano do Aluno (opcional)">
+          <Select value={watch('aplano') || '__none__'} onValueChange={v => setValue('aplano', v)} disabled={busy}>
+            <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum (avulso)</SelectItem>
+              {planosDoAluno.map(ap => (
+                <SelectItem key={ap.aplano_id} value={String(ap.aplano_id)}>{ap.plan_descricao}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormField>
+      )}
 
       <FormField label="Serviço/Produto">
         <Select value={watch('serv') || '__none__'} onValueChange={v => setValue('serv', v)} disabled={busy}>

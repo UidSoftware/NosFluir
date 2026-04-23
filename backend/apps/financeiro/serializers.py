@@ -3,7 +3,7 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from .models import (
-    ContasPagar, ContasReceber, FolhaPagamento,
+    AlunoPlano, ContasPagar, ContasReceber, FolhaPagamento,
     Fornecedor, LivroCaixa, PlanosPagamentos, ServicoProduto,
 )
 
@@ -73,7 +73,7 @@ class ContasReceberSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContasReceber
         fields = [
-            'id', 'rec_id', 'alu', 'alu_nome', 'serv', 'serv_nome',
+            'id', 'rec_id', 'alu', 'alu_nome', 'aplano', 'serv', 'serv_nome',
             'rec_data_emissao', 'rec_data_vencimento', 'rec_data_recebimento',
             'rec_descricao', 'rec_quantidade', 'rec_valor_unitario', 'rec_desconto', 'rec_valor_total',
             'rec_status', 'rec_forma_recebimento', 'rec_plano_tipo', 'rec_observacoes',
@@ -109,34 +109,45 @@ class ContasReceberSerializer(serializers.ModelSerializer):
 
 class PlanosPagamentosSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
-    alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
     serv_nome = serializers.CharField(source='serv.serv_nome', read_only=True)
+    total_alunos_ativos = serializers.SerializerMethodField()
 
     class Meta:
         model = PlanosPagamentos
         fields = [
-            'id', 'plan_id', 'alu', 'alu_nome', 'serv', 'serv_nome',
-            'plan_tipo_plano', 'plan_valor_plano', 'plan_data_inicio', 'plan_data_fim',
-            'plan_dia_vencimento', 'plan_ativo', 'created_at', 'updated_at',
+            'id', 'plan_id', 'serv', 'serv_nome',
+            'plan_tipo_plano', 'plan_valor_plano', 'plan_dia_vencimento',
+            'total_alunos_ativos', 'created_at', 'updated_at',
         ]
         read_only_fields = ['plan_id', 'created_at', 'updated_at']
 
-    def validate(self, data):
-        # RN-PLAN-01: dia_vencimento entre 1 e 31
-        dia = data.get('plan_dia_vencimento', getattr(self.instance, 'plan_dia_vencimento', None))
-        if dia is not None and not (1 <= dia <= 31):
-            raise serializers.ValidationError(
-                {'plan_dia_vencimento': 'Dia de vencimento deve ser entre 1 e 31.'}
-            )
+    def get_total_alunos_ativos(self, obj):
+        return obj.alunos.filter(aplano_ativo=True, deleted_at__isnull=True).count()
 
-        # RN-PLAN-02: data_fim > data_inicio
-        data_inicio = data.get('plan_data_inicio', getattr(self.instance, 'plan_data_inicio', None))
-        data_fim = data.get('plan_data_fim')
-        if data_fim and data_inicio and data_fim <= data_inicio:
-            raise serializers.ValidationError(
-                {'plan_data_fim': 'Data de término deve ser maior que a data de início.'}
-            )
-        return data
+    def validate_plan_dia_vencimento(self, value):
+        if not (1 <= value <= 31):
+            raise serializers.ValidationError('Dia de vencimento deve ser entre 1 e 31.')
+        return value
+
+
+class AlunoPlanoSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    alu_nome = serializers.CharField(source='aluno.alu_nome', read_only=True)
+    plan_descricao = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AlunoPlano
+        fields = [
+            'id', 'aplano_id', 'aluno', 'alu_nome',
+            'plano', 'plan_descricao',
+            'aplano_data_inicio', 'aplano_data_fim',
+            'aplano_ativo', 'aplano_observacoes',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['aplano_id', 'created_at', 'updated_at']
+
+    def get_plan_descricao(self, obj):
+        return f"{obj.plano.serv.serv_nome} — {obj.plano.get_plan_tipo_plano_display()}"
 
 
 class LivroCaixaSerializer(serializers.ModelSerializer):

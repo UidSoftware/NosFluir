@@ -67,6 +67,7 @@ const MENU = [
       { label: 'Frequência',       path: '/relatorios/frequencia',     icon: UserCheck },
       { label: 'Pressão Arterial', path: '/relatorios/pressao',        icon: Activity },
       { label: 'Evolução de Carga', path: '/relatorios/evolucao-carga', icon: TrendingUp },
+      { label: 'Planos',           path: '/relatorios/planos',         icon: ClipboardList },
       { label: 'Contas a Pagar',   path: '/relatorios/contas-pagar',   icon: CreditCard },
       { label: 'Contas a Receber', path: '/relatorios/contas-receber', icon: Wallet },
       { label: 'Livro Caixa',      path: '/relatorios/livro-caixa',    icon: BookOpen },

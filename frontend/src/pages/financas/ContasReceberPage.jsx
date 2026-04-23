@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Wallet, Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery } from '@tanstack/react-query'
@@ -49,6 +49,10 @@ function ContaForm({ conta, onClose }) {
     },
   })
 
+  // valores parciais para soma
+  const [servValor,  setServValor]  = useState(0)
+  const [planoValor, setPlanoValor] = useState(0)
+
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
   const update = useUpdate(KEY, ENDPOINT, { onSuccess: onClose })
   const busy   = create.isPending || update.isPending
@@ -70,13 +74,11 @@ function ContaForm({ conta, onClose }) {
     queryFn: () => fetchAll('/servicos-produtos/', { serv_ativo: true }),
   })
 
-  // Catálogo de planos disponíveis (PlanosPagamentos) — independente do aluno
   const { data: planosCatalogo } = useQuery({
     queryKey: ['planos-catalogo'],
     queryFn: () => api.get('/planos-pagamentos/').then(r => r.data.results),
   })
 
-  // Contratos do aluno (AlunoPlano) — para vincular a cobrança ao contrato existente
   const { data: contratosDoAluno } = useQuery({
     queryKey: ['aluno-plano-select', aluId],
     queryFn: () => api.get('/aluno-plano/', { params: { aluno: aluId, aplano_ativo: true } })
@@ -86,26 +88,20 @@ function ContaForm({ conta, onClose }) {
 
   const handleServChange = (v) => {
     setValue('serv', v)
-    setValue('aplano', '__none__')
-    if (v !== '__none__') {
-      const s = servicos?.find(x => String(x.serv_id) === v)
-      if (s) setValue('rec_valor_unitario', s.serv_valor_base)
-    }
+    const val = v !== '__none__' ? parseFloat(servicos?.find(x => String(x.serv_id) === v)?.serv_valor_base || 0) : 0
+    setServValor(val)
+    setValue('rec_valor_unitario', val + planoValor || '')
   }
 
   const handlePlanoChange = (v) => {
     setValue('plano_catalogo', v)
-    setValue('serv', '__none__')
-    if (v !== '__none__') {
-      // Auto-preenche valor do catálogo
-      const p = planosCatalogo?.find(x => String(x.plan_id) === v)
-      if (p) setValue('rec_valor_unitario', p.plan_valor_plano)
-      // Vincula ao contrato AlunoPlano se existir para esse aluno+plano
-      const contrato = contratosDoAluno?.find(x => String(x.plano) === v)
-      setValue('aplano', contrato ? String(contrato.aplano_id) : null)
-    } else {
-      setValue('aplano', null)
-    }
+    const p = v !== '__none__' ? planosCatalogo?.find(x => String(x.plan_id) === v) : null
+    const val = p ? parseFloat(p.plan_valor_plano) : 0
+    setPlanoValor(val)
+    setValue('rec_valor_unitario', servValor + val || '')
+    // vincula ao contrato AlunoPlano se existir
+    const contrato = contratosDoAluno?.find(x => String(x.plano) === v)
+    setValue('aplano', contrato ? String(contrato.aplano_id) : null)
   }
 
   const onSubmit = (data) => {
@@ -123,7 +119,7 @@ function ContaForm({ conta, onClose }) {
       rec_data_recebimento: status === 'recebido' ? (data.rec_data_recebimento || null) : null,
       rec_forma_recebimento: status === 'recebido' ? (data.rec_forma_recebimento || null) : null,
       serv:                 data.serv !== '__none__' ? parseInt(data.serv) : null,
-      aplano:               data.aplano !== '__none__' ? parseInt(data.aplano) : null,
+      aplano:               data.aplano ? parseInt(data.aplano) : null,
       rec_valor_unitario:   data.rec_valor_unitario,
       rec_quantidade:       parseInt(data.rec_quantidade) || 1,
       rec_desconto:         parseFloat(data.rec_desconto) || 0,
@@ -138,7 +134,7 @@ function ContaForm({ conta, onClose }) {
 
       {/* 1. Aluno */}
       <FormField label="Aluno" required>
-        <Select value={watch('alu')} onValueChange={v => { setValue('alu', v); setValue('aplano', '__none__') }} disabled={busy}>
+        <Select value={watch('alu')} onValueChange={v => { setValue('alu', v); setValue('aplano', null) }} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Selecionar aluno..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar aluno...</SelectItem>
@@ -186,10 +182,10 @@ function ContaForm({ conta, onClose }) {
         </div>
       )}
 
-      {/* 6a. Serviço/Produto → preenche valor */}
+      {/* 6a. Serviço/Produto */}
       <FormField label="Serviço/Produto">
         <Select value={watch('serv')} onValueChange={handleServChange} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Selecionar serviço (opcional)..." /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder="Nenhum (opcional)" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
             {servicos?.map(s => (
@@ -201,12 +197,12 @@ function ContaForm({ conta, onClose }) {
         </Select>
       </FormField>
 
-      {/* 6b. Plano de Pagamento — catálogo completo → preenche valor */}
+      {/* 6b. Plano de Pagamento — soma com serviço */}
       <FormField label="Plano de Pagamento">
         <Select value={watch('plano_catalogo')} onValueChange={handlePlanoChange} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Selecionar plano (opcional)..." /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder="Nenhum (opcional)" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum (avulso)</SelectItem>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
             {planosCatalogo?.map(p => (
               <SelectItem key={p.plan_id} value={String(p.plan_id)}>
                 {p.serv_nome} — {p.plan_tipo_plano} — {formatCurrency(p.plan_valor_plano)}/mês
@@ -215,6 +211,17 @@ function ContaForm({ conta, onClose }) {
           </SelectContent>
         </Select>
       </FormField>
+
+      {/* Breakdown dos valores quando ambos selecionados */}
+      {servValor > 0 && planoValor > 0 && (
+        <div className="rounded-md bg-fluir-dark-3/60 border border-border/40 px-3 py-2 text-xs text-muted-foreground space-y-0.5">
+          <div className="flex justify-between"><span>Serviço:</span><span>{formatCurrency(servValor)}</span></div>
+          <div className="flex justify-between"><span>Plano:</span><span>{formatCurrency(planoValor)}</span></div>
+          <div className="flex justify-between font-medium text-foreground border-t border-border/40 pt-0.5 mt-0.5">
+            <span>Soma:</span><span>{formatCurrency(servValor + planoValor)}</span>
+          </div>
+        </div>
+      )}
 
       {/* 7+8+9. Valor + Qtd + Desconto */}
       <div className="grid grid-cols-3 gap-3">

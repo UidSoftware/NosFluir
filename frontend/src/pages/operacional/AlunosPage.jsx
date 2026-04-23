@@ -352,9 +352,8 @@ function PlanosSection({ alunoId }) {
   })
 
   const { data: planos } = useQuery({
-    queryKey: ['planos-select'],
+    queryKey: ['planos-catalogo'],
     queryFn: () => api.get('/planos-pagamentos/').then(r => r.data.results),
-    enabled: vincularOpen,
   })
 
   const vincularMut = useMutation({

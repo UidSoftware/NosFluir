@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 17/04/2026 | Versão: 9.0
+> Última atualização: 22/04/2026 | Versão: 9.1
 
 ---
 
@@ -151,7 +151,7 @@ created_at = models.DateTimeField(...)
 | LivroCaixa | livro_caixa | **IMUTÁVEL** via ReadCreateViewSet (405 em update/delete) |
 | FolhaPagamento | folha_pagamento | unique: func+mes+ano; **NÃO** gera lançamento no caixa |
 
-### App `operacional` — 8 models
+### App `operacional` — 9 models
 | Model | Tabela | Observação |
 |---|---|---|
 | Aluno | alunos | CPF único — sem campos de medidas (movidos para FichaAluno); `alu_contato_emergencia`, `alu_doencas_cronicas`, `alu_medicamentos` |
@@ -160,6 +160,7 @@ created_at = models.DateTimeField(...)
 | Funcionario | funcionario | CPF único |
 | Turma | turma | max 15 alunos — `tur_modalidade` (pilates/funcional, nullable); **sem campo professor** (professor fica na Aula) |
 | TurmaAlunos | turma_alunos | N:N unique: turma+aluno — **no Admin aparece como "Matrícula/Matrículas"** |
+| AvisoFalta | aviso_falta | aviso de falta — calcula antecedência e `avi_gera_credito` no save(); Fase 8 |
 | AgendamentoHorario | agendamento_horario | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 | AgendamentoTurmas | agendamento_turmas | pré-cadastro do site — aceita POST sem auth; exige FK Aluno |
 
@@ -332,7 +333,7 @@ FolhaPag    → fopa_id     Profissao    → prof_id     Exercicio    → exe_id
 FichaTreino → fitr_id     FichaTreinoEx → ftex_id    MinistrarAula → miau_id
 Credito     → cred_id     FichaAluno   → fial_id     Aparelho     → apar_id
 Acessorio   → acess_id    Aulas        → aul_id      User         → id (padrão Django)
-ProgramaTurma → prog_id   RegistroExercicioAluno → reg_id
+ProgramaTurma → prog_id   RegistroExercicioAluno → reg_id   AvisoFalta → avi_id
 ```
 
 ### FKs no payload (CRÍTICO — sem sufixo `_id`):
@@ -351,7 +352,7 @@ Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/creditos/            ✅ /api/fichas-treino/    ✅ /api/folha-pagamento/
 ✅ /api/servicos-produtos/   ✅ /api/fornecedores/
 ✅ /api/logout/              ✅ /api/me/               ✅ /api/agendamentos-horario/
-✅ /api/agendamentos-turmas/ ✅ /api/fichas-treino-exercicios/
+✅ /api/avisos-falta/         ✅ /api/agendamentos-turmas/ ✅ /api/fichas-treino-exercicios/
 ✅ /api/aparelhos/           ✅ /api/acessorios/       ✅ /api/ficha-aluno/
 ✅ /api/ministrar-aula/      ✅ /api/aulas/
 ✅ /api/programa-turma/     ✅ /api/registro-exercicio-aluno/
@@ -632,6 +633,21 @@ git pull origin main && docker compose restart nginx
 - [x] `BottomBar.jsx` 7.4: barra fixa no rodapé mobile com 5 ícones (Dashboard/Finanças/Operacional/Técnico/Relatórios)
 - [x] `AppLayout`: sidebar oculta no mobile; drawer com overlay ao clicar ☰; `pb-20 md:pb-5` para não cobrir conteúdo
 - [x] `Topbar`: botão ☰ hambúrguer visível só no mobile (`md:hidden`)
+
+### Fase 8 — Sistema de Avisos de Falta ✅ COMPLETO E EM PRODUÇÃO (22/04/2026)
+- [x] Model `AvisoFalta` — calcula `avi_antecedencia_horas` e `avi_gera_credito` automaticamente no `save()`
+- [x] FK `aviso_falta` (OneToOne) em `CreditoReposicao`; `aula_origem` agora nullable (retrocompatível)
+- [x] Signal `operacional/signals.py` — `AvisoFalta → CreditoReposicao` automático (limite 3, sem duplicata)
+- [x] Signal `tecnico/signals.py` atualizado — verifica `AvisoFalta` antes de gerar crédito via `MinistrarAula`
+- [x] Endpoint `/api/avisos-falta/` — filtros: `aluno`, `turma`, `avi_data_aula`, `avi_tipo`, `avi_gera_credito`
+- [x] Página `AvisosPage` — `/operacional/avisos-falta` — lista + form modal + filtros
+- [x] Sidebar: item "Avisos de Falta" adicionado em Operacional
+- [x] `MinistrarAulaPage`: badge "Avisou" por aluno + campo "Quando o aluno avisou?" para justificada/atestado
+- [x] `MinistrarAulaPage`: cria `AvisoFalta` no finalizar se não havia aviso prévio
+- [x] `AlunosPage`: seção "Avisos e Créditos" no detalhe do aluno (histórico + créditos disponíveis)
+- [x] Migrations 0007 (operacional) e 0027 (tecnico) aplicadas em produção
+- [ ] Cenário 3 (aviso >48h): pendente decisão com clientes — não gera crédito por ora
+- [ ] Uso cruzado Pilates ↔ Funcional: pendente
 
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

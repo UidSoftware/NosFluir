@@ -436,7 +436,7 @@ function AlunoCard({ aluno, onEdit, onDelete }) {
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      {/* Header — sempre visível */}
+      {/* Header — somente nome (LGPD) */}
       <div className="flex items-center gap-2 px-4 py-3">
         <button
           onClick={() => setExpandido(v => !v)}
@@ -446,8 +446,6 @@ function AlunoCard({ aluno, onEdit, onDelete }) {
             ? <ChevronDown size={15} className="text-muted-foreground shrink-0" />
             : <ChevronRight size={15} className="text-muted-foreground shrink-0" />}
           <span className="font-medium group-hover:text-fluir-cyan transition-colors">{aluno.alu_nome}</span>
-          <span className="text-xs text-muted-foreground hidden sm:inline">· {formatCPF(aluno.alu_documento)}</span>
-          {aluno.alu_telefone && <span className="text-xs text-muted-foreground hidden md:inline">· {aluno.alu_telefone}</span>}
         </button>
         <div className="flex items-center gap-1 shrink-0">
           <Button variant="ghost" size="icon-sm" onClick={() => onEdit(aluno)} title="Editar">
@@ -459,9 +457,9 @@ function AlunoCard({ aluno, onEdit, onDelete }) {
         </div>
       </div>
 
-      {/* Corpo colapsável */}
+      {/* Card 2 — detalhe expandido */}
       {expandido && (
-        <div className="border-t border-border px-4 pb-4 pt-3 space-y-4">
+        <div className="mx-3 mb-3 rounded-lg border border-border/60 bg-fluir-dark-3/40 p-4 space-y-4">
           {/* Dados pessoais */}
           <div className="grid grid-cols-2 gap-3">
             <F label="CPF"        value={formatCPF(aluno.alu_documento)} />
@@ -490,7 +488,7 @@ function AlunoCard({ aluno, onEdit, onDelete }) {
           </div>
 
           <div className="border-t border-border/40 pt-3 space-y-4">
-            <PlanosSection    alunoId={aluno.alu_id} />
+            <PlanosSection     alunoId={aluno.alu_id} />
             <AvaliacoesSection alunoId={aluno.alu_id} />
             <AvisosSection     alunoId={aluno.alu_id} />
           </div>

@@ -32,14 +32,16 @@ function ContaForm({ conta, onClose }) {
       rec_data_recebimento: conta.rec_data_recebimento ? conta.rec_data_recebimento.split('T')[0] : '',
       rec_forma_recebimento: conta.rec_forma_recebimento || '',
       serv:                 conta.serv ? String(conta.serv) : '__none__',
-      aplano:               conta.aplano ? String(conta.aplano) : '__none__',
+      aplano:               conta.aplano ? String(conta.aplano) : null,
+      plano_catalogo:       '__none__',
       rec_valor_unitario:   conta.rec_valor_unitario || '',
       rec_quantidade:       conta.rec_quantidade || 1,
       rec_desconto:         conta.rec_desconto || 0,
     } : {
       alu:            '__none__',
       serv:           '__none__',
-      aplano:         '__none__',
+      aplano:         null,
+      plano_catalogo: '__none__',
       rec_quantidade: 1,
       rec_desconto:   0,
       rec_status:     'pendente',
@@ -68,7 +70,14 @@ function ContaForm({ conta, onClose }) {
     queryFn: () => fetchAll('/servicos-produtos/', { serv_ativo: true }),
   })
 
-  const { data: planosDoAluno } = useQuery({
+  // Catálogo de planos disponíveis (PlanosPagamentos) — independente do aluno
+  const { data: planosCatalogo } = useQuery({
+    queryKey: ['planos-catalogo'],
+    queryFn: () => api.get('/planos-pagamentos/').then(r => r.data.results),
+  })
+
+  // Contratos do aluno (AlunoPlano) — para vincular a cobrança ao contrato existente
+  const { data: contratosDoAluno } = useQuery({
     queryKey: ['aluno-plano-select', aluId],
     queryFn: () => api.get('/aluno-plano/', { params: { aluno: aluId, aplano_ativo: true } })
       .then(r => r.data.results),
@@ -84,12 +93,18 @@ function ContaForm({ conta, onClose }) {
     }
   }
 
-  const handleAplanoChange = (v) => {
-    setValue('aplano', v)
+  const handlePlanoChange = (v) => {
+    setValue('plano_catalogo', v)
     setValue('serv', '__none__')
     if (v !== '__none__') {
-      const ap = planosDoAluno?.find(x => String(x.aplano_id) === v)
-      if (ap) setValue('rec_valor_unitario', ap.plan_valor_plano)
+      // Auto-preenche valor do catálogo
+      const p = planosCatalogo?.find(x => String(x.plan_id) === v)
+      if (p) setValue('rec_valor_unitario', p.plan_valor_plano)
+      // Vincula ao contrato AlunoPlano se existir para esse aluno+plano
+      const contrato = contratosDoAluno?.find(x => String(x.plano) === v)
+      setValue('aplano', contrato ? String(contrato.aplano_id) : null)
+    } else {
+      setValue('aplano', null)
     }
   }
 
@@ -186,22 +201,20 @@ function ContaForm({ conta, onClose }) {
         </Select>
       </FormField>
 
-      {/* 6b. Plano de Pagamento do aluno → preenche valor */}
-      {aluId && aluId !== '__none__' && (
-        <FormField label="Plano de Pagamento">
-          <Select value={watch('aplano')} onValueChange={handleAplanoChange} disabled={busy}>
-            <SelectTrigger><SelectValue placeholder="Selecionar plano (opcional)..." /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum (avulso)</SelectItem>
-              {planosDoAluno?.map(ap => (
-                <SelectItem key={ap.aplano_id} value={String(ap.aplano_id)}>
-                  {ap.plan_descricao} — {formatCurrency(ap.plan_valor_plano)}/mês
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FormField>
-      )}
+      {/* 6b. Plano de Pagamento — catálogo completo → preenche valor */}
+      <FormField label="Plano de Pagamento">
+        <Select value={watch('plano_catalogo')} onValueChange={handlePlanoChange} disabled={busy}>
+          <SelectTrigger><SelectValue placeholder="Selecionar plano (opcional)..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum (avulso)</SelectItem>
+            {planosCatalogo?.map(p => (
+              <SelectItem key={p.plan_id} value={String(p.plan_id)}>
+                {p.serv_nome} — {p.plan_tipo_plano} — {formatCurrency(p.plan_valor_plano)}/mês
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FormField>
 
       {/* 7+8+9. Valor + Qtd + Desconto */}
       <div className="grid grid-cols-3 gap-3">

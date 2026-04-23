@@ -597,14 +597,16 @@ export default function AlunosPage() {
       </Dialog>
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Users className="w-4 h-4 text-fluir-purple" />
               {selected?.alu_nome}
             </DialogTitle>
           </DialogHeader>
-          <AlunoDetail aluno={selected} onClose={() => setDetailOpen(false)} />
+          <div className="overflow-y-auto flex-1">
+            <AlunoDetail aluno={selected} onClose={() => setDetailOpen(false)} />
+          </div>
         </DialogContent>
       </Dialog>
 

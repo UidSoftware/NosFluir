@@ -169,49 +169,58 @@ export function Sidebar({ collapsed, onToggle }) {
         collapsed ? 'w-14' : 'w-56'
       )}
     >
-      {/* Logo */}
+      {/* Logo + Avatar */}
       <div className="flex items-center h-14 px-3 border-b border-border shrink-0">
         {!collapsed ? (
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <>
             <img
               src="/static/landing/Icone-401x401-Sem-Fundo.png"
               alt="Studio Fluir"
               className="w-8 h-8 rounded-lg object-contain shrink-0"
             />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold leading-none text-gradient truncate">Studio Fluir</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Sistema</p>
+            <div className="flex-1" />
+            <div className="relative group">
+              <Avatar nome={nomeCompleto} fotoUrl={user?.foto_url} tamanho={32} />
+              <button
+                onClick={() => inputFotoRef.current?.click()}
+                className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+                title="Trocar foto"
+              >
+                <Camera size={12} className="text-white" />
+              </button>
             </div>
-          </div>
+            <input
+              ref={inputFotoRef}
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={handleUploadFoto}
+            />
+          </>
         ) : (
-          <img
-            src="/static/landing/Icone-401x401-Sem-Fundo.png"
-            alt="Studio Fluir"
-            className="w-8 h-8 rounded-lg object-contain mx-auto"
-          />
-        )}
-      </div>
-
-      {/* Perfil */}
-      {!collapsed && (
-        <div className="flex flex-col items-center gap-2 p-4 border-b border-border shrink-0">
-          <div className="relative group">
-            <Avatar nome={nomeCompleto} fotoUrl={user?.foto_url} tamanho={64} />
+          <div className="relative group mx-auto">
+            <Avatar nome={nomeCompleto} fotoUrl={user?.foto_url} tamanho={32} />
             <button
               onClick={() => inputFotoRef.current?.click()}
               className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
               title="Trocar foto"
             >
-              <Camera size={18} className="text-white" />
+              <Camera size={12} className="text-white" />
             </button>
+            <input
+              ref={inputFotoRef}
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={handleUploadFoto}
+            />
           </div>
-          <input
-            ref={inputFotoRef}
-            type="file"
-            accept="image/jpeg,image/png"
-            className="hidden"
-            onChange={handleUploadFoto}
-          />
+        )}
+      </div>
+
+      {/* Perfil — nome e email (só expandido) */}
+      {!collapsed && (
+        <div className="flex flex-col items-center gap-1 px-4 py-3 border-b border-border shrink-0">
           <p className="text-sm font-semibold text-foreground text-center leading-tight">
             {user?.first_name} {user?.last_name}
           </p>

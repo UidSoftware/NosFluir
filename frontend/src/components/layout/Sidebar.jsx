@@ -126,8 +126,9 @@ export function Sidebar({ collapsed, onToggle }) {
       })
       setUser(prev => ({ ...prev, foto_url: response.data.foto_url }))
       toast({ title: 'Foto atualizada!' })
-    } catch {
-      toast({ title: 'Erro ao fazer upload. Tente novamente.', variant: 'destructive' })
+    } catch (err) {
+      const detalhe = err.response?.data?.error || err.response?.status || err.message || 'desconhecido'
+      toast({ title: `Erro upload: ${detalhe}`, variant: 'destructive' })
     }
     event.target.value = ''
   }

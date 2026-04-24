@@ -16,6 +16,8 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
+    foto_url = models.URLField(max_length=500, null=True, blank=True)
+
     objects = UserManager()
 
     class Meta:

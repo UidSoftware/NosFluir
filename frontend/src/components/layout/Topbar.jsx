@@ -2,8 +2,8 @@ import { LogOut, ChevronDown, Menu } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useNavigate } from 'react-router-dom'
-import { getInitials } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import Avatar from '@/components/Avatar'
 
 export function Topbar({ onMenuClick }) {
   const { user, logout } = useAuthStore()
@@ -14,7 +14,6 @@ export function Topbar({ onMenuClick }) {
     navigate('/login', { replace: true })
   }
 
-  const initials = getInitials(user?.first_name || user?.email || '')
   const displayName = user?.first_name
     ? `${user.first_name} ${user.last_name || ''}`.trim()
     : user?.email || 'Usuário'
@@ -34,9 +33,7 @@ export function Topbar({ onMenuClick }) {
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-fluir-dark-3 transition-colors group">
-            <div className="w-7 h-7 rounded-full bg-gradient-fluir flex items-center justify-center text-white text-xs font-semibold shrink-0">
-              {initials}
-            </div>
+            <Avatar nome={displayName} fotoUrl={user?.foto_url} tamanho={28} />
             <span className="text-xs font-medium text-foreground hidden sm:block max-w-[120px] truncate">
               {displayName}
             </span>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, DollarSign, Users, Dumbbell, BarChart2,
@@ -6,9 +6,13 @@ import {
   ChevronRightIcon, BookOpen, CreditCard, Wallet, ClipboardList,
   UserCheck, CalendarDays, ListTodo, FileText, Activity,
   TrendingUp, Repeat2, Building2, Package, Banknote, UserCog, BellOff,
+  Camera,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useToast } from '@/hooks/use-toast'
+import api from '@/services/api'
+import Avatar from '@/components/Avatar'
 
 const MENU = [
   {
@@ -101,7 +105,37 @@ const MENU = [
 export function Sidebar({ collapsed, onToggle }) {
   const [openMenus, setOpenMenus] = useState({})
   const location = useLocation()
-  const { canAccessFinanceiro, canAccessTecnico, canAccessOperacional, isAdmin } = useAuthStore()
+  const { user, setUser, canAccessFinanceiro, canAccessTecnico, canAccessOperacional, isAdmin } = useAuthStore()
+  const { toast } = useToast()
+  const inputFotoRef = useRef(null)
+
+  const handleUploadFoto = async (event) => {
+    const arquivo = event.target.files[0]
+    if (!arquivo) return
+
+    if (arquivo.size > 2 * 1024 * 1024) {
+      toast({ title: 'Arquivo muito grande. Máximo 2MB.', variant: 'destructive' })
+      event.target.value = ''
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('foto', arquivo)
+
+    try {
+      const response = await api.post('/api/usuarios/upload-foto/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setUser(prev => ({ ...prev, foto_url: response.data.foto_url }))
+      toast({ title: 'Foto atualizada!' })
+    } catch {
+      toast({ title: 'Erro ao fazer upload. Tente novamente.', variant: 'destructive' })
+    }
+
+    event.target.value = ''
+  }
+
+  const nomeCompleto = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email : ''
 
   const handleNavClick = () => {
     if (window.innerWidth < 1024) onToggle()
@@ -158,6 +192,35 @@ export function Sidebar({ collapsed, onToggle }) {
           />
         )}
       </div>
+
+      {/* Perfil */}
+      {!collapsed && (
+        <div className="flex flex-col items-center gap-2 p-4 border-b border-border shrink-0">
+          <div className="relative group">
+            <Avatar nome={nomeCompleto} fotoUrl={user?.foto_url} tamanho={64} />
+            <button
+              onClick={() => inputFotoRef.current?.click()}
+              className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+              title="Trocar foto"
+            >
+              <Camera size={18} className="text-white" />
+            </button>
+          </div>
+          <input
+            ref={inputFotoRef}
+            type="file"
+            accept="image/jpeg,image/png"
+            className="hidden"
+            onChange={handleUploadFoto}
+          />
+          <p className="text-sm font-semibold text-foreground text-center leading-tight">
+            {user?.first_name} {user?.last_name}
+          </p>
+          <p className="text-xs text-muted-foreground text-center truncate w-full px-2">
+            {user?.email}
+          </p>
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 space-y-0.5 px-2">

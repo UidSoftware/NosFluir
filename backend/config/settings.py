@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
 from decouple import config
+import cloudinary
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -145,6 +146,13 @@ CSRF_TRUSTED_ORIGINS = config(
 # Necessário quando atrás de proxy reverso (Nginx)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
+
+cloudinary.config(
+    cloud_name=config('CLOUDINARY_CLOUD_NAME', default=''),
+    api_key=config('CLOUDINARY_API_KEY', default=''),
+    api_secret=config('CLOUDINARY_API_SECRET', default=''),
+    secure=True,
+)
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Nos Studio Fluir API',

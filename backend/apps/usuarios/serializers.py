@@ -10,8 +10,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser', 'date_joined', 'groups']
-        read_only_fields = ['id', 'date_joined', 'is_superuser']
+        fields = ['id', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser', 'date_joined', 'groups', 'foto_url']
+        read_only_fields = ['id', 'date_joined', 'is_superuser', 'foto_url']
 
     def get_groups(self, obj):
         return list(obj.groups.values_list('name', flat=True))

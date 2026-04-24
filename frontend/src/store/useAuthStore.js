@@ -45,6 +45,11 @@ export const useAuthStore = create((set, get) => ({
     set({ user: null })
   },
 
+  // ── Atualizar usuário na store ───────────────────────────────────────────
+  setUser: (updater) => set(state => ({
+    user: typeof updater === 'function' ? updater(state.user) : updater,
+  })),
+
   // ── Permissões ───────────────────────────────────────────────────────────
   isAdmin: () => {
     const { user } = get()

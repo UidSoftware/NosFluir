@@ -165,15 +165,6 @@ export function Sidebar({ collapsed, onToggle }) {
         collapsed ? 'w-14' : 'w-56'
       )}
     >
-      {/* Logo centralizada */}
-      <div className="flex items-center justify-center h-14 border-b border-border shrink-0">
-        <img
-          src="/static/landing/Icone-401x401-Sem-Fundo.png"
-          alt="Studio Fluir"
-          className="w-8 h-8 rounded-lg object-contain"
-        />
-      </div>
-
       {/* Perfil — avatar + nome + email (só expandido) */}
       {!collapsed && (
         <div className="flex flex-col items-center gap-2 px-4 py-3 border-b border-border shrink-0">

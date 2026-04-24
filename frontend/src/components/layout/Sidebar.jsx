@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, DollarSign, Users, Dumbbell, BarChart2,
@@ -6,9 +6,13 @@ import {
   ChevronRightIcon, BookOpen, CreditCard, Wallet, ClipboardList,
   UserCheck, CalendarDays, ListTodo, FileText, Activity,
   TrendingUp, Repeat2, Building2, Package, Banknote, UserCog, BellOff,
+  Camera,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
+import { toast } from '@/hooks/useToast'
+import api from '@/services/api'
+import Avatar from '@/components/Avatar'
 
 const MENU = [
   {
@@ -101,7 +105,32 @@ const MENU = [
 export function Sidebar({ collapsed, onToggle }) {
   const [openMenus, setOpenMenus] = useState({})
   const location = useLocation()
-  const { canAccessFinanceiro, canAccessTecnico, canAccessOperacional, isAdmin } = useAuthStore()
+  const { user, setUser, canAccessFinanceiro, canAccessTecnico, canAccessOperacional, isAdmin } = useAuthStore()
+  const inputFotoRef = useRef(null)
+
+  const nomeCompleto = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email : ''
+
+  const handleUploadFoto = async (event) => {
+    const arquivo = event.target.files[0]
+    if (!arquivo) return
+    if (arquivo.size > 2 * 1024 * 1024) {
+      toast({ title: 'Arquivo muito grande. Máximo 2MB.', variant: 'destructive' })
+      event.target.value = ''
+      return
+    }
+    const formData = new FormData()
+    formData.append('foto', arquivo)
+    try {
+      const response = await api.post('/usuarios/upload-foto/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setUser(prev => ({ ...prev, foto_url: response.data.foto_url }))
+      toast({ title: 'Foto atualizada!' })
+    } catch {
+      toast({ title: 'Erro ao fazer upload. Tente novamente.', variant: 'destructive' })
+    }
+    event.target.value = ''
+  }
 
   const handleNavClick = () => {
     if (window.innerWidth < 1024) onToggle()
@@ -136,28 +165,43 @@ export function Sidebar({ collapsed, onToggle }) {
         collapsed ? 'w-14' : 'w-56'
       )}
     >
-      {/* Logo */}
-      <div className="flex items-center h-14 px-3 border-b border-border shrink-0">
-        {!collapsed ? (
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <img
-              src="/static/landing/Icone-401x401-Sem-Fundo.png"
-              alt="Studio Fluir"
-              className="w-8 h-8 rounded-lg object-contain shrink-0"
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold leading-none text-gradient truncate">Studio Fluir</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Sistema</p>
-            </div>
-          </div>
-        ) : (
-          <img
-            src="/static/landing/Icone-401x401-Sem-Fundo.png"
-            alt="Studio Fluir"
-            className="w-8 h-8 rounded-lg object-contain mx-auto"
-          />
-        )}
+      {/* Logo centralizada */}
+      <div className="flex items-center justify-center h-14 border-b border-border shrink-0">
+        <img
+          src="/static/landing/Icone-401x401-Sem-Fundo.png"
+          alt="Studio Fluir"
+          className="w-8 h-8 rounded-lg object-contain"
+        />
       </div>
+
+      {/* Perfil — avatar + nome + email (só expandido) */}
+      {!collapsed && (
+        <div className="flex flex-col items-center gap-2 px-4 py-3 border-b border-border shrink-0">
+          <div className="relative group">
+            <Avatar nome={nomeCompleto} fotoUrl={user?.foto_url} tamanho={56} />
+            <button
+              onClick={() => inputFotoRef.current?.click()}
+              className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+              title="Trocar foto"
+            >
+              <Camera size={16} className="text-white" />
+            </button>
+          </div>
+          <input
+            ref={inputFotoRef}
+            type="file"
+            accept="image/jpeg,image/png"
+            className="hidden"
+            onChange={handleUploadFoto}
+          />
+          <p className="text-sm font-semibold text-foreground text-center leading-tight">
+            {user?.first_name} {user?.last_name}
+          </p>
+          <p className="text-xs text-muted-foreground text-center truncate w-full">
+            {user?.email}
+          </p>
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 space-y-0.5 px-2">

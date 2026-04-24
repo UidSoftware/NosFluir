@@ -173,12 +173,6 @@ export function Sidebar({ collapsed, onToggle }) {
       <div className="flex items-center h-14 px-3 border-b border-border shrink-0">
         {!collapsed ? (
           <>
-            <img
-              src="/static/landing/Icone-401x401-Sem-Fundo.png"
-              alt="Studio Fluir"
-              className="w-8 h-8 rounded-lg object-contain shrink-0"
-            />
-            <div className="flex-1" />
             <div className="relative group">
               <Avatar nome={nomeCompleto} fotoUrl={user?.foto_url} tamanho={32} />
               <button
@@ -195,6 +189,12 @@ export function Sidebar({ collapsed, onToggle }) {
               accept="image/jpeg,image/png"
               className="hidden"
               onChange={handleUploadFoto}
+            />
+            <div className="flex-1" />
+            <img
+              src="/static/landing/Icone-401x401-Sem-Fundo.png"
+              alt="Studio Fluir"
+              className="w-8 h-8 rounded-lg object-contain shrink-0"
             />
           </>
         ) : (

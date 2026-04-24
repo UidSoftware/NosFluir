@@ -35,6 +35,7 @@ Sistema web de gestão completo para studio de Pilates e treinamento funcional, 
 - PostgreSQL 16+ | JWT (SimpleJWT com blacklist)
 - Paginação: `PageNumberPagination` — PAGE_SIZE = 20
 - Autenticação: por **email** (não username)
+- Cloudinary (foto de perfil) — `cloudinary==1.36.0`
 
 **Frontend:**
 - React 18 + Vite | React Router v6 | Axios | TanStack Query | Zustand
@@ -181,7 +182,7 @@ created_at = models.DateTimeField(...)
 ### App `usuarios` — 1 model
 | Model | Tabela | Observação |
 |---|---|---|
-| User | users | AbstractUser, auth por email |
+| User | users | AbstractUser, auth por email; `foto_url` URLField(500, nullable) — armazenada no Cloudinary |
 
 ---
 
@@ -358,6 +359,8 @@ Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/aparelhos/           ✅ /api/acessorios/       ✅ /api/ficha-aluno/
 ✅ /api/ministrar-aula/      ✅ /api/aulas/
 ✅ /api/programa-turma/     ✅ /api/registro-exercicio-aluno/
+✅ /api/usuarios/upload-foto/   (POST — multipart/form-data, campo: foto)
+✅ /api/usuarios/remover-foto/  (DELETE)
 ❌ /api/operacional/alunos/  ❌ /api/tecnico/exercicios/  ← ERRADO
 ❌ /api/servicos/            ← ERRADO (correto: /api/servicos-produtos/)
 ```
@@ -457,6 +460,9 @@ git pull origin main && docker compose restart nginx
 | `RenameModel` não renomeia tabela DB | Django não renomeia quando `db_table` é customizado | Sempre combinar com `AlterModelTable` na migration |
 | Migration falha com "relation already exists" ao criar tabela com nome antigo | `RenameModel` renomeia a tabela mas PostgreSQL mantém constraints/indexes/sequence com prefixo antigo | Usar `RunSQL` para renomear todos os constraints/indexes/sequence antes de criar a nova tabela |
 | Ghost migration gerada na VPS (ex: `0015_alter_ministraraula_options`) | `entrypoint.sh` rodava `makemigrations` em todo boot — gerava migration que não existe no git | `makemigrations` removido do entrypoint; se ocorrer: `RunSQL DELETE FROM django_migrations WHERE app='X' AND name='Y'` |
+| `Must supply api_key` no upload de foto | Vars Cloudinary não declaradas no `docker-compose.yml` | Adicionar `CLOUDINARY_*` na seção `environment` do backend no compose |
+| `Invalid cloud_name Uid_Software` | `CLOUDINARY_CLOUD_NAME` preenchido com o nome da chave API, não do cloud | Usar o cloud name real visível no topo do painel Cloudinary (ex: `dpqy5shqz`) |
+| Upload foto retorna 404 (`/api/api/usuarios/...`) | URL com prefixo `/api/` duplicado — axios já tem `/api` no baseURL | Chamar `api.post('/usuarios/upload-foto/', ...)` sem o prefixo `/api/` |
 
 ---
 
@@ -659,6 +665,17 @@ git pull origin main && docker compose restart nginx
 - [x] Migrations 0007 (operacional) e 0027 (tecnico) aplicadas em produção
 - [ ] Cenário 3 (aviso >48h): pendente decisão com clientes — não gera crédito por ora
 - [ ] Uso cruzado Pilates ↔ Funcional: pendente
+
+### Fase 8 — Foto de Perfil com Cloudinary ✅ COMPLETO E EM PRODUÇÃO (24/04/2026)
+- [x] Campo `foto_url` no model User + migration `0002_foto_avatar_user_foto_url`
+- [x] `cloudinary==1.36.0` em `requirements.txt` + `cloudinary.config()` em `settings.py`
+- [x] Endpoints `POST /api/usuarios/upload-foto/` e `DELETE /api/usuarios/remover-foto/`
+- [x] `foto_url` exposto no `UserSerializer` e `/api/me/`
+- [x] Vars Cloudinary no `docker-compose.yml` (seção `environment` do backend)
+- [x] Componente `Avatar.jsx` — exibe foto ou iniciais
+- [x] `setUser` adicionado ao `useAuthStore`
+- [x] Topbar: logo Studio Fluir centralizada + ícone sair (sem nome/avatar)
+- [x] Sidebar: avatar 56px + nome + email acima do menu; hover → câmera → upload
 
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

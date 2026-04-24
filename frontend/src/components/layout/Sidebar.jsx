@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 import Avatar from '@/components/Avatar'
 
@@ -106,7 +106,6 @@ export function Sidebar({ collapsed, onToggle }) {
   const [openMenus, setOpenMenus] = useState({})
   const location = useLocation()
   const { user, setUser, canAccessFinanceiro, canAccessTecnico, canAccessOperacional, isAdmin } = useAuthStore()
-  const { toast } = useToast()
   const inputFotoRef = useRef(null)
 
   const handleUploadFoto = async (event) => {

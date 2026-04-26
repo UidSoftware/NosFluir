@@ -19,6 +19,9 @@ import ServicosPage           from '@/pages/financas/ServicosPage'
 import ConfiguracaoFinanceiraPage from '@/pages/financas/ConfiguracaoFinanceiraPage'
 import TransferenciaPage          from '@/pages/financas/TransferenciaPage'
 import PedidosPage               from '@/pages/financas/PedidosPage'
+import DREPage                  from '@/pages/relatorios/DREPage'
+import FluxoCaixaPage           from '@/pages/relatorios/FluxoCaixaPage'
+import ExtratoPorContaPage      from '@/pages/relatorios/ExtratoPorContaPage'
 
 // Operacional
 import AlunosPage             from '@/pages/operacional/AlunosPage'
@@ -94,6 +97,9 @@ export const router = createBrowserRouter(
                 { path: '/relatorios/contas-receber', element: <RelContasReceberPage /> },
                 { path: '/relatorios/livro-caixa',    element: <RelLivroCaixaPage /> },
                 { path: '/relatorios/planos',         element: <RelPlanosPage /> },
+                { path: '/relatorios/dre',            element: <DREPage /> },
+                { path: '/relatorios/fluxo-caixa',    element: <FluxoCaixaPage /> },
+                { path: '/relatorios/extrato',        element: <ExtratoPorContaPage /> },
                 { path: '/graficos/financeiro',       element: <GrafFinanceiroPage /> },
               ],
             },

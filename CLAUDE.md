@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 23/04/2026 | Versão: 9.2
+> Última atualização: 25/04/2026 | Versão: 10.0
 
 ---
 
@@ -139,18 +139,24 @@ created_at = models.DateTimeField(...)
 
 ---
 
-## 📊 Models Existentes (33 models em 4 apps)
+## 📊 Models Existentes (40 models em 4 apps)
 
-### App `financeiro` — 7 models
+### App `financeiro` — 14 models
 | Model | Tabela | Observação |
 |---|---|---|
+| Conta | conta | tipo: corrente/poupanca/caixa; fixtures: 3 contas iniciais |
+| PlanoContas | plano_contas | classificação contábil; plc_codigo único; fixtures: 16 categorias |
 | Fornecedor | fornecedor | |
 | ServicoProduto | servico_produto | endpoint: `/api/servicos-produtos/` |
-| ContasPagar | contas_pagar | signal → LivroCaixa ao pagar (com select_for_update) |
-| ContasReceber | contas_receber | signal → LivroCaixa ao receber (com select_for_update) |
+| ContasPagar | contas_pagar | `forn` nullable; `cpa_tipo`/`conta`/`plano_contas` FKs; pró-labore NÃO gera LivroCaixa |
+| ContasReceber | contas_receber | `alu` nullable; `rec_tipo`/`conta`/`plano_contas` FKs; validação inteligente por tipo |
 | PlanosPagamentos | planos_pagamentos | |
-| LivroCaixa | livro_caixa | **IMUTÁVEL** via ReadCreateViewSet (405 em update/delete) |
+| AlunoPlano | aluno_plano | contrato aluno × plano |
+| LivroCaixa | livro_caixa | **IMUTÁVEL** via ReadCreateViewSet; campos `conta`/`plano_contas`/`lcx_tipo_movimento`/`lcx_competencia` |
 | FolhaPagamento | folha_pagamento | unique: func+mes+ano; **NÃO** gera lançamento no caixa |
+| Produto | produto | estoque atual/mínimo; endpoint `/api/produtos/alertas-estoque/` |
+| Pedido | pedido | número auto PED-XXXX; signal → LivroCaixa (à vista) ou ContasReceber (futuro) |
+| PedidoItem | pedido_item | tipo: produto/serviço/plano; item_valor_total calculado no serializer |
 
 ### App `operacional` — 9 models
 | Model | Tabela | Observação |
@@ -335,7 +341,8 @@ FichaTreino → fitr_id     FichaTreinoEx → ftex_id    MinistrarAula → miau_
 Credito     → cred_id     FichaAluno   → fial_id     Aparelho     → apar_id
 Acessorio   → acess_id    Aulas        → aul_id      User         → id (padrão Django)
 ProgramaTurma → prog_id   RegistroExercicioAluno → reg_id   AvisoFalta → avi_id
-AlunoPlano    → aplano_id
+AlunoPlano    → aplano_id Conta        → cont_id     PlanoContas  → plc_id
+Produto       → prod_id   Pedido       → ped_id      PedidoItem   → item_id
 ```
 
 ### FKs no payload (CRÍTICO — sem sufixo `_id`):
@@ -361,6 +368,13 @@ Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/programa-turma/     ✅ /api/registro-exercicio-aluno/
 ✅ /api/usuarios/upload-foto/   (POST — multipart/form-data, campo: foto)
 ✅ /api/usuarios/remover-foto/  (DELETE)
+✅ /api/contas/              ✅ /api/plano-contas/     ✅ /api/produtos/
+✅ /api/pedidos/             ✅ /api/pedidos/{id}/confirmar/  (POST)
+✅ /api/produtos/alertas-estoque/  (GET — produtos com estoque ≤ mínimo)
+✅ /api/transferencia/       (POST — gera 2 lançamentos no LivroCaixa)
+✅ /api/relatorios/dre/      (GET ?mes=&ano=)
+✅ /api/relatorios/fluxo-caixa/  (GET ?meses=)
+✅ /api/relatorios/extrato/  (GET ?conta=&mes=&ano=)
 ❌ /api/operacional/alunos/  ❌ /api/tecnico/exercicios/  ← ERRADO
 ❌ /api/servicos/            ← ERRADO (correto: /api/servicos-produtos/)
 ```
@@ -677,10 +691,52 @@ git pull origin main && docker compose restart nginx
 - [x] Topbar: logo Studio Fluir centralizada + ícone sair (sem nome/avatar)
 - [x] Sidebar: avatar 56px + nome + email acima do menu; hover → câmera → upload
 
+### Fase 10 — Refatoração Financeira Completa ✅ COMPLETO E EM PRODUÇÃO (25/04/2026)
+
+#### Parte A — Estrutura Base ✅
+- [x] Model `Conta` (corrente/poupança/caixa) + fixtures: 3 contas iniciais
+- [x] Model `PlanoContas` (classificação contábil) + fixtures: 16 categorias
+- [x] Endpoints `/api/contas/` e `/api/plano-contas/`
+- [x] Frontend: `ConfiguracaoFinanceiraPage` em `/financas/configuracao`
+
+#### Parte B — ContasReceber Refatorada ✅
+- [x] `alu` nullable; novos campos: `rec_tipo`, `plano_contas` FK, `conta` FK, `rec_nome_pagador`
+- [x] Validação: tipos mensalidade/avaliacao/consultoria/personal exigem aluno
+- [x] Filtro date range: `rec_data_vencimento__gte` / `__lte`
+- [x] Frontend: visão mensal agrupada + modal de pagamento rápido [💰]
+
+#### Parte C — ContasPagar Refatorada ✅
+- [x] `forn` nullable; novos campos: `cpa_tipo`, `plano_contas` FK, `conta` FK, `cpa_nome_credor`
+- [x] Pró-labore NÃO gera lançamento automático no LivroCaixa
+- [x] Frontend: visão mensal agrupada + modal de pagamento rápido [💸]
+
+#### Parte D — LivroCaixa Refatorado ✅
+- [x] Novos campos: `conta`, `conta_destino`, `plano_contas`, `lcx_tipo_movimento`, `lcx_competencia`, `lcx_documento`
+- [x] Signals atualizados: passam `conta` e `plano_contas` para novos lançamentos
+- [x] Endpoint `POST /api/transferencia/`: 2 lançamentos em `transaction.atomic()`
+- [x] Frontend: `TransferenciaPage` + LivroCaixaPage exibe conta/plano nos lançamentos
+
+#### Parte E — Pedidos ✅
+- [x] Model `Produto` com estoque atual/mínimo
+- [x] Model `Pedido` (número auto PED-XXXX) + `PedidoItem` (produto/serviço/plano)
+- [x] Signal: reduz estoque, gera LivroCaixa (à vista) ou ContasReceber (futuro)
+- [x] Endpoint `/api/pedidos/{id}/confirmar/` + `/api/produtos/alertas-estoque/`
+- [x] Frontend: `PedidosPage` com itens dinâmicos e confirmação de pagamento
+
+#### Parte F — Relatórios ✅
+- [x] DRE: `GET /api/relatorios/dre/?mes=&ano=` — agrupa LivroCaixa por plano de contas
+- [x] Fluxo de Caixa: `GET /api/relatorios/fluxo-caixa/?meses=` — projeta pendentes
+- [x] Extrato: `GET /api/relatorios/extrato/?conta=&mes=&ano=` — movimentações por conta
+- [x] Frontend: `DREPage`, `FluxoCaixaPage`, `ExtratoPorContaPage`
+
+**55 testes passando (financeiro: 55, operacional: 20, técnico: 33 — total: 108)**
+
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
 - [ ] Crédito expirado — sem job automático para atualizar status
 - [ ] Agendamentos do site exigem Aluno pré-existente — design a revisar com clientes
+- [ ] Fase 10 E.6 — Recibo PDF (pendente: adicionar reportlab ao requirements.txt)
+- [ ] Dashboard: alerta de estoque baixo (consome `/api/produtos/alertas-estoque/`)
 
 ---
 

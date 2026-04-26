@@ -915,3 +915,90 @@ class PedidoFase10ETest(TestCase):
         nomes = [p['prod_nome'] for p in resp.data]
         self.assertIn('Baixo', nomes)
         self.assertNotIn('Normal', nomes)
+
+
+# ── Testes Parte F — Fase 10 ──────────────────────────────────────────────────
+
+class RelatoriosFase10FTest(TestCase):
+    """TP048–TP052 — DRE, Fluxo de Caixa e Extrato (Parte F)."""
+
+    def setUp(self):
+        from .models import Conta, PlanoContas
+        self.user = criar_usuario()
+        self.aluno = criar_aluno()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.conta = Conta.objects.create(cont_nome='C.Corrente', cont_tipo='corrente', cont_saldo_inicial=Decimal('0.00'))
+        self.plc_mensal = PlanoContas.objects.get(plc_codigo='1.1.1')  # criado pela migration
+        self.plc_aluguel = PlanoContas.objects.get(plc_codigo='2.1.1')
+
+    def test_TP048_dre_retorna_estrutura(self):
+        """TP048: GET /api/relatorios/dre/ retorna estrutura com resultado_liquido."""
+        resp = self.client.get('/api/relatorios/dre/', {'mes': 5, 'ano': 2026})
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('resultado_liquido', resp.data)
+        self.assertIn('receitas_operacionais', resp.data)
+        self.assertIn('despesas_operacionais', resp.data)
+
+    def test_TP049_dre_agrega_lancamentos(self):
+        """TP049: DRE agrega lançamentos com plano de contas no período."""
+        import datetime
+        LivroCaixa.objects.create(
+            lica_tipo_lancamento='entrada',
+            lica_historico='Mensalidade',
+            lica_valor=Decimal('150.00'),
+            lica_saldo_anterior=Decimal('0.00'),
+            lica_saldo_atual=Decimal('150.00'),
+            plano_contas=self.plc_mensal,
+            lcx_competencia=datetime.date(2026, 5, 10),
+        )
+        resp = self.client.get('/api/relatorios/dre/', {'mes': 5, 'ano': 2026})
+        self.assertEqual(resp.data['receitas_operacionais']['total'], 150.0)
+        self.assertGreater(resp.data['resultado_operacional'], 0)
+
+    def test_TP050_fluxo_caixa_retorna_meses(self):
+        """TP050: GET /api/relatorios/fluxo-caixa/?meses=3 retorna 3 registros."""
+        resp = self.client.get('/api/relatorios/fluxo-caixa/', {'meses': 3})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 3)
+        self.assertIn('entradas', resp.data[0])
+        self.assertIn('saidas',   resp.data[0])
+        self.assertIn('saldo',    resp.data[0])
+
+    def test_TP051_fluxo_caixa_inclui_pendentes(self):
+        """TP051: fluxo de caixa inclui contas pendentes do mês."""
+        from django.utils import timezone
+        import datetime
+        mes_corrente = timezone.now()
+        ContasReceber.objects.create(
+            alu=self.aluno,
+            rec_descricao='Mensalidade',
+            rec_data_emissao=mes_corrente,
+            rec_data_vencimento=mes_corrente,
+            rec_quantidade=1,
+            rec_valor_unitario=Decimal('200.00'),
+            rec_desconto=Decimal('0.00'),
+            rec_valor_total=Decimal('200.00'),
+            rec_status='pendente',
+        )
+        resp = self.client.get('/api/relatorios/fluxo-caixa/', {'meses': 1})
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreaterEqual(resp.data[0]['entradas'], 200.0)
+
+    def test_TP052_extrato_por_conta(self):
+        """TP052: GET /api/relatorios/extrato/?conta=X retorna lançamentos da conta."""
+        import datetime
+        LivroCaixa.objects.create(
+            lica_tipo_lancamento='entrada',
+            lica_historico='Teste extrato',
+            lica_valor=Decimal('300.00'),
+            lica_saldo_anterior=Decimal('0.00'),
+            lica_saldo_atual=Decimal('300.00'),
+            conta=self.conta,
+            lcx_competencia=datetime.date(2026, 5, 15),
+        )
+        resp = self.client.get('/api/relatorios/extrato/', {'conta': self.conta.cont_id, 'mes': 5, 'ano': 2026})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['conta_id'], self.conta.cont_id)
+        self.assertEqual(len(resp.data['lancamentos']), 1)
+        self.assertEqual(resp.data['saldo_final'], 300.0)

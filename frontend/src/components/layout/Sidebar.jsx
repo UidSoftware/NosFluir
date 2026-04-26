@@ -78,6 +78,9 @@ const MENU = [
       { label: 'Contas a Pagar',   path: '/relatorios/contas-pagar',   icon: CreditCard },
       { label: 'Contas a Receber', path: '/relatorios/contas-receber', icon: Wallet },
       { label: 'Livro Caixa',      path: '/relatorios/livro-caixa',    icon: BookOpen },
+      { label: 'DRE',              path: '/relatorios/dre',            icon: BarChart2 },
+      { label: 'Fluxo de Caixa',   path: '/relatorios/fluxo-caixa',   icon: TrendingUp },
+      { label: 'Extrato por Conta',path: '/relatorios/extrato',        icon: FileText },
     ],
   },
   {

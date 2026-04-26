@@ -7,6 +7,7 @@ from .views import (
     PedidoViewSet, PlanoContasViewSet, PlanosPagamentosViewSet,
     ProdutoViewSet, ServicoProdutoViewSet, transferencia_entre_contas,
 )
+from .relatorios import relatorio_dre, relatorio_extrato, relatorio_fluxo_caixa
 
 router = DefaultRouter()
 router.register('contas', ContaViewSet, basename='contas')
@@ -24,5 +25,8 @@ router.register('folha-pagamento', FolhaPagamentoViewSet, basename='folha-pagame
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('transferencia/', transferencia_entre_contas, name='transferencia'),
+    path('transferencia/',        transferencia_entre_contas, name='transferencia'),
+    path('relatorios/dre/',       relatorio_dre,              name='relatorio-dre'),
+    path('relatorios/fluxo-caixa/', relatorio_fluxo_caixa,   name='relatorio-fluxo-caixa'),
+    path('relatorios/extrato/',   relatorio_extrato,          name='relatorio-extrato'),
 ]

@@ -2,8 +2,31 @@ from django.contrib import admin
 
 from .models import (
     AlunoPlano, Conta, ContasPagar, ContasReceber, FolhaPagamento,
-    Fornecedor, LivroCaixa, PlanoContas, PlanosPagamentos, ServicoProduto,
+    Fornecedor, LivroCaixa, Pedido, PedidoItem, PlanoContas,
+    PlanosPagamentos, Produto, ServicoProduto,
 )
+
+
+@admin.register(Produto)
+class ProdutoAdmin(admin.ModelAdmin):
+    list_display = ['prod_nome', 'prod_valor_venda', 'prod_estoque_atual', 'prod_estoque_minimo', 'prod_ativo']
+    list_filter = ['prod_ativo']
+    search_fields = ['prod_nome']
+
+
+class PedidoItemInline(admin.TabularInline):
+    model = PedidoItem
+    extra = 0
+    fields = ['item_tipo', 'prod', 'serv', 'item_descricao', 'item_quantidade', 'item_valor_unitario', 'item_valor_total']
+    readonly_fields = ['item_valor_total']
+
+
+@admin.register(Pedido)
+class PedidoAdmin(admin.ModelAdmin):
+    list_display = ['ped_numero', 'alu', 'ped_nome_cliente', 'ped_total', 'ped_status', 'ped_data']
+    list_filter = ['ped_status', 'ped_pagamento_futuro']
+    search_fields = ['ped_numero', 'ped_nome_cliente']
+    inlines = [PedidoItemInline]
 
 
 @admin.register(Conta)

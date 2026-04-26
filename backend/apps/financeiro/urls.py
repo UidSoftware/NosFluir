@@ -4,12 +4,14 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AlunoPlanoViewSet, ContaViewSet, ContasPagarViewSet, ContasReceberViewSet,
     FolhaPagamentoViewSet, FornecedorViewSet, LivroCaixaViewSet,
-    PlanoContasViewSet, PlanosPagamentosViewSet, ServicoProdutoViewSet,
-    transferencia_entre_contas,
+    PedidoViewSet, PlanoContasViewSet, PlanosPagamentosViewSet,
+    ProdutoViewSet, ServicoProdutoViewSet, transferencia_entre_contas,
 )
 
 router = DefaultRouter()
 router.register('contas', ContaViewSet, basename='contas')
+router.register('produtos', ProdutoViewSet, basename='produtos')
+router.register('pedidos', PedidoViewSet, basename='pedidos')
 router.register('plano-contas', PlanoContasViewSet, basename='plano-contas')
 router.register('fornecedores', FornecedorViewSet, basename='fornecedores')
 router.register('servicos-produtos', ServicoProdutoViewSet, basename='servicos-produtos')

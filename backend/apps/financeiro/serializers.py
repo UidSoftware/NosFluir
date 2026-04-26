@@ -4,7 +4,8 @@ from rest_framework import serializers
 
 from .models import (
     AlunoPlano, Conta, ContasPagar, ContasReceber, FolhaPagamento,
-    Fornecedor, LivroCaixa, PlanoContas, PlanosPagamentos, ServicoProduto,
+    Fornecedor, LivroCaixa, Pedido, PedidoItem, PlanoContas,
+    PlanosPagamentos, Produto, ServicoProduto,
 )
 
 
@@ -257,3 +258,76 @@ class FolhaPagamentoSerializer(serializers.ModelSerializer):
         descontos = data.get('fopa_descontos', getattr(self.instance, 'fopa_descontos', Decimal('0')))
         data['fopa_valor_liquido'] = salario_base - descontos
         return data
+
+
+class ProdutoSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    estoque_baixo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Produto
+        fields = ['id', 'prod_id', 'prod_nome', 'prod_descricao', 'prod_valor_venda',
+                  'prod_estoque_atual', 'prod_estoque_minimo', 'prod_ativo',
+                  'estoque_baixo', 'created_at', 'updated_at']
+        read_only_fields = ['prod_id', 'created_at', 'updated_at']
+
+    def get_estoque_baixo(self, obj):
+        return obj.prod_estoque_atual <= obj.prod_estoque_minimo
+
+
+class PedidoItemSerializer(serializers.ModelSerializer):
+    id        = serializers.IntegerField(source='pk', read_only=True)
+    prod_nome = serializers.CharField(source='prod.prod_nome', read_only=True, default=None)
+    serv_nome = serializers.CharField(source='serv.serv_nome', read_only=True, default=None)
+
+    class Meta:
+        model = PedidoItem
+        fields = ['id', 'item_id', 'item_tipo', 'prod', 'prod_nome', 'serv', 'serv_nome', 'aplano',
+                  'item_descricao', 'item_quantidade', 'item_valor_unitario', 'item_valor_total']
+        read_only_fields = ['item_id', 'item_valor_total']
+
+    def validate(self, data):
+        qtd = data.get('item_quantidade', getattr(self.instance, 'item_quantidade', 1))
+        val = data.get('item_valor_unitario', getattr(self.instance, 'item_valor_unitario', Decimal('0')))
+        data['item_valor_total'] = qtd * val
+        return data
+
+
+class PedidoSerializer(serializers.ModelSerializer):
+    id         = serializers.IntegerField(source='pk', read_only=True)
+    alu_nome   = serializers.CharField(source='alu.alu_nome',   read_only=True, default=None)
+    conta_nome = serializers.CharField(source='conta.cont_nome',read_only=True, default=None)
+    itens      = PedidoItemSerializer(many=True, required=False)
+
+    class Meta:
+        model = Pedido
+        fields = ['id', 'ped_id', 'ped_numero', 'alu', 'alu_nome', 'ped_nome_cliente',
+                  'ped_data', 'ped_total', 'ped_forma_pagamento', 'ped_status',
+                  'ped_pagamento_futuro', 'conta', 'conta_nome', 'ped_observacoes',
+                  'itens', 'created_at', 'updated_at']
+        read_only_fields = ['ped_id', 'ped_numero', 'ped_total', 'created_at', 'updated_at']
+
+    def _save_itens(self, pedido, itens_data):
+        total = Decimal('0.00')
+        for item_data in itens_data:
+            item_data['pedido'] = pedido
+            PedidoItem.objects.create(**item_data)
+            total += item_data['item_valor_total']
+        pedido.ped_total = total
+        pedido.save(update_fields=['ped_total'])
+
+    def create(self, validated_data):
+        itens_data = validated_data.pop('itens', [])
+        pedido = Pedido.objects.create(**validated_data)
+        self._save_itens(pedido, itens_data)
+        return pedido
+
+    def update(self, instance, validated_data):
+        itens_data = validated_data.pop('itens', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if itens_data is not None:
+            instance.itens.all().delete()
+            self._save_itens(instance, itens_data)
+        return instance

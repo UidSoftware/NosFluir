@@ -816,3 +816,102 @@ class LivroCaixaFase10DTest(TestCase):
         lancamento = LivroCaixa.objects.filter(lica_origem_tipo='contas_receber', lica_origem_id=rec_id).first()
         self.assertIsNotNone(lancamento)
         self.assertEqual(lancamento.conta_id, self.conta_corrente.cont_id)
+
+
+# ── Testes Parte E — Fase 10 ──────────────────────────────────────────────────
+
+class PedidoFase10ETest(TestCase):
+    """TP042–TP047 — Produto, Pedido e sinal processar_pedido (Parte E)."""
+
+    def setUp(self):
+        from .models import Produto, Conta
+        self.user = criar_usuario()
+        self.aluno = criar_aluno()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.produto = Produto.objects.create(
+            prod_nome='Squeeze', prod_valor_venda=Decimal('30.00'),
+            prod_estoque_atual=10, prod_estoque_minimo=3,
+        )
+        self.conta = Conta.objects.create(cont_nome='Caixa', cont_tipo='caixa')
+
+    def _criar_pedido(self, **kwargs):
+        payload = {
+            'alu': self.aluno.alu_id,
+            'ped_data': '2026-05-25',
+            'ped_forma_pagamento': 'pix',
+            'ped_status': 'pendente',
+            'ped_pagamento_futuro': False,
+            'itens': [
+                {
+                    'item_tipo': 'produto',
+                    'prod': self.produto.prod_id,
+                    'item_descricao': 'Squeeze',
+                    'item_quantidade': 2,
+                    'item_valor_unitario': '30.00',
+                }
+            ],
+        }
+        payload.update(kwargs)
+        return self.client.post('/api/pedidos/', payload, format='json')
+
+    def test_TP042_criar_pedido_com_itens(self):
+        """TP042: POST /api/pedidos/ com itens → 201, ped_numero gerado, ped_total calculado."""
+        resp = self._criar_pedido()
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertTrue(resp.data['ped_numero'].startswith('PED-'))
+        self.assertEqual(Decimal(resp.data['ped_total']), Decimal('60.00'))
+
+    def test_TP043_numero_pedido_sequencial(self):
+        """TP043: dois pedidos → PED-0001 e PED-0002."""
+        r1 = self._criar_pedido()
+        r2 = self._criar_pedido()
+        n1 = int(r1.data['ped_numero'].split('-')[1])
+        n2 = int(r2.data['ped_numero'].split('-')[1])
+        self.assertEqual(n2, n1 + 1)
+
+    def test_TP044_confirmar_pedido_gera_lancamento(self):
+        """TP044: confirmar pedido à vista → lançamento de entrada no LivroCaixa."""
+        resp = self._criar_pedido()
+        ped_id = resp.data['ped_id']
+        antes = LivroCaixa.objects.count()
+
+        conf = self.client.post(f'/api/pedidos/{ped_id}/confirmar/', {'conta': self.conta.cont_id})
+        self.assertEqual(conf.status_code, 200, conf.data)
+        self.assertEqual(LivroCaixa.objects.count(), antes + 1)
+        lanc = LivroCaixa.objects.order_by('-lica_id').first()
+        self.assertEqual(lanc.lica_tipo_lancamento, 'entrada')
+        self.assertEqual(lanc.lica_origem_tipo, 'pedido')
+
+    def test_TP045_confirmar_pedido_reduz_estoque(self):
+        """TP045: confirmar pedido com produto → estoque reduzido."""
+        from .models import Produto
+        resp = self._criar_pedido()
+        ped_id = resp.data['ped_id']
+        self.client.post(f'/api/pedidos/{ped_id}/confirmar/', {})
+        self.produto.refresh_from_db()
+        self.assertEqual(self.produto.prod_estoque_atual, 8)  # 10 - 2
+
+    def test_TP046_confirmar_futuro_gera_contas_receber(self):
+        """TP046: pedido pagamento_futuro → ContasReceber criada em vez de LivroCaixa."""
+        resp = self._criar_pedido(ped_pagamento_futuro=True)
+        ped_id = resp.data['ped_id']
+        antes_lica = LivroCaixa.objects.count()
+        antes_rec  = ContasReceber.objects.count()
+
+        self.client.post(f'/api/pedidos/{ped_id}/confirmar/', {})
+        self.assertEqual(LivroCaixa.objects.count(), antes_lica)
+        self.assertEqual(ContasReceber.objects.count(), antes_rec + 1)
+
+    def test_TP047_alertas_estoque(self):
+        """TP047: GET /api/produtos/alertas-estoque/ retorna só produtos abaixo do mínimo."""
+        from .models import Produto
+        Produto.objects.create(prod_nome='Normal', prod_valor_venda=Decimal('10.00'),
+                               prod_estoque_atual=20, prod_estoque_minimo=5)
+        Produto.objects.create(prod_nome='Baixo',  prod_valor_venda=Decimal('10.00'),
+                               prod_estoque_atual=2,  prod_estoque_minimo=5)
+        resp = self.client.get('/api/produtos/alertas-estoque/')
+        self.assertEqual(resp.status_code, 200)
+        nomes = [p['prod_nome'] for p in resp.data]
+        self.assertIn('Baixo', nomes)
+        self.assertNotIn('Normal', nomes)

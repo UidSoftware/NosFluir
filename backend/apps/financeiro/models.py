@@ -294,6 +294,7 @@ class LivroCaixa(BaseModel):
         ('contas_pagar', 'Contas a Pagar'),
         ('contas_receber', 'Contas a Receber'),
         ('folha_pagamento', 'Folha de Pagamento'),
+        ('pedido', 'Pedido'),
         ('manual', 'Manual'),
     ]
     TIPO_MOVIMENTO_CHOICES = [
@@ -376,3 +377,106 @@ class FolhaPagamento(BaseModel):
 
     def __str__(self):
         return f'{self.func} — {self.fopa_mes_referencia:02d}/{self.fopa_ano_referencia}'
+
+
+class Produto(BaseModel):
+    """Catálogo de produtos físicos com controle de estoque."""
+    prod_id             = models.AutoField(primary_key=True)
+    prod_nome           = models.CharField('nome', max_length=200)
+    prod_descricao      = models.TextField('descrição', null=True, blank=True)
+    prod_valor_venda    = models.DecimalField('valor de venda', max_digits=10, decimal_places=2)
+    prod_estoque_atual  = models.IntegerField('estoque atual', default=0)
+    prod_estoque_minimo = models.IntegerField('estoque mínimo', default=5)
+    prod_ativo          = models.BooleanField('ativo', default=True)
+
+    class Meta:
+        db_table = 'produto'
+        verbose_name = 'Produto'
+        verbose_name_plural = 'Produtos'
+        ordering = ['prod_nome']
+
+    def __str__(self):
+        return f"{self.prod_nome} (estoque: {self.prod_estoque_atual})"
+
+
+class Pedido(BaseModel):
+    """Venda de produtos/serviços/planos."""
+    STATUS_CHOICES = [
+        ('pendente',  'Pendente'),
+        ('pago',      'Pago'),
+        ('cancelado', 'Cancelado'),
+    ]
+    FORMA_CHOICES = [
+        ('pix',      'PIX'),
+        ('dinheiro', 'Dinheiro'),
+        ('cartao',   'Cartão'),
+        ('boleto',   'Boleto'),
+    ]
+
+    ped_id              = models.AutoField(primary_key=True)
+    alu = models.ForeignKey(
+        'operacional.Aluno', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='pedidos', verbose_name='aluno'
+    )
+    ped_nome_cliente    = models.CharField('nome do cliente', max_length=200, null=True, blank=True)
+    ped_numero          = models.CharField('número', max_length=20, unique=True)
+    ped_data            = models.DateField('data')
+    ped_total           = models.DecimalField('total', max_digits=10, decimal_places=2, default=0)
+    ped_forma_pagamento = models.CharField('forma de pagamento', max_length=20, choices=FORMA_CHOICES, null=True, blank=True)
+    ped_status          = models.CharField('status', max_length=20, choices=STATUS_CHOICES, default='pendente')
+    ped_pagamento_futuro = models.BooleanField('pagamento futuro', default=False)
+    conta = models.ForeignKey(
+        'Conta', on_delete=models.PROTECT,
+        null=True, blank=True, verbose_name='conta'
+    )
+    ped_observacoes     = models.TextField('observações', null=True, blank=True)
+
+    class Meta:
+        db_table = 'pedido'
+        verbose_name = 'Pedido'
+        verbose_name_plural = 'Pedidos'
+        ordering = ['-ped_data', '-ped_numero']
+
+    def save(self, *args, **kwargs):
+        if not self.ped_numero:
+            ultimo = Pedido.objects.order_by('-ped_numero').first()
+            if ultimo and ultimo.ped_numero:
+                try:
+                    num = int(ultimo.ped_numero.split('-')[1]) + 1
+                except (IndexError, ValueError):
+                    num = 1
+            else:
+                num = 1
+            self.ped_numero = f"PED-{num:04d}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.ped_numero} — R$ {self.ped_total}"
+
+
+class PedidoItem(BaseModel):
+    """Item de um pedido (produto, serviço ou plano)."""
+    TIPO_CHOICES = [
+        ('produto',  'Produto'),
+        ('servico',  'Serviço'),
+        ('plano',    'Plano'),
+    ]
+
+    item_id             = models.AutoField(primary_key=True)
+    pedido              = models.ForeignKey(Pedido, on_delete=models.PROTECT, related_name='itens')
+    item_tipo           = models.CharField('tipo', max_length=20, choices=TIPO_CHOICES)
+    prod  = models.ForeignKey('Produto',       on_delete=models.PROTECT, null=True, blank=True)
+    serv  = models.ForeignKey('ServicoProduto',on_delete=models.PROTECT, null=True, blank=True)
+    aplano= models.ForeignKey('AlunoPlano',    on_delete=models.PROTECT, null=True, blank=True)
+    item_descricao      = models.CharField('descrição', max_length=200)
+    item_quantidade     = models.IntegerField('quantidade', default=1)
+    item_valor_unitario = models.DecimalField('valor unitário', max_digits=10, decimal_places=2)
+    item_valor_total    = models.DecimalField('valor total', max_digits=10, decimal_places=2)
+
+    class Meta:
+        db_table = 'pedido_item'
+        verbose_name = 'Item do Pedido'
+        verbose_name_plural = 'Itens do Pedido'
+
+    def __str__(self):
+        return f"{self.item_descricao} × {self.item_quantidade}"

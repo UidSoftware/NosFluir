@@ -12,14 +12,17 @@ from apps.core.mixins import AuditMixin, ReadCreateViewSet
 from apps.core.permissions import IsFinanceiroOuAdmin
 from rest_framework.permissions import IsAdminUser
 
+from rest_framework.decorators import action
+
 from .models import (
     AlunoPlano, Conta, ContasPagar, ContasReceber, FolhaPagamento,
-    Fornecedor, LivroCaixa, PlanoContas, PlanosPagamentos, ServicoProduto,
+    Fornecedor, LivroCaixa, Pedido, PlanoContas, PlanosPagamentos, Produto, ServicoProduto,
 )
 from .serializers import (
     AlunoPlanoSerializer, ContaSerializer, ContasPagarSerializer, ContasReceberSerializer,
     FolhaPagamentoSerializer, FornecedorSerializer, LivroCaixaSerializer,
-    PlanoContasSerializer, PlanosPagamentosSerializer, ServicoProdutoSerializer,
+    PedidoSerializer, PlanoContasSerializer, PlanosPagamentosSerializer,
+    ProdutoSerializer, ServicoProdutoSerializer,
 )
 
 
@@ -248,6 +251,58 @@ def transferencia_entre_contas(request):
         )
 
     return Response({'message': 'Transferência registrada com sucesso.'})
+
+
+class ProdutoViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsFinanceiroOuAdmin]
+    queryset = Produto.objects.filter(deleted_at__isnull=True).order_by('prod_nome')
+    serializer_class = ProdutoSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['prod_ativo']
+    search_fields = ['prod_nome']
+    ordering_fields = ['prod_nome', 'prod_estoque_atual']
+
+    @action(detail=False, methods=['get'], url_path='alertas-estoque')
+    def alertas_estoque(self, request):
+        from django.db.models import F
+        qs = self.get_queryset().filter(prod_estoque_atual__lte=F('prod_estoque_minimo'))
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
+
+class PedidoViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsFinanceiroOuAdmin]
+    queryset = (
+        Pedido.objects
+        .filter(deleted_at__isnull=True)
+        .select_related('alu', 'conta')
+        .prefetch_related('itens__prod', 'itens__serv')
+        .order_by('-ped_data', '-ped_numero')
+    )
+    serializer_class = PedidoSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['ped_status', 'alu']
+    search_fields = ['ped_numero', 'ped_nome_cliente']
+    ordering_fields = ['ped_data', 'ped_total']
+
+    @action(detail=True, methods=['post'])
+    def confirmar(self, request, pk=None):
+        pedido = self.get_object()
+        if pedido.ped_status != 'pendente':
+            return Response({'detail': 'Pedido não está pendente.'}, status=400)
+        conta_id = request.data.get('conta')
+        forma    = request.data.get('forma')
+        data_pag = request.data.get('data')
+        if conta_id:
+            pedido.conta_id = conta_id
+        if forma:
+            pedido.ped_forma_pagamento = forma
+        if data_pag:
+            pedido.ped_data = data_pag
+        pedido.ped_status = 'pago'
+        pedido.updated_by = request.user
+        pedido.save()
+        return Response(PedidoSerializer(pedido).data)
 
 
 class FolhaPagamentoViewSet(AuditMixin, ModelViewSet):

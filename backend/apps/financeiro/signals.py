@@ -17,6 +17,10 @@ def lancar_contas_pagar(sender, instance, **kwargs):
     if instance.pag_status != 'pago':
         return
 
+    # Pró-labore não gera lançamento automático — registrado manualmente
+    if instance.cpa_tipo == 'prolabore':
+        return
+
     with transaction.atomic():
         # Lock do último registro para serializar acessos concorrentes
         ultimo = LivroCaixa.objects.select_for_update().order_by('-lica_id').first()

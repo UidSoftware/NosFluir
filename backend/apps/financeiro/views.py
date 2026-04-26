@@ -63,15 +63,25 @@ class ServicoProdutoViewSet(AuditMixin, ModelViewSet):
 
 class ContasPagarViewSet(AuditMixin, ModelViewSet):
     permission_classes = [IsFinanceiroOuAdmin]
-    queryset = ContasPagar.objects.filter(deleted_at__isnull=True).order_by('pag_data_vencimento')
+    queryset = (
+        ContasPagar.objects
+        .filter(deleted_at__isnull=True)
+        .select_related('forn', 'serv', 'plano_contas', 'conta')
+        .order_by('pag_data_vencimento')
+    )
     serializer_class = ContasPagarSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['pag_status', 'forn']
-    search_fields = ['pag_descricao']
+    filterset_fields = {
+        'pag_status':          ['exact'],
+        'forn':                ['exact'],
+        'cpa_tipo':            ['exact'],
+        'conta':               ['exact'],
+        'pag_data_vencimento': ['gte', 'lte'],
+    }
+    search_fields = ['pag_descricao', 'cpa_nome_credor']
     ordering_fields = ['pag_data_vencimento', 'pag_valor_total']
 
     def list(self, request, *args, **kwargs):
-        # RN010: atualiza status para 'vencido' antes de listar
         ContasPagar.objects.filter(
             pag_status='pendente',
             pag_data_vencimento__lt=timezone.now(),

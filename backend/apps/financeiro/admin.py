@@ -36,9 +36,9 @@ class ServicoProdutoAdmin(admin.ModelAdmin):
 
 @admin.register(ContasPagar)
 class ContasPagarAdmin(admin.ModelAdmin):
-    list_display = ['pag_descricao', 'forn', 'pag_valor_total', 'pag_status', 'pag_data_vencimento']
-    list_filter = ['pag_status']
-    search_fields = ['pag_descricao']
+    list_display = ['pag_descricao', 'forn', 'cpa_nome_credor', 'cpa_tipo', 'pag_valor_total', 'pag_status', 'pag_data_vencimento']
+    list_filter = ['pag_status', 'cpa_tipo']
+    search_fields = ['pag_descricao', 'cpa_nome_credor']
     date_hierarchy = 'pag_data_vencimento'
 
 

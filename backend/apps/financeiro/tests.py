@@ -646,3 +646,102 @@ class ContasReceberFase10BTest(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data['count'], 1)
         self.assertIn('05', resp.data['results'][0]['rec_data_vencimento'])
+
+
+# ── Testes Parte C — Fase 10 ──────────────────────────────────────────────────
+
+class ContasPagarFase10CTest(TestCase):
+    """TP032–TP037 — ContasPagar refatorado (Parte C)."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.forn = criar_fornecedor()
+        self.serv = criar_servico()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def _base_payload(self, **kwargs):
+        payload = {
+            'forn': self.forn.forn_id,
+            'pag_descricao': 'Aluguel Maio/2026',
+            'pag_data_emissao': '2026-05-01',
+            'pag_data_vencimento': '2026-05-25',
+            'pag_quantidade': 1,
+            'pag_valor_unitario': '1200.00',
+            'pag_status': 'pendente',
+        }
+        payload.update(kwargs)
+        return payload
+
+    def test_TP032_criar_com_cpa_tipo(self):
+        """TP032: POST com cpa_tipo='aluguel' e fornecedor → 201."""
+        resp = self.client.post('/api/contas-pagar/', self._base_payload(cpa_tipo='aluguel'))
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(resp.data['cpa_tipo'], 'aluguel')
+
+    def test_TP033_sem_forn_sem_nome_credor_retorna_400(self):
+        """TP033: sem forn e sem cpa_nome_credor → 400."""
+        payload = self._base_payload(cpa_tipo='outros')
+        payload.pop('forn')
+        resp = self.client.post('/api/contas-pagar/', payload)
+        self.assertEqual(resp.status_code, 400)
+
+    def test_TP034_sem_forn_com_nome_credor_ok(self):
+        """TP034: sem fornecedor, cpa_nome_credor preenchido → 201."""
+        resp = self.client.post('/api/contas-pagar/', {
+            'cpa_nome_credor': 'Prestador Avulso',
+            'cpa_tipo': 'servico',
+            'pag_descricao': 'Manutenção equipamento',
+            'pag_data_emissao': '2026-05-01',
+            'pag_data_vencimento': '2026-05-15',
+            'pag_quantidade': 1,
+            'pag_valor_unitario': '300.00',
+            'pag_status': 'pendente',
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertIsNone(resp.data['forn'])
+        self.assertEqual(resp.data['cpa_nome_credor'], 'Prestador Avulso')
+
+    def test_TP035_prolabore_nao_gera_lancamento(self):
+        """TP035: ContasPagar cpa_tipo='prolabore' marcado como pago → NÃO cria lançamento no LivroCaixa."""
+        resp = self.client.post('/api/contas-pagar/', self._base_payload(
+            cpa_tipo='prolabore',
+            pag_descricao='Pró-labore Giulia',
+        ))
+        pag_id = resp.data['pag_id']
+        antes = LivroCaixa.objects.count()
+
+        self.client.patch(f'/api/contas-pagar/{pag_id}/', {
+            'pag_status': 'pago',
+            'pag_data_pagamento': '2026-05-30',
+        })
+
+        self.assertEqual(LivroCaixa.objects.count(), antes)
+
+    def test_TP036_aluguel_gera_lancamento(self):
+        """TP036: ContasPagar cpa_tipo='aluguel' marcado como pago → cria lançamento de saída."""
+        resp = self.client.post('/api/contas-pagar/', self._base_payload(cpa_tipo='aluguel'))
+        pag_id = resp.data['pag_id']
+        antes = LivroCaixa.objects.count()
+
+        self.client.patch(f'/api/contas-pagar/{pag_id}/', {
+            'pag_status': 'pago',
+            'pag_data_pagamento': '2026-05-25',
+        })
+
+        self.assertEqual(LivroCaixa.objects.count(), antes + 1)
+        lancamento = LivroCaixa.objects.order_by('-lica_id').first()
+        self.assertEqual(lancamento.lica_tipo_lancamento, 'saida')
+
+    def test_TP037_filtro_data_vencimento_range(self):
+        """TP037: filtro pag_data_vencimento__gte e __lte retorna só registros no intervalo."""
+        self.client.post('/api/contas-pagar/', self._base_payload(pag_data_vencimento='2026-04-25'))
+        self.client.post('/api/contas-pagar/', self._base_payload(pag_data_vencimento='2026-05-25'))
+        self.client.post('/api/contas-pagar/', self._base_payload(pag_data_vencimento='2026-06-25'))
+
+        resp = self.client.get('/api/contas-pagar/', {
+            'pag_data_vencimento__gte': '2026-05-01',
+            'pag_data_vencimento__lte': '2026-05-31',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['count'], 1)

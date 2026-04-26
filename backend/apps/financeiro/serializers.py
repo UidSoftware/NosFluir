@@ -62,13 +62,20 @@ class ServicoProdutoSerializer(serializers.ModelSerializer):
 
 class ContasPagarSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
-    forn_nome = serializers.CharField(source='forn.forn_nome_empresa', read_only=True)
-    serv_nome = serializers.CharField(source='serv.serv_nome', read_only=True)
+    forn_nome         = serializers.CharField(source='forn.forn_nome_empresa', read_only=True, default=None)
+    serv_nome         = serializers.CharField(source='serv.serv_nome', read_only=True, default=None)
+    plano_contas_nome = serializers.CharField(source='plano_contas.plc_nome', read_only=True, default=None)
+    conta_nome        = serializers.CharField(source='conta.cont_nome', read_only=True, default=None)
 
     class Meta:
         model = ContasPagar
         fields = [
-            'id', 'pag_id', 'forn', 'forn_nome', 'serv', 'serv_nome',
+            'id', 'pag_id',
+            'forn', 'forn_nome', 'cpa_nome_credor',
+            'serv', 'serv_nome',
+            'plano_contas', 'plano_contas_nome',
+            'conta', 'conta_nome',
+            'cpa_tipo',
             'pag_data_emissao', 'pag_data_vencimento', 'pag_data_pagamento',
             'pag_descricao', 'pag_quantidade', 'pag_valor_unitario', 'pag_valor_total',
             'pag_status', 'pag_forma_pagamento', 'pag_observacoes',
@@ -78,16 +85,21 @@ class ContasPagarSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         # RN001: valor_total = quantidade × valor_unitario
-        quantidade = data.get('pag_quantidade', getattr(self.instance, 'pag_quantidade', 1))
+        quantidade     = data.get('pag_quantidade',     getattr(self.instance, 'pag_quantidade',     1))
         valor_unitario = data.get('pag_valor_unitario', getattr(self.instance, 'pag_valor_unitario', Decimal('0')))
         data['pag_valor_total'] = quantidade * valor_unitario
 
-        # RN-CPAG-01: data_pagamento só preenchida quando status = 'pago'
         status = data.get('pag_status', getattr(self.instance, 'pag_status', 'pendente'))
-        data_pagamento = data.get('pag_data_pagamento')
-        if data_pagamento and status != 'pago':
+        if data.get('pag_data_pagamento') and status != 'pago':
             raise serializers.ValidationError(
                 {'pag_data_pagamento': 'Data de pagamento só pode ser preenchida quando status é "pago".'}
+            )
+
+        forn      = data.get('forn',            getattr(self.instance, 'forn',            None))
+        nome_cred = data.get('cpa_nome_credor', getattr(self.instance, 'cpa_nome_credor', None))
+        if not forn and not nome_cred:
+            raise serializers.ValidationError(
+                {'cpa_nome_credor': 'Informe o fornecedor ou o nome do credor.'}
             )
         return data
 

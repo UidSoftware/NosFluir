@@ -106,13 +106,35 @@ class ContasPagar(BaseModel):
         ('vencido', 'Vencido'),
         ('cancelado', 'Cancelado'),
     ]
+    TIPO_CHOICES = [
+        ('aluguel',   'Aluguel'),
+        ('prolabore', 'Pró-labore'),
+        ('material',  'Material/Equipamento'),
+        ('marketing', 'Marketing'),
+        ('servico',   'Serviço Terceiro'),
+        ('taxa',      'Taxa Bancária'),
+        ('outros',    'Outros'),
+    ]
 
     pag_id = models.AutoField(primary_key=True)
-    forn = models.ForeignKey(Fornecedor, on_delete=models.PROTECT, verbose_name='fornecedor')
+    forn = models.ForeignKey(
+        Fornecedor, on_delete=models.PROTECT,
+        null=True, blank=True, verbose_name='fornecedor'
+    )
     serv = models.ForeignKey(
         ServicoProduto, on_delete=models.SET_NULL,
         null=True, blank=True, verbose_name='serviço/produto'
     )
+    plano_contas = models.ForeignKey(
+        'PlanoContas', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='contas_pagar', verbose_name='plano de contas'
+    )
+    conta = models.ForeignKey(
+        'Conta', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='contas_pagar', verbose_name='conta de saída'
+    )
+    cpa_tipo          = models.CharField('tipo', max_length=20, choices=TIPO_CHOICES, null=True, blank=True)
+    cpa_nome_credor   = models.CharField('nome do credor', max_length=200, null=True, blank=True)
     pag_data_emissao = models.DateTimeField('data de emissão')
     pag_data_vencimento = models.DateTimeField('data de vencimento')
     pag_data_pagamento = models.DateTimeField('data de pagamento', null=True, blank=True)

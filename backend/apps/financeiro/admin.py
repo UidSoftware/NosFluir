@@ -1,9 +1,23 @@
 from django.contrib import admin
 
 from .models import (
-    AlunoPlano, ContasPagar, ContasReceber, FolhaPagamento,
-    Fornecedor, LivroCaixa, PlanosPagamentos, ServicoProduto,
+    AlunoPlano, Conta, ContasPagar, ContasReceber, FolhaPagamento,
+    Fornecedor, LivroCaixa, PlanoContas, PlanosPagamentos, ServicoProduto,
 )
+
+
+@admin.register(Conta)
+class ContaAdmin(admin.ModelAdmin):
+    list_display = ['cont_nome', 'cont_tipo', 'cont_saldo_inicial', 'cont_ativo']
+    list_filter = ['cont_tipo', 'cont_ativo']
+    search_fields = ['cont_nome']
+
+
+@admin.register(PlanoContas)
+class PlanoContasAdmin(admin.ModelAdmin):
+    list_display = ['plc_codigo', 'plc_nome', 'plc_tipo', 'plc_ativo']
+    list_filter = ['plc_tipo', 'plc_ativo']
+    search_fields = ['plc_codigo', 'plc_nome']
 
 
 @admin.register(Fornecedor)

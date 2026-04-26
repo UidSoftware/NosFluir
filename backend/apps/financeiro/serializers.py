@@ -3,9 +3,36 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from .models import (
-    AlunoPlano, ContasPagar, ContasReceber, FolhaPagamento,
-    Fornecedor, LivroCaixa, PlanosPagamentos, ServicoProduto,
+    AlunoPlano, Conta, ContasPagar, ContasReceber, FolhaPagamento,
+    Fornecedor, LivroCaixa, PlanoContas, PlanosPagamentos, ServicoProduto,
 )
+
+
+class ContaSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+
+    class Meta:
+        model = Conta
+        fields = [
+            'id', 'cont_id', 'cont_nome', 'cont_tipo',
+            'cont_saldo_inicial', 'cont_ativo',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['cont_id', 'created_at', 'updated_at']
+
+
+class PlanoContasSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    plc_tipo_display = serializers.CharField(source='get_plc_tipo_display', read_only=True)
+
+    class Meta:
+        model = PlanoContas
+        fields = [
+            'id', 'plc_id', 'plc_codigo', 'plc_nome',
+            'plc_tipo', 'plc_tipo_display', 'plc_ativo',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['plc_id', 'created_at', 'updated_at']
 
 
 class FornecedorSerializer(serializers.ModelSerializer):

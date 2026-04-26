@@ -11,14 +11,34 @@ from apps.core.permissions import IsFinanceiroOuAdmin
 from rest_framework.permissions import IsAdminUser
 
 from .models import (
-    AlunoPlano, ContasPagar, ContasReceber, FolhaPagamento,
-    Fornecedor, LivroCaixa, PlanosPagamentos, ServicoProduto,
+    AlunoPlano, Conta, ContasPagar, ContasReceber, FolhaPagamento,
+    Fornecedor, LivroCaixa, PlanoContas, PlanosPagamentos, ServicoProduto,
 )
 from .serializers import (
-    AlunoPlanoSerializer, ContasPagarSerializer, ContasReceberSerializer,
+    AlunoPlanoSerializer, ContaSerializer, ContasPagarSerializer, ContasReceberSerializer,
     FolhaPagamentoSerializer, FornecedorSerializer, LivroCaixaSerializer,
-    PlanosPagamentosSerializer, ServicoProdutoSerializer,
+    PlanoContasSerializer, PlanosPagamentosSerializer, ServicoProdutoSerializer,
 )
+
+
+class ContaViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsFinanceiroOuAdmin]
+    queryset = Conta.objects.filter(deleted_at__isnull=True).order_by('cont_nome')
+    serializer_class = ContaSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['cont_tipo', 'cont_ativo']
+    search_fields = ['cont_nome']
+    ordering_fields = ['cont_nome']
+
+
+class PlanoContasViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsFinanceiroOuAdmin]
+    queryset = PlanoContas.objects.filter(deleted_at__isnull=True).order_by('plc_codigo')
+    serializer_class = PlanoContasSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['plc_tipo', 'plc_ativo']
+    search_fields = ['plc_codigo', 'plc_nome']
+    ordering_fields = ['plc_codigo', 'plc_nome']
 
 
 class FornecedorViewSet(AuditMixin, ModelViewSet):

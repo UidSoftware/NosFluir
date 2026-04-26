@@ -16,6 +16,7 @@ import PlanosPage             from '@/pages/financas/PlanosPage'
 import FolhaPagamentoPage     from '@/pages/financas/FolhaPagamentoPage'
 import FornecedoresPage       from '@/pages/financas/FornecedoresPage'
 import ServicosPage           from '@/pages/financas/ServicosPage'
+import ConfiguracaoFinanceiraPage from '@/pages/financas/ConfiguracaoFinanceiraPage'
 
 // Operacional
 import AlunosPage             from '@/pages/operacional/AlunosPage'
@@ -82,8 +83,9 @@ export const router = createBrowserRouter(
                 { path: '/financas/contas-receber',   element: <ContasReceberPage /> },
                 { path: '/financas/planos',           element: <PlanosPage /> },
                 { path: '/financas/folha-pagamento',  element: <FolhaPagamentoPage /> },
-                { path: '/financas/fornecedores',     element: <FornecedoresPage /> },
-                { path: '/financas/servicos',         element: <ServicosPage /> },
+                { path: '/financas/fornecedores',        element: <FornecedoresPage /> },
+                { path: '/financas/servicos',           element: <ServicosPage /> },
+                { path: '/financas/configuracao',       element: <ConfiguracaoFinanceiraPage /> },
                 { path: '/relatorios/contas-pagar',   element: <RelContasPagarPage /> },
                 { path: '/relatorios/contas-receber', element: <RelContasReceberPage /> },
                 { path: '/relatorios/livro-caixa',    element: <RelLivroCaixaPage /> },

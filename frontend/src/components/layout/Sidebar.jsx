@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, DollarSign, Users, Dumbbell, BarChart2,
-  PieChart, Settings, ChevronDown, ChevronLeft,
+  PieChart, Settings, Settings2, ChevronDown, ChevronLeft,
   ChevronRightIcon, BookOpen, CreditCard, Wallet, ClipboardList,
   UserCheck, CalendarDays, ListTodo, FileText, Activity,
   TrendingUp, Repeat2, Building2, Package, Banknote, UserCog, BellOff,
@@ -34,6 +34,7 @@ const MENU = [
       { label: 'Folha de Pagamento', path: '/financas/folha-pagamento', icon: Banknote },
       { label: 'Fornecedores',       path: '/financas/fornecedores',    icon: Building2 },
       { label: 'Serviços/Produtos',  path: '/financas/servicos',        icon: Package },
+      { label: 'Configuração',       path: '/financas/configuracao',    icon: Settings2 },
     ],
   },
   {

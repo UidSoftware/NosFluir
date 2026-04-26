@@ -8,8 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.operacional.models import Aluno, Funcionario, Profissao
 from .models import (
-    ContasPagar, ContasReceber, FolhaPagamento,
-    Fornecedor, LivroCaixa, PlanosPagamentos, ServicoProduto,
+    Conta, ContasPagar, ContasReceber, FolhaPagamento,
+    Fornecedor, LivroCaixa, PlanoContas, PlanosPagamentos, ServicoProduto,
 )
 
 User = get_user_model()
@@ -486,3 +486,84 @@ class StatusVencidoAutomaticoTest(TestCase):
         self.assertEqual(resp.status_code, 200)
         item = resp.data['results'][0]
         self.assertEqual(item['rec_status'], 'recebido')
+
+
+# ── Testes Parte A — Fase 10 ──────────────────────────────────────────────────
+
+class ContaAPITest(TestCase):
+    """TP020–TP022 — CRUD de Conta."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_TP020_criar_conta(self):
+        """TP020: POST /api/contas/ cria conta e retorna 201."""
+        resp = self.client.post('/api/contas/', {
+            'cont_nome': 'Conta Corrente Teste',
+            'cont_tipo': 'corrente',
+            'cont_saldo_inicial': '1500.00',
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(resp.data['cont_nome'], 'Conta Corrente Teste')
+        self.assertEqual(resp.data['cont_tipo'], 'corrente')
+
+    def test_TP021_listar_contas(self):
+        """TP021: GET /api/contas/ retorna lista paginada."""
+        Conta.objects.create(cont_nome='Caixa', cont_tipo='caixa')
+        resp = self.client.get('/api/contas/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreaterEqual(resp.data['count'], 1)
+
+    def test_TP022_filtrar_conta_por_tipo(self):
+        """TP022: filtro ?cont_tipo=caixa retorna só contas do tipo caixa."""
+        Conta.objects.create(cont_nome='Caixa Físico', cont_tipo='caixa')
+        Conta.objects.create(cont_nome='C. Corrente',  cont_tipo='corrente')
+        resp = self.client.get('/api/contas/?cont_tipo=caixa')
+        self.assertEqual(resp.status_code, 200)
+        for item in resp.data['results']:
+            self.assertEqual(item['cont_tipo'], 'caixa')
+
+
+class PlanoContasAPITest(TestCase):
+    """TP023–TP025 — CRUD de PlanoContas."""
+
+    def setUp(self):
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_TP023_criar_plano_contas(self):
+        """TP023: POST /api/plano-contas/ cria registro e retorna 201."""
+        resp = self.client.post('/api/plano-contas/', {
+            'plc_codigo': '9.9.9',
+            'plc_nome': 'Teste Categoria',
+            'plc_tipo': 'receita_operacional',
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(resp.data['plc_codigo'], '9.9.9')
+
+    def test_TP024_listar_plano_contas(self):
+        """TP024: GET /api/plano-contas/ retorna lista paginada."""
+        PlanoContas.objects.create(plc_codigo='8.8.8', plc_nome='Teste', plc_tipo='despesa_operacional')
+        resp = self.client.get('/api/plano-contas/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreaterEqual(resp.data['count'], 1)
+
+    def test_TP025_plano_contas_codigo_unico(self):
+        """TP025: plc_codigo único — segundo POST com mesmo código retorna 400."""
+        PlanoContas.objects.create(plc_codigo='7.7.7', plc_nome='Original', plc_tipo='transferencia')
+        resp = self.client.post('/api/plano-contas/', {
+            'plc_codigo': '7.7.7',
+            'plc_nome': 'Duplicado',
+            'plc_tipo': 'transferencia',
+        })
+        self.assertEqual(resp.status_code, 400)
+
+    def test_TP026_dados_iniciais_migration(self):
+        """TP026: migration popula contas e plano de contas iniciais."""
+        self.assertTrue(Conta.objects.filter(cont_nome='Caixa Físico').exists())
+        self.assertTrue(Conta.objects.filter(cont_nome='Conta Corrente Mercado Pago').exists())
+        self.assertTrue(PlanoContas.objects.filter(plc_codigo='1.1.1').exists())
+        self.assertTrue(PlanoContas.objects.filter(plc_codigo='3.1.1').exists())

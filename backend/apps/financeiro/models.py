@@ -3,6 +3,56 @@ from django.db import models
 from apps.core.mixins import BaseModel
 
 
+class Conta(BaseModel):
+    """Conta bancária ou caixa físico do Studio Fluir."""
+    TIPO_CHOICES = [
+        ('corrente',  'Conta Corrente'),
+        ('poupanca',  'Poupança'),
+        ('caixa',     'Caixa Físico'),
+    ]
+
+    cont_id            = models.AutoField(primary_key=True)
+    cont_nome          = models.CharField('nome', max_length=100)
+    cont_tipo          = models.CharField('tipo', max_length=20, choices=TIPO_CHOICES)
+    cont_saldo_inicial = models.DecimalField('saldo inicial', max_digits=10, decimal_places=2, default=0)
+    cont_ativo         = models.BooleanField('ativo', default=True)
+
+    class Meta:
+        db_table = 'conta'
+        verbose_name = 'Conta'
+        verbose_name_plural = 'Contas'
+        ordering = ['cont_nome']
+
+    def __str__(self):
+        return f"{self.cont_nome} ({self.get_cont_tipo_display()})"
+
+
+class PlanoContas(BaseModel):
+    """Classificação contábil dos lançamentos financeiros."""
+    TIPO_CHOICES = [
+        ('receita_operacional',     'Receita Operacional'),
+        ('receita_nao_operacional', 'Receita Não Operacional'),
+        ('despesa_operacional',     'Despesa Operacional'),
+        ('despesa_nao_operacional', 'Despesa Não Operacional'),
+        ('transferencia',           'Transferência'),
+    ]
+
+    plc_id     = models.AutoField(primary_key=True)
+    plc_codigo = models.CharField('código', max_length=20, unique=True)
+    plc_nome   = models.CharField('nome', max_length=100)
+    plc_tipo   = models.CharField('tipo', max_length=30, choices=TIPO_CHOICES)
+    plc_ativo  = models.BooleanField('ativo', default=True)
+
+    class Meta:
+        db_table = 'plano_contas'
+        verbose_name = 'Plano de Contas'
+        verbose_name_plural = 'Plano de Contas'
+        ordering = ['plc_codigo']
+
+    def __str__(self):
+        return f"{self.plc_codigo} — {self.plc_nome}"
+
+
 class Fornecedor(BaseModel):
     """Cadastro de fornecedores de produtos e serviços."""
     forn_id = models.AutoField(primary_key=True)

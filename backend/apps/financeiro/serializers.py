@@ -212,7 +212,10 @@ class AlunoPlanoSerializer(serializers.ModelSerializer):
 
 
 class LivroCaixaSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(source='pk', read_only=True)
+    id               = serializers.IntegerField(source='pk', read_only=True)
+    conta_nome       = serializers.CharField(source='conta.cont_nome',        read_only=True, default=None)
+    conta_dest_nome  = serializers.CharField(source='conta_destino.cont_nome',read_only=True, default=None)
+    plano_contas_nome= serializers.CharField(source='plano_contas.plc_nome',  read_only=True, default=None)
 
     class Meta:
         model = LivroCaixa
@@ -220,8 +223,10 @@ class LivroCaixaSerializer(serializers.ModelSerializer):
             'id', 'lica_id', 'lica_data_lancamento', 'lica_tipo_lancamento', 'lica_historico',
             'lica_valor', 'lica_categoria', 'lica_origem_tipo', 'lica_origem_id',
             'lica_saldo_anterior', 'lica_saldo_atual', 'lica_forma_pagamento',
+            'conta', 'conta_nome', 'conta_destino', 'conta_dest_nome',
+            'plano_contas', 'plano_contas_nome',
+            'lcx_tipo_movimento', 'lcx_competencia', 'lcx_documento',
         ]
-        # lica_saldo_anterior e lica_saldo_atual são calculados no backend
         read_only_fields = ['lica_id', 'lica_data_lancamento', 'lica_saldo_anterior', 'lica_saldo_atual']
 
 

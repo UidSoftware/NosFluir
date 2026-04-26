@@ -296,6 +296,11 @@ class LivroCaixa(BaseModel):
         ('folha_pagamento', 'Folha de Pagamento'),
         ('manual', 'Manual'),
     ]
+    TIPO_MOVIMENTO_CHOICES = [
+        ('entrada',       'Entrada'),
+        ('saida',         'Saída'),
+        ('transferencia', 'Transferência'),
+    ]
 
     lica_id = models.AutoField(primary_key=True)
     lica_data_lancamento = models.DateTimeField('data do lançamento', auto_now_add=True)
@@ -311,6 +316,24 @@ class LivroCaixa(BaseModel):
     lica_saldo_anterior = models.DecimalField('saldo anterior', max_digits=10, decimal_places=2)
     lica_saldo_atual = models.DecimalField('saldo atual', max_digits=10, decimal_places=2)
     lica_forma_pagamento = models.CharField('forma de pagamento', max_length=50, null=True, blank=True)
+    # Campos adicionados na Fase 10D
+    conta = models.ForeignKey(
+        'Conta', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='lancamentos', verbose_name='conta'
+    )
+    conta_destino = models.ForeignKey(
+        'Conta', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='lancamentos_destino', verbose_name='conta destino'
+    )
+    plano_contas = models.ForeignKey(
+        'PlanoContas', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='lancamentos', verbose_name='plano de contas'
+    )
+    lcx_tipo_movimento = models.CharField(
+        'tipo de movimento', max_length=20, choices=TIPO_MOVIMENTO_CHOICES, null=True, blank=True
+    )
+    lcx_competencia = models.DateField('data de competência', null=True, blank=True)
+    lcx_documento   = models.CharField('documento/comprovante', max_length=100, null=True, blank=True)
 
     class Meta:
         db_table = 'livro_caixa'

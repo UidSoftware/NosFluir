@@ -745,3 +745,74 @@ class ContasPagarFase10CTest(TestCase):
         })
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data['count'], 1)
+
+
+# ── Testes Parte D — Fase 10 ──────────────────────────────────────────────────
+
+class LivroCaixaFase10DTest(TestCase):
+    """TP038–TP041 — LivroCaixa refatorado + transferência (Parte D)."""
+
+    def setUp(self):
+        from .models import Conta, PlanoContas
+        self.user = criar_usuario()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.conta_corrente = Conta.objects.create(cont_nome='C. Corrente', cont_tipo='corrente')
+        self.conta_poupanca = Conta.objects.create(cont_nome='Poupança',    cont_tipo='poupanca')
+
+    def test_TP038_transferencia_cria_dois_lancamentos(self):
+        """TP038: POST /api/transferencia/ cria 2 lançamentos (saída + entrada)."""
+        antes = LivroCaixa.objects.count()
+        resp = self.client.post('/api/transferencia/', {
+            'conta_origem':  self.conta_corrente.cont_id,
+            'conta_destino': self.conta_poupanca.cont_id,
+            'valor':         '500.00',
+            'data':          '2026-05-25',
+            'descricao':     'Reserva mensal',
+        })
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertEqual(LivroCaixa.objects.count(), antes + 2)
+
+    def test_TP039_transferencia_tipos_corretos(self):
+        """TP039: transferência gera 1 saída na origem e 1 entrada no destino."""
+        self.client.post('/api/transferencia/', {
+            'conta_origem':  self.conta_corrente.cont_id,
+            'conta_destino': self.conta_poupanca.cont_id,
+            'valor': '200.00', 'data': '2026-05-25',
+        })
+        saida  = LivroCaixa.objects.get(conta=self.conta_corrente, lcx_tipo_movimento='transferencia', lica_tipo_lancamento='saida')
+        entrada = LivroCaixa.objects.get(conta=self.conta_poupanca, lcx_tipo_movimento='transferencia', lica_tipo_lancamento='entrada')
+        self.assertEqual(saida.lica_valor,  Decimal('200.00'))
+        self.assertEqual(entrada.lica_valor, Decimal('200.00'))
+
+    def test_TP040_transferencia_mesma_conta_retorna_400(self):
+        """TP040: conta_origem == conta_destino → 400."""
+        resp = self.client.post('/api/transferencia/', {
+            'conta_origem':  self.conta_corrente.cont_id,
+            'conta_destino': self.conta_corrente.cont_id,
+            'valor': '100.00', 'data': '2026-05-25',
+        })
+        self.assertEqual(resp.status_code, 400)
+
+    def test_TP041_signal_passa_conta_para_livrocaixa(self):
+        """TP041: ContasReceber recebido com conta → lançamento herda a conta."""
+        aluno = criar_aluno()
+        resp = self.client.post('/api/contas-receber/', {
+            'alu': aluno.alu_id,
+            'rec_descricao': 'Mensalidade',
+            'rec_data_emissao': '2026-05-01',
+            'rec_data_vencimento': '2026-05-10',
+            'rec_quantidade': 1,
+            'rec_valor_unitario': '150.00',
+            'rec_desconto': '0.00',
+            'rec_status': 'pendente',
+            'conta': self.conta_corrente.cont_id,
+        })
+        rec_id = resp.data['rec_id']
+        self.client.patch(f'/api/contas-receber/{rec_id}/', {
+            'rec_status': 'recebido',
+            'rec_data_recebimento': '2026-05-10',
+        })
+        lancamento = LivroCaixa.objects.filter(lica_origem_tipo='contas_receber', lica_origem_id=rec_id).first()
+        self.assertIsNotNone(lancamento)
+        self.assertEqual(lancamento.conta_id, self.conta_corrente.cont_id)

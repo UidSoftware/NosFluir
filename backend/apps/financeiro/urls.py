@@ -5,6 +5,7 @@ from .views import (
     AlunoPlanoViewSet, ContaViewSet, ContasPagarViewSet, ContasReceberViewSet,
     FolhaPagamentoViewSet, FornecedorViewSet, LivroCaixaViewSet,
     PlanoContasViewSet, PlanosPagamentosViewSet, ServicoProdutoViewSet,
+    transferencia_entre_contas,
 )
 
 router = DefaultRouter()
@@ -21,4 +22,5 @@ router.register('folha-pagamento', FolhaPagamentoViewSet, basename='folha-pagame
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('transferencia/', transferencia_entre_contas, name='transferencia'),
 ]

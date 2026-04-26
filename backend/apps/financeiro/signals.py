@@ -35,6 +35,7 @@ def lancar_contas_pagar(sender, instance, **kwargs):
 
         LivroCaixa.objects.create(
             lica_tipo_lancamento='saida',
+            lcx_tipo_movimento='saida',
             lica_historico=f'Pagamento: {instance.pag_descricao}',
             lica_valor=instance.pag_valor_total,
             lica_origem_tipo='contas_pagar',
@@ -42,6 +43,9 @@ def lancar_contas_pagar(sender, instance, **kwargs):
             lica_saldo_anterior=saldo_anterior,
             lica_saldo_atual=saldo_anterior - instance.pag_valor_total,
             lica_forma_pagamento=instance.pag_forma_pagamento,
+            conta=instance.conta,
+            plano_contas=instance.plano_contas,
+            lcx_competencia=instance.pag_data_vencimento.date() if instance.pag_data_vencimento else None,
             created_by=instance.updated_by or instance.created_by,
         )
 
@@ -70,6 +74,7 @@ def lancar_contas_receber(sender, instance, **kwargs):
 
         LivroCaixa.objects.create(
             lica_tipo_lancamento='entrada',
+            lcx_tipo_movimento='entrada',
             lica_historico=f'Recebimento: {instance.rec_descricao}',
             lica_valor=instance.rec_valor_total,
             lica_origem_tipo='contas_receber',
@@ -77,5 +82,8 @@ def lancar_contas_receber(sender, instance, **kwargs):
             lica_saldo_anterior=saldo_anterior,
             lica_saldo_atual=saldo_anterior + instance.rec_valor_total,
             lica_forma_pagamento=instance.rec_forma_recebimento,
+            conta=instance.conta,
+            plano_contas=instance.plano_contas,
+            lcx_competencia=instance.rec_data_vencimento.date() if instance.rec_data_vencimento else None,
             created_by=instance.updated_by or instance.created_by,
         )

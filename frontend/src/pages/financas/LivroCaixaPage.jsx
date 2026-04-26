@@ -36,9 +36,14 @@ export default function LivroCaixaPage() {
     },
     {
       key: 'lica_historico', header: 'Histórico',
-      render: r => <span className="font-medium">{r.lica_historico}</span>,
+      render: r => (
+        <div>
+          <span className="font-medium">{r.lica_historico}</span>
+          {r.conta_nome && <p className="text-[10px] text-muted-foreground">{r.conta_nome}{r.conta_dest_nome ? ` → ${r.conta_dest_nome}` : ''}</p>}
+        </div>
+      ),
     },
-    { key: 'lica_categoria', header: 'Categoria', render: r => r.lica_categoria || '—' },
+    { key: 'lica_categoria',    header: 'Categoria',      render: r => r.plano_contas_nome || r.lica_categoria || '—' },
     {
       key: 'lica_valor', header: 'Valor',
       render: r => (

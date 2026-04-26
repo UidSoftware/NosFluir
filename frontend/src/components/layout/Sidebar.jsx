@@ -6,7 +6,7 @@ import {
   ChevronRightIcon, BookOpen, CreditCard, Wallet, ClipboardList,
   UserCheck, CalendarDays, ListTodo, FileText, Activity,
   TrendingUp, Repeat2, Building2, Package, Banknote, UserCog, BellOff,
-  Camera,
+  Camera, ArrowLeftRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -34,6 +34,7 @@ const MENU = [
       { label: 'Folha de Pagamento', path: '/financas/folha-pagamento', icon: Banknote },
       { label: 'Fornecedores',       path: '/financas/fornecedores',    icon: Building2 },
       { label: 'Serviços/Produtos',  path: '/financas/servicos',        icon: Package },
+      { label: 'Transferência',       path: '/financas/transferencia',   icon: ArrowLeftRight },
       { label: 'Configuração',       path: '/financas/configuracao',    icon: Settings2 },
     ],
   },

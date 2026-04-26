@@ -44,9 +44,9 @@ class ContasPagarAdmin(admin.ModelAdmin):
 
 @admin.register(ContasReceber)
 class ContasReceberAdmin(admin.ModelAdmin):
-    list_display = ['rec_descricao', 'alu', 'rec_valor_total', 'rec_status', 'rec_data_vencimento']
-    list_filter = ['rec_status', 'rec_plano_tipo']
-    search_fields = ['rec_descricao']
+    list_display = ['rec_descricao', 'alu', 'rec_nome_pagador', 'rec_tipo', 'rec_valor_total', 'rec_status', 'rec_data_vencimento']
+    list_filter = ['rec_status', 'rec_tipo', 'rec_plano_tipo']
+    search_fields = ['rec_descricao', 'rec_nome_pagador']
     date_hierarchy = 'rec_data_vencimento'
 
 

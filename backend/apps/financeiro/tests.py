@@ -567,3 +567,82 @@ class PlanoContasAPITest(TestCase):
         self.assertTrue(Conta.objects.filter(cont_nome='Conta Corrente Mercado Pago').exists())
         self.assertTrue(PlanoContas.objects.filter(plc_codigo='1.1.1').exists())
         self.assertTrue(PlanoContas.objects.filter(plc_codigo='3.1.1').exists())
+
+
+# ── Testes Parte B — Fase 10 ──────────────────────────────────────────────────
+
+class ContasReceberFase10BTest(TestCase):
+    """TP027–TP031 — ContasReceber refatorado (Parte B)."""
+
+    def setUp(self):
+        self.user   = criar_usuario()
+        self.aluno  = criar_aluno()
+        self.serv   = criar_servico()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def _base_payload(self, **kwargs):
+        payload = {
+            'alu': self.aluno.alu_id,
+            'rec_descricao': 'Mensalidade Maio/2026',
+            'rec_data_emissao': '2026-05-01',
+            'rec_data_vencimento': '2026-05-10',
+            'rec_quantidade': 1,
+            'rec_valor_unitario': '150.00',
+            'rec_desconto': '0.00',
+            'rec_status': 'pendente',
+        }
+        payload.update(kwargs)
+        return payload
+
+    def test_TP027_criar_com_rec_tipo(self):
+        """TP027: POST com rec_tipo='mensalidade' e aluno → 201."""
+        resp = self.client.post('/api/contas-receber/', self._base_payload(rec_tipo='mensalidade'))
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(resp.data['rec_tipo'], 'mensalidade')
+
+    def test_TP028_mensalidade_sem_aluno_retorna_400(self):
+        """TP028: rec_tipo mensalidade sem alu → 400 (aluno obrigatório)."""
+        payload = self._base_payload(rec_tipo='mensalidade')
+        payload.pop('alu')
+        payload['rec_nome_pagador'] = 'Fulano'
+        resp = self.client.post('/api/contas-receber/', payload)
+        self.assertEqual(resp.status_code, 400)
+
+    def test_TP029_sem_aluno_sem_nome_retorna_400(self):
+        """TP029: sem alu e sem rec_nome_pagador → 400."""
+        payload = self._base_payload(rec_tipo='outros')
+        payload.pop('alu')
+        resp = self.client.post('/api/contas-receber/', payload)
+        self.assertEqual(resp.status_code, 400)
+
+    def test_TP030_sem_aluno_com_nome_pagador_ok(self):
+        """TP030: sem aluno, rec_tipo='outros', rec_nome_pagador preenchido → 201."""
+        resp = self.client.post('/api/contas-receber/', {
+            'rec_nome_pagador': 'Cliente Avulso',
+            'rec_tipo': 'outros',
+            'rec_descricao': 'Venda avulsa',
+            'rec_data_emissao': '2026-05-01',
+            'rec_data_vencimento': '2026-05-15',
+            'rec_quantidade': 1,
+            'rec_valor_unitario': '50.00',
+            'rec_desconto': '0.00',
+            'rec_status': 'pendente',
+        })
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertIsNone(resp.data['alu'])
+        self.assertEqual(resp.data['rec_nome_pagador'], 'Cliente Avulso')
+
+    def test_TP031_filtro_data_vencimento_range(self):
+        """TP031: filtro rec_data_vencimento__gte e __lte retorna só registros no intervalo."""
+        self.client.post('/api/contas-receber/', self._base_payload(rec_data_vencimento='2026-04-10'))
+        self.client.post('/api/contas-receber/', self._base_payload(rec_data_vencimento='2026-05-10'))
+        self.client.post('/api/contas-receber/', self._base_payload(rec_data_vencimento='2026-06-10'))
+
+        resp = self.client.get('/api/contas-receber/', {
+            'rec_data_vencimento__gte': '2026-05-01',
+            'rec_data_vencimento__lte': '2026-05-31',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['count'], 1)
+        self.assertIn('05', resp.data['results'][0]['rec_data_vencimento'])

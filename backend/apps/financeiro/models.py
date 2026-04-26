@@ -148,10 +148,20 @@ class ContasReceber(BaseModel):
         ('trimestral', 'Trimestral'),
         ('semestral', 'Semestral'),
     ]
+    TIPO_CHOICES = [
+        ('mensalidade',  'Mensalidade'),
+        ('avaliacao',    'Avaliação Física'),
+        ('consultoria',  'Consultoria Online'),
+        ('personal',     'Personal'),
+        ('produto',      'Venda de Produto'),
+        ('rendimento',   'Rendimento'),
+        ('outros',       'Outros'),
+    ]
 
     rec_id = models.AutoField(primary_key=True)
     alu = models.ForeignKey(
-        'operacional.Aluno', on_delete=models.PROTECT, verbose_name='aluno'
+        'operacional.Aluno', on_delete=models.PROTECT,
+        null=True, blank=True, verbose_name='aluno'
     )
     aplano = models.ForeignKey(
         'AlunoPlano', on_delete=models.SET_NULL,
@@ -162,6 +172,16 @@ class ContasReceber(BaseModel):
         ServicoProduto, on_delete=models.SET_NULL,
         null=True, blank=True, verbose_name='serviço/produto'
     )
+    plano_contas = models.ForeignKey(
+        'PlanoContas', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='contas_receber', verbose_name='plano de contas'
+    )
+    conta = models.ForeignKey(
+        'Conta', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='contas_receber', verbose_name='conta de destino'
+    )
+    rec_tipo = models.CharField('tipo', max_length=20, choices=TIPO_CHOICES, null=True, blank=True)
+    rec_nome_pagador = models.CharField('nome do pagador', max_length=200, null=True, blank=True)
     rec_data_emissao = models.DateTimeField('data de emissão')
     rec_data_vencimento = models.DateTimeField('data de vencimento')
     rec_data_recebimento = models.DateTimeField('data de recebimento', null=True, blank=True)

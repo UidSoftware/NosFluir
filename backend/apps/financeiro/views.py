@@ -82,15 +82,26 @@ class ContasPagarViewSet(AuditMixin, ModelViewSet):
 
 class ContasReceberViewSet(AuditMixin, ModelViewSet):
     permission_classes = [IsFinanceiroOuAdmin]
-    queryset = ContasReceber.objects.filter(deleted_at__isnull=True).order_by('rec_data_vencimento')
+    queryset = (
+        ContasReceber.objects
+        .filter(deleted_at__isnull=True)
+        .select_related('alu', 'serv', 'aplano', 'plano_contas', 'conta')
+        .order_by('rec_data_vencimento')
+    )
     serializer_class = ContasReceberSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['rec_status', 'alu', 'rec_plano_tipo']
-    search_fields = ['rec_descricao']
+    filterset_fields = {
+        'rec_status':           ['exact'],
+        'alu':                  ['exact'],
+        'rec_plano_tipo':       ['exact'],
+        'rec_tipo':             ['exact'],
+        'conta':                ['exact'],
+        'rec_data_vencimento':  ['gte', 'lte'],
+    }
+    search_fields = ['rec_descricao', 'rec_nome_pagador']
     ordering_fields = ['rec_data_vencimento', 'rec_valor_total']
 
     def list(self, request, *args, **kwargs):
-        # RN010: atualiza status para 'vencido' antes de listar
         ContasReceber.objects.filter(
             rec_status='pendente',
             rec_data_vencimento__lt=timezone.now(),

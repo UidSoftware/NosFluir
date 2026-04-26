@@ -94,13 +94,20 @@ class ContasPagarSerializer(serializers.ModelSerializer):
 
 class ContasReceberSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
-    alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
-    serv_nome = serializers.CharField(source='serv.serv_nome', read_only=True)
+    alu_nome          = serializers.CharField(source='alu.alu_nome', read_only=True, default=None)
+    serv_nome         = serializers.CharField(source='serv.serv_nome', read_only=True, default=None)
+    plano_contas_nome = serializers.CharField(source='plano_contas.plc_nome', read_only=True, default=None)
+    conta_nome        = serializers.CharField(source='conta.cont_nome', read_only=True, default=None)
 
     class Meta:
         model = ContasReceber
         fields = [
-            'id', 'rec_id', 'alu', 'alu_nome', 'aplano', 'serv', 'serv_nome',
+            'id', 'rec_id',
+            'alu', 'alu_nome', 'rec_nome_pagador',
+            'aplano', 'serv', 'serv_nome',
+            'plano_contas', 'plano_contas_nome',
+            'conta', 'conta_nome',
+            'rec_tipo',
             'rec_data_emissao', 'rec_data_vencimento', 'rec_data_recebimento',
             'rec_descricao', 'rec_quantidade', 'rec_valor_unitario', 'rec_desconto', 'rec_valor_total',
             'rec_status', 'rec_forma_recebimento', 'rec_plano_tipo', 'rec_observacoes',
@@ -108,28 +115,39 @@ class ContasReceberSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['rec_id', 'rec_valor_total', 'created_at', 'updated_at']
 
+    TIPOS_COM_ALUNO = {'mensalidade', 'avaliacao', 'consultoria', 'personal'}
+
     def validate(self, data):
         # RN002: valor_total = (quantidade × valor_unitario) - desconto
-        quantidade = data.get('rec_quantidade', getattr(self.instance, 'rec_quantidade', 1))
+        quantidade     = data.get('rec_quantidade',     getattr(self.instance, 'rec_quantidade',     1))
         valor_unitario = data.get('rec_valor_unitario', getattr(self.instance, 'rec_valor_unitario', Decimal('0')))
-        desconto = data.get('rec_desconto', getattr(self.instance, 'rec_desconto', Decimal('0')))
-
+        desconto       = data.get('rec_desconto',       getattr(self.instance, 'rec_desconto',       Decimal('0')))
         valor_bruto = quantidade * valor_unitario
 
-        # RN-CREC-03: desconto entre 0 e valor bruto
         if desconto < 0 or desconto > valor_bruto:
             raise serializers.ValidationError(
                 {'rec_desconto': f'Desconto deve ser entre R$ 0,00 e R$ {valor_bruto:.2f}.'}
             )
-
         data['rec_valor_total'] = valor_bruto - desconto
 
-        # RN-CREC-01: data_recebimento só preenchida quando status = 'recebido'
         status = data.get('rec_status', getattr(self.instance, 'rec_status', 'pendente'))
-        data_recebimento = data.get('rec_data_recebimento')
-        if data_recebimento and status != 'recebido':
+        if data.get('rec_data_recebimento') and status != 'recebido':
             raise serializers.ValidationError(
                 {'rec_data_recebimento': 'Data de recebimento só pode ser preenchida quando status é "recebido".'}
+            )
+
+        # Validação inteligente: aluno x tipo
+        rec_tipo = data.get('rec_tipo', getattr(self.instance, 'rec_tipo', None))
+        alu      = data.get('alu',      getattr(self.instance, 'alu',      None))
+        nome_pag = data.get('rec_nome_pagador', getattr(self.instance, 'rec_nome_pagador', None))
+
+        if rec_tipo in self.TIPOS_COM_ALUNO and not alu:
+            raise serializers.ValidationError(
+                {'alu': 'Aluno obrigatório para este tipo de receita.'}
+            )
+        if not alu and not nome_pag:
+            raise serializers.ValidationError(
+                {'rec_nome_pagador': 'Informe o nome do pagador quando não há aluno selecionado.'}
             )
         return data
 

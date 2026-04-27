@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 26/04/2026 | Versão: 10.1
+> Última atualização: 27/04/2026 | Versão: 10.2
 
 ---
 
@@ -738,11 +738,25 @@ git pull origin main && docker compose restart nginx
 - [x] **ProdutosPage criada:** CRUD completo + badge de estoque baixo + alerta no topo da página. Sidebar atualizada com item "Produtos" separado de "Serviços"
 - [x] **Bug PedidosPage — item tipo Plano:** `getOpcoes('plano')` retornava `[]` e o JSX caía em input de texto livre. Corrigido: fetch de `PlanosPagamentos`, case adicionado ao `getOpcoes`, condição JSX corrigida
 
+### Fase 10.2 — Geração Automática de Mensalidades + Recibo PDF (27/04/2026) ✅ EM PRODUÇÃO
+
+#### Geração de Mensalidades
+- [x] Management command `gerar_mensalidades`: percorre todos os `AlunoPlano` ativos com `aplano_dia_vencimento` definido, calcula vencimento do próximo mês (respeita meses curtos e `aplano_data_fim`), cria `ContasReceber` idempotente (não duplica se já existe para o mesmo `aplano`+mês+ano)
+- [x] Aceita `--mes`/`--ano` para mês específico e `--dry-run` para simular sem gravar
+- [x] Endpoint `POST /api/gerar-mensalidades/` (IsAdminUser) com suporte a `dry_run`
+- [x] `ConfiguracaoFinanceiraPage`: seção "Geração de Mensalidades" — botão faz dry-run primeiro, abre modal com preview (quantas serão criadas + detalhes), confirmar executa de verdade
+- [x] Cron na VPS configurado: `0 8 27 * * cd /var/www/studio-fluir && docker compose exec -T backend python manage.py gerar_mensalidades >> /var/log/nosfluir-mensalidades.log 2>&1`
+- [x] Lógica de billing: `plan_tipo_plano` (mensal/trimestral/semestral) define duração do contrato — cobrança é sempre mensal; cartão parcela por conta própria
+
+#### Recibo PDF
+- [x] `reportlab>=4.2` adicionado ao `requirements.txt`
+- [x] Endpoint `GET /api/pedidos/{id}/recibo/` — gera PDF com cabeçalho Studio Fluir, dados do pedido, tabela de itens, total e forma de pagamento
+- [x] `PedidosPage`: botão de impressão baixa PDF autenticado via axios blob (não abre link direto — respeita JWT)
+
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
 - [ ] Crédito expirado — sem job automático para atualizar status
 - [ ] Agendamentos do site exigem Aluno pré-existente — design a revisar com clientes
-- [ ] Fase 10 E.6 — Recibo PDF (pendente: adicionar reportlab ao requirements.txt)
 - [ ] Dashboard: alerta de estoque baixo (consome `/api/produtos/alertas-estoque/`)
 
 ---

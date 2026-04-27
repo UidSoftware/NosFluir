@@ -75,27 +75,22 @@ class Fornecedor(BaseModel):
 
 
 class ServicoProduto(BaseModel):
-    """Catálogo de serviços e produtos do Studio Fluir."""
-    TIPO_CHOICES = [
-        ('servico', 'Serviço'),
-        ('produto', 'Produto'),
-    ]
+    """Catálogo de serviços do Studio Fluir."""
 
     serv_id = models.AutoField(primary_key=True)
     serv_nome = models.CharField('nome', max_length=125)
     serv_descricao = models.TextField('descrição', null=True, blank=True)
     serv_valor_base = models.DecimalField('valor base', max_digits=10, decimal_places=2)
-    serv_tipo = models.CharField('tipo', max_length=20, choices=TIPO_CHOICES)
     serv_ativo = models.BooleanField('ativo', default=True)
 
     class Meta:
         db_table = 'servico_produto'
-        verbose_name = 'Serviço / Produto'
-        verbose_name_plural = 'Serviços / Produtos'
+        verbose_name = 'Serviço'
+        verbose_name_plural = 'Serviços'
         ordering = ['serv_nome']
 
     def __str__(self):
-        return f'{self.serv_nome} ({self.get_serv_tipo_display()})'
+        return self.serv_nome
 
 
 class ContasPagar(BaseModel):

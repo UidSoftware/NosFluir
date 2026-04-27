@@ -16,6 +16,7 @@ import PlanosPage             from '@/pages/financas/PlanosPage'
 import FolhaPagamentoPage     from '@/pages/financas/FolhaPagamentoPage'
 import FornecedoresPage       from '@/pages/financas/FornecedoresPage'
 import ServicosPage           from '@/pages/financas/ServicosPage'
+import ProdutosPage           from '@/pages/financas/ProdutosPage'
 import ConfiguracaoFinanceiraPage from '@/pages/financas/ConfiguracaoFinanceiraPage'
 import TransferenciaPage          from '@/pages/financas/TransferenciaPage'
 import PedidosPage               from '@/pages/financas/PedidosPage'
@@ -90,6 +91,7 @@ export const router = createBrowserRouter(
                 { path: '/financas/folha-pagamento',  element: <FolhaPagamentoPage /> },
                 { path: '/financas/fornecedores',        element: <FornecedoresPage /> },
                 { path: '/financas/servicos',           element: <ServicosPage /> },
+                { path: '/financas/produtos',           element: <ProdutosPage /> },
                 { path: '/financas/pedidos',            element: <PedidosPage /> },
                 { path: '/financas/transferencia',      element: <TransferenciaPage /> },
                 { path: '/financas/configuracao',       element: <ConfiguracaoFinanceiraPage /> },

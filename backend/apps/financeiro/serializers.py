@@ -56,7 +56,7 @@ class ServicoProdutoSerializer(serializers.ModelSerializer):
         model = ServicoProduto
         fields = [
             'id', 'serv_id', 'serv_nome', 'serv_descricao', 'serv_valor_base',
-            'serv_tipo', 'serv_ativo', 'created_at', 'updated_at',
+            'serv_ativo', 'created_at', 'updated_at',
         ]
         read_only_fields = ['serv_id', 'created_at', 'updated_at']
 

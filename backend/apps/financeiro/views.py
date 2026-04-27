@@ -61,7 +61,7 @@ class ServicoProdutoViewSet(AuditMixin, ModelViewSet):
     queryset = ServicoProduto.objects.filter(deleted_at__isnull=True).order_by('serv_nome')
     serializer_class = ServicoProdutoSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['serv_tipo', 'serv_ativo']
+    filterset_fields = ['serv_ativo']
     search_fields = ['serv_nome']
     ordering_fields = ['serv_nome', 'serv_valor_base']
 

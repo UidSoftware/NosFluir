@@ -174,18 +174,13 @@ class PlanosPagamentosSerializer(serializers.ModelSerializer):
         model = PlanosPagamentos
         fields = [
             'id', 'plan_id', 'serv', 'serv_nome',
-            'plan_tipo_plano', 'plan_valor_plano', 'plan_dia_vencimento',
+            'plan_tipo_plano', 'plan_valor_plano',
             'total_alunos_ativos', 'created_at', 'updated_at',
         ]
         read_only_fields = ['plan_id', 'created_at', 'updated_at']
 
     def get_total_alunos_ativos(self, obj):
         return obj.alunos.filter(aplano_ativo=True, deleted_at__isnull=True).count()
-
-    def validate_plan_dia_vencimento(self, value):
-        if not (1 <= value <= 31):
-            raise serializers.ValidationError('Dia de vencimento deve ser entre 1 e 31.')
-        return value
 
 
 class AlunoPlanoSerializer(serializers.ModelSerializer):
@@ -199,11 +194,17 @@ class AlunoPlanoSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'aplano_id', 'aluno', 'alu_nome',
             'plano', 'plan_descricao', 'plan_valor_plano',
+            'aplano_dia_vencimento',
             'aplano_data_inicio', 'aplano_data_fim',
             'aplano_ativo', 'aplano_observacoes',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['aplano_id', 'created_at', 'updated_at']
+
+    def validate_aplano_dia_vencimento(self, value):
+        if value is not None and not (1 <= value <= 31):
+            raise serializers.ValidationError('Dia de vencimento deve ser entre 1 e 31.')
+        return value
 
     def get_plan_descricao(self, obj):
         return f"{obj.plano.serv.serv_nome} — {obj.plano.get_plan_tipo_plano_display()}"

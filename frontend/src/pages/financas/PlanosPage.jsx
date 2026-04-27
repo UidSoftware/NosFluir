@@ -22,10 +22,9 @@ const KEY      = 'planos'
 function PlanoForm({ plano, onClose }) {
   const { register, handleSubmit, setValue, watch } = useForm({
     defaultValues: plano ? {
-      serv:                String(plano.serv),
-      plan_tipo_plano:     plano.plan_tipo_plano || '__none__',
-      plan_valor_plano:    plano.plan_valor_plano || '',
-      plan_dia_vencimento: plano.plan_dia_vencimento || '',
+      serv:             String(plano.serv),
+      plan_tipo_plano:  plano.plan_tipo_plano || '__none__',
+      plan_valor_plano: plano.plan_valor_plano || '',
     } : { serv: '__none__', plan_tipo_plano: '__none__' },
   })
 
@@ -44,13 +43,11 @@ function PlanoForm({ plano, onClose }) {
     const tipo = data.plan_tipo_plano !== '__none__' ? data.plan_tipo_plano : null
     if (!tipo) { toast({ title: 'Selecione o tipo.', variant: 'destructive' }); return }
     if (!data.plan_valor_plano) { toast({ title: 'Informe o valor.', variant: 'destructive' }); return }
-    if (!data.plan_dia_vencimento) { toast({ title: 'Informe o dia de vencimento.', variant: 'destructive' }); return }
 
     const payload = {
       serv: servId,
       plan_tipo_plano: tipo,
       plan_valor_plano: data.plan_valor_plano,
-      plan_dia_vencimento: parseInt(data.plan_dia_vencimento),
     }
     if (plano) update.mutate({ id: plano.plan_id, data: payload })
     else       create.mutate(payload)
@@ -82,14 +79,9 @@ function PlanoForm({ plano, onClose }) {
         </Select>
       </FormField>
 
-      <div className="grid grid-cols-2 gap-3">
-        <FormField label="Valor (R$) *">
-          <Input type="number" step="0.01" {...register('plan_valor_plano')} placeholder="150.00" disabled={busy} />
-        </FormField>
-        <FormField label="Dia de Vencimento *">
-          <Input type="number" min="1" max="31" {...register('plan_dia_vencimento')} placeholder="5" disabled={busy} />
-        </FormField>
-      </div>
+      <FormField label="Valor (R$) *">
+        <Input type="number" step="0.01" {...register('plan_valor_plano')} placeholder="150.00" disabled={busy} />
+      </FormField>
 
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
@@ -115,7 +107,6 @@ export default function PlanosPage() {
     { key: 'serv_nome',            header: 'Serviço',      render: r => <span className="font-medium">{r.serv_nome || '—'}</span> },
     { key: 'plan_tipo_plano',      header: 'Tipo',         render: r => TIPO_LABEL[r.plan_tipo_plano] || r.plan_tipo_plano },
     { key: 'plan_valor_plano',     header: 'Valor/mês',    render: r => formatCurrency(r.plan_valor_plano) },
-    { key: 'plan_dia_vencimento',  header: 'Venc.',        render: r => `dia ${r.plan_dia_vencimento}` },
     { key: 'total_alunos_ativos',  header: 'Alunos ativos', render: r => r.total_alunos_ativos ?? 0 },
     {
       key: 'acoes', header: '', cellClassName: 'w-20',

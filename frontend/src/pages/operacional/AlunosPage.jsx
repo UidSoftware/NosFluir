@@ -39,8 +39,9 @@ function AlunoForm({ aluno, onClose }) {
   })
 
   const [planoInicial, setPlanoInicial] = useState({
-    plano:              '__none__',
-    aplano_data_inicio: new Date().toISOString().slice(0, 10),
+    plano:                '__none__',
+    aplano_dia_vencimento: '',
+    aplano_data_inicio:   new Date().toISOString().slice(0, 10),
   })
 
   const { data: planosCatalogo } = useQuery({
@@ -54,9 +55,10 @@ function AlunoForm({ aluno, onClose }) {
       if (planoInicial.plano !== '__none__') {
         try {
           await api.post('/aluno-plano/', {
-            aluno:              novoAluno.alu_id,
-            plano:              parseInt(planoInicial.plano),
-            aplano_data_inicio: planoInicial.aplano_data_inicio,
+            aluno:                novoAluno.alu_id,
+            plano:                parseInt(planoInicial.plano),
+            aplano_dia_vencimento: planoInicial.aplano_dia_vencimento ? parseInt(planoInicial.aplano_dia_vencimento) : null,
+            aplano_data_inicio:   planoInicial.aplano_data_inicio,
           })
           queryClient.invalidateQueries({ queryKey: ['aluno-plano', novoAluno.alu_id] })
         } catch {
@@ -157,10 +159,16 @@ function AlunoForm({ aluno, onClose }) {
               </Select>
             </FormField>
             {planoInicial.plano !== '__none__' && (
-              <FormField label="Data de Início">
-                <Input type="date" value={planoInicial.aplano_data_inicio}
-                  onChange={e => setPlanoInicial(p => ({ ...p, aplano_data_inicio: e.target.value }))} disabled={busy} />
-              </FormField>
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Dia de Vencimento">
+                  <Input type="number" min="1" max="31" value={planoInicial.aplano_dia_vencimento}
+                    onChange={e => setPlanoInicial(p => ({ ...p, aplano_dia_vencimento: e.target.value }))} placeholder="Ex: 5" disabled={busy} />
+                </FormField>
+                <FormField label="Data de Início">
+                  <Input type="date" value={planoInicial.aplano_data_inicio}
+                    onChange={e => setPlanoInicial(p => ({ ...p, aplano_data_inicio: e.target.value }))} disabled={busy} />
+                </FormField>
+              </div>
             )}
           </div>
         </div>
@@ -278,7 +286,7 @@ function PlanosSection({ alunoId }) {
   const queryClient = useQueryClient()
   const [vincularOpen, setVincularOpen] = useState(false)
   const [encerrarId, setEncerrarId]     = useState(null)
-  const [novoPlano, setNovoPlano]       = useState({ plano: '__none__', aplano_data_inicio: new Date().toISOString().slice(0, 10), aplano_observacoes: '' })
+  const [novoPlano, setNovoPlano]       = useState({ plano: '__none__', aplano_dia_vencimento: '', aplano_data_inicio: new Date().toISOString().slice(0, 10), aplano_observacoes: '' })
 
   const { data: planosAluno, isLoading } = useQuery({
     queryKey: ['aluno-plano', alunoId],
@@ -301,7 +309,14 @@ function PlanosSection({ alunoId }) {
 
   const handleVincular = () => {
     if (novoPlano.plano === '__none__') { toast({ title: 'Selecione um plano.', variant: 'destructive' }); return }
-    vincularMut.mutate({ aluno: alunoId, plano: parseInt(novoPlano.plano), aplano_data_inicio: novoPlano.aplano_data_inicio, aplano_observacoes: novoPlano.aplano_observacoes || null })
+    if (!novoPlano.aplano_dia_vencimento) { toast({ title: 'Informe o dia de vencimento.', variant: 'destructive' }); return }
+    vincularMut.mutate({
+      aluno: alunoId,
+      plano: parseInt(novoPlano.plano),
+      aplano_dia_vencimento: parseInt(novoPlano.aplano_dia_vencimento),
+      aplano_data_inicio: novoPlano.aplano_data_inicio,
+      aplano_observacoes: novoPlano.aplano_observacoes || null,
+    })
   }
 
   return (
@@ -319,6 +334,7 @@ function PlanosSection({ alunoId }) {
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <span className="font-medium text-sm">{ap.plan_descricao}</span>
+                  {ap.aplano_dia_vencimento && <span className="text-muted-foreground ml-2">· vence dia {ap.aplano_dia_vencimento}</span>}
                   <span className="text-muted-foreground ml-2">desde {formatDate(ap.aplano_data_inicio)}</span>
                   <span className={`ml-2 ${ap.aplano_ativo ? 'text-emerald-400' : 'text-red-400'}`}>
                     · {ap.aplano_ativo ? 'Ativo' : 'Encerrado'}
@@ -352,6 +368,9 @@ function PlanosSection({ alunoId }) {
                   ))}
                 </SelectContent>
               </Select>
+            </FormField>
+            <FormField label="Dia de Vencimento *">
+              <Input type="number" min="1" max="31" value={novoPlano.aplano_dia_vencimento} onChange={e => setNovoPlano(p => ({ ...p, aplano_dia_vencimento: e.target.value }))} placeholder="Ex: 5" />
             </FormField>
             <FormField label="Data de Início *">
               <Input type="date" value={novoPlano.aplano_data_inicio} onChange={e => setNovoPlano(p => ({ ...p, aplano_data_inicio: e.target.value }))} />

@@ -237,7 +237,6 @@ class PlanosPagamentos(BaseModel):
     serv = models.ForeignKey(ServicoProduto, on_delete=models.PROTECT, verbose_name='serviço')
     plan_tipo_plano = models.CharField('tipo do plano', max_length=20, choices=TIPO_PLANO_CHOICES)
     plan_valor_plano = models.DecimalField('valor mensal', max_digits=10, decimal_places=2)
-    plan_dia_vencimento = models.IntegerField('dia de vencimento')
 
     class Meta:
         db_table = 'planos_pagamentos'
@@ -260,6 +259,7 @@ class AlunoPlano(BaseModel):
         PlanosPagamentos, on_delete=models.PROTECT,
         related_name='alunos', verbose_name='plano'
     )
+    aplano_dia_vencimento = models.IntegerField('dia de vencimento', null=True, blank=True)
     aplano_data_inicio   = models.DateField('data de início')
     aplano_data_fim      = models.DateField('data de término', null=True, blank=True)
     aplano_ativo         = models.BooleanField('ativo', default=True)

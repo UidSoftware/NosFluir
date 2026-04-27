@@ -182,6 +182,33 @@ class LivroCaixaViewSet(AuditMixin, ReadCreateViewSet):
 
 
 @api_view(['POST'])
+@permission_classes([IsAdminUser])
+def gerar_mensalidades(request):
+    """Gera ContasReceber de mensalidade para todos os AlunoPlanos ativos no mês seguinte (ou mes/ano informados)."""
+    from datetime import date
+    from .management.commands.gerar_mensalidades import calcular_proximo_mes, executar, MESES
+
+    mes_param = request.data.get('mes')
+    ano_param = request.data.get('ano')
+    dry_run   = request.data.get('dry_run', False)
+
+    if mes_param and ano_param:
+        mes, ano = int(mes_param), int(ano_param)
+    else:
+        mes, ano = calcular_proximo_mes()
+
+    criadas, ignoradas, detalhes = executar(mes, ano, dry_run=dry_run)
+
+    return Response({
+        'mes_referencia': f"{MESES[mes-1]}/{ano}",
+        'criadas':  criadas,
+        'ignoradas': ignoradas,
+        'dry_run':  dry_run,
+        'detalhes': detalhes,
+    })
+
+
+@api_view(['POST'])
 @permission_classes([IsFinanceiroOuAdmin])
 def transferencia_entre_contas(request):
     """Transferência entre contas — gera 2 lançamentos no LivroCaixa."""

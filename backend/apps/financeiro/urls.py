@@ -6,6 +6,7 @@ from .views import (
     FolhaPagamentoViewSet, FornecedorViewSet, LivroCaixaViewSet,
     PedidoViewSet, PlanoContasViewSet, PlanosPagamentosViewSet,
     ProdutoViewSet, ServicoProdutoViewSet, transferencia_entre_contas,
+    gerar_mensalidades,
 )
 from .relatorios import relatorio_dre, relatorio_extrato, relatorio_fluxo_caixa
 
@@ -26,6 +27,7 @@ router.register('folha-pagamento', FolhaPagamentoViewSet, basename='folha-pagame
 urlpatterns = [
     path('', include(router.urls)),
     path('transferencia/',        transferencia_entre_contas, name='transferencia'),
+    path('gerar-mensalidades/',   gerar_mensalidades,         name='gerar-mensalidades'),
     path('relatorios/dre/',       relatorio_dre,              name='relatorio-dre'),
     path('relatorios/fluxo-caixa/', relatorio_fluxo_caixa,   name='relatorio-fluxo-caixa'),
     path('relatorios/extrato/',   relatorio_extrato,          name='relatorio-extrato'),

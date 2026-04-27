@@ -70,15 +70,11 @@ function ContaForm({ conta, onClose }) {
 }
 
 function SecaoContas() {
-  const [page, setPage]   = useState(1)
   const [modal, setModal] = useState(null) // null | 'novo' | conta
   const [excluir, setExcluir] = useState(null)
 
-  const { data } = useList('contas', '/contas/', { page })
-  const del      = useDelete('contas', '/contas/')
-
-  const contas = data?.results ?? []
-  const total  = data?.count ?? 0
+  const { data: contas, count: total, page, setPage } = useList('contas', '/contas/')
+  const del = useDelete('contas', '/contas/')
 
   const COLS = [
     { header: 'Nome',         render: r => r.cont_nome },
@@ -193,12 +189,9 @@ function PlanoContasForm({ plc, onClose }) {
 }
 
 function SecaoPlanoContas() {
-  const [page, setPage]   = useState(1)
   const [modal, setModal] = useState(null)
 
-  const { data } = useList('plano-contas', '/plano-contas/', { page, pageSize: 20 })
-  const itens    = data?.results ?? []
-  const total    = data?.count ?? 0
+  const { data: itens, count: total, page, setPage } = useList('plano-contas', '/plano-contas/')
 
   const COLS = [
     { header: 'Código', render: r => <span className="font-mono">{r.plc_codigo}</span> },

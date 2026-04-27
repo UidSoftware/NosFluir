@@ -1,6 +1,9 @@
 from decimal import Decimal
 
+import io
+
 from django.db import transaction
+from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -297,6 +300,97 @@ class ProdutoViewSet(AuditMixin, ModelViewSet):
         return Response(serializer.data)
 
 
+FORMAS_LABEL = {
+    'pix': 'PIX', 'dinheiro': 'Dinheiro',
+    'cartao': 'Cartão', 'boleto': 'Boleto',
+}
+
+
+def _gerar_recibo_pdf(pedido):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+                            leftMargin=2*cm, rightMargin=2*cm,
+                            topMargin=2*cm, bottomMargin=2*cm)
+    styles = getSampleStyleSheet()
+    cy = colors.HexColor('#00bcd4')
+
+    title_style  = ParagraphStyle('title',  parent=styles['Normal'], fontSize=20, textColor=cy, spaceAfter=4, alignment=TA_CENTER)
+    sub_style    = ParagraphStyle('sub',    parent=styles['Normal'], fontSize=10, textColor=colors.grey, spaceAfter=2, alignment=TA_CENTER)
+    label_style  = ParagraphStyle('label',  parent=styles['Normal'], fontSize=9,  textColor=colors.grey)
+    value_style  = ParagraphStyle('value',  parent=styles['Normal'], fontSize=10, spaceAfter=2)
+    right_style  = ParagraphStyle('right',  parent=styles['Normal'], fontSize=10, alignment=TA_RIGHT)
+    total_style  = ParagraphStyle('total',  parent=styles['Normal'], fontSize=14, textColor=cy, alignment=TA_RIGHT)
+
+    cliente = pedido.alu.alu_nome if pedido.alu else (pedido.ped_nome_cliente or '—')
+    data_fmt = pedido.ped_data.strftime('%d/%m/%Y') if pedido.ped_data else '—'
+    forma = FORMAS_LABEL.get(pedido.ped_forma_pagamento or '', pedido.ped_forma_pagamento or '—')
+
+    story = [
+        Paragraph('Nos Studio Fluir', title_style),
+        Paragraph('Recibo de Pagamento', sub_style),
+        Spacer(1, 0.4*cm),
+    ]
+
+    # info block
+    info_data = [
+        [Paragraph('Número', label_style),   Paragraph(pedido.ped_numero or '—', value_style),
+         Paragraph('Data', label_style),      Paragraph(data_fmt, value_style)],
+        [Paragraph('Cliente', label_style),   Paragraph(cliente, value_style),
+         Paragraph('Pagamento', label_style), Paragraph(forma, value_style)],
+    ]
+    info_table = Table(info_data, colWidths=[3*cm, 7*cm, 3*cm, 4*cm])
+    info_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story += [info_table, Spacer(1, 0.5*cm)]
+
+    # itens
+    header = [['Descrição', 'Qtd', 'Unit. (R$)', 'Total (R$)']]
+    rows = []
+    for item in pedido.itens.all():
+        rows.append([
+            item.item_descricao or '—',
+            str(item.item_quantidade),
+            f'{item.item_valor_unitario:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'),
+            f'{item.item_valor_total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'),
+        ])
+
+    itens_table = Table(header + rows, colWidths=[9.5*cm, 2*cm, 3.5*cm, 3.5*cm])
+    itens_table.setStyle(TableStyle([
+        ('BACKGROUND',   (0,0), (-1,0), cy),
+        ('TEXTCOLOR',    (0,0), (-1,0), colors.white),
+        ('FONTNAME',     (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE',     (0,0), (-1,-1), 9),
+        ('ALIGN',        (1,0), (-1,-1), 'RIGHT'),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f5f5f5')]),
+        ('GRID',         (0,0), (-1,-1), 0.4, colors.HexColor('#dddddd')),
+        ('BOTTOMPADDING',(0,0), (-1,-1), 5),
+        ('TOPPADDING',   (0,0), (-1,-1), 5),
+    ]))
+    story += [itens_table, Spacer(1, 0.4*cm)]
+
+    # total
+    total_fmt = f'R$ {pedido.ped_total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+    story.append(Paragraph(f'<b>Total: {total_fmt}</b>', total_style))
+
+    if pedido.ped_observacoes:
+        story += [Spacer(1, 0.4*cm), Paragraph(f'Obs: {pedido.ped_observacoes}', label_style)]
+
+    story.append(Spacer(1, 1.5*cm))
+    story.append(Paragraph('Nos Studio Fluir — nostudiofluir.com.br', sub_style))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
 class PedidoViewSet(AuditMixin, ModelViewSet):
     permission_classes = [IsFinanceiroOuAdmin]
     queryset = (
@@ -330,6 +424,15 @@ class PedidoViewSet(AuditMixin, ModelViewSet):
         pedido.updated_by = request.user
         pedido.save()
         return Response(PedidoSerializer(pedido).data)
+
+    @action(detail=True, methods=['get'], url_path='recibo')
+    def recibo(self, request, pk=None):
+        pedido = self.get_object()
+        pdf = _gerar_recibo_pdf(pedido)
+        filename = f"recibo-{pedido.ped_numero}.pdf"
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        return response
 
 
 class FolhaPagamentoViewSet(AuditMixin, ModelViewSet):

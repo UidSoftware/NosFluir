@@ -334,7 +334,16 @@ export default function PedidosPage() {
             </Button>
           )}
           {r.ped_status === 'pago' && (
-            <Button size="icon" variant="ghost" title="Imprimir recibo" onClick={() => window.print()}>
+            <Button size="icon" variant="ghost" title="Baixar recibo PDF"
+              onClick={async () => {
+                try {
+                  const res = await api.get(`/pedidos/${r.ped_id}/recibo/`, { responseType: 'blob' })
+                  const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+                  const a = document.createElement('a')
+                  a.href = url; a.download = `recibo-${r.ped_numero}.pdf`; a.click()
+                  URL.revokeObjectURL(url)
+                } catch { toast({ title: 'Erro ao gerar recibo', variant: 'destructive' }) }
+              }}>
               <Printer className="w-4 h-4 text-muted-foreground" />
             </Button>
           )}

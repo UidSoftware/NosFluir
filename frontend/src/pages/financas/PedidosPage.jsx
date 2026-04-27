@@ -99,8 +99,19 @@ function NovoPedidoForm({ onClose }) {
   const { data: alunos   = [] } = useQuery({ queryKey: ['alunos-select'],   queryFn: () => fetchAll('/alunos/') })
   const { data: produtos  = [] } = useQuery({ queryKey: ['produtos-select'], queryFn: () => fetchAll('/produtos/', { prod_ativo: true }) })
   const { data: servicos  = [] } = useQuery({ queryKey: ['servicos-select'], queryFn: () => fetchAll('/servicos-produtos/', { serv_ativo: true }) })
-  const { data: planos    = [] } = useQuery({ queryKey: ['planos-catalogo'], queryFn: () => fetchAll('/planos-pagamentos/') })
   const { data: contas    = [] } = useQuery({ queryKey: ['contas-select'],   queryFn: () => fetchAll('/contas/', { cont_ativo: true }) })
+
+  const aluId = watch('alu')
+  const { data: planosDoAluno = [] } = useQuery({
+    queryKey: ['aluno-plano-pedido', aluId],
+    queryFn: () => fetchAll('/aluno-plano/', { aluno: aluId, aplano_ativo: true }),
+    enabled: !!aluId && aluId !== '__none__',
+  })
+  const { data: planosCatalogo = [] } = useQuery({
+    queryKey: ['planos-catalogo'],
+    queryFn: () => fetchAll('/planos-pagamentos/'),
+    enabled: !aluId || aluId === '__none__',
+  })
 
   const qc  = useQueryClient()
   const mut = useMutation({
@@ -121,7 +132,11 @@ function NovoPedidoForm({ onClose }) {
   const getOpcoes = (tipo) => {
     if (tipo === 'produto') return produtos.map(p => ({ id: p.prod_id, label: `${p.prod_nome} — ${formatCurrency(p.prod_valor_venda)}`, valor: p.prod_valor_venda }))
     if (tipo === 'servico') return servicos.map(s => ({ id: s.serv_id, label: `${s.serv_nome} — ${formatCurrency(s.serv_valor_base)}`, valor: s.serv_valor_base }))
-    if (tipo === 'plano')   return planos.map(p => ({ id: p.plan_id, label: `${p.serv_nome} — ${p.plan_tipo_plano} — ${formatCurrency(p.plan_valor_plano)}`, valor: p.plan_valor_plano }))
+    if (tipo === 'plano') {
+      const temAluno = aluId && aluId !== '__none__'
+      if (temAluno) return planosDoAluno.map(p => ({ id: p.aplano_id, label: `${p.plan_descricao} — ${formatCurrency(p.plan_valor_plano)}`, valor: p.plan_valor_plano, isAlunoPlano: true }))
+      return planosCatalogo.map(p => ({ id: p.plan_id, label: `${p.serv_nome} — ${p.plan_tipo_plano} — ${formatCurrency(p.plan_valor_plano)}`, valor: p.plan_valor_plano }))
+    }
     return []
   }
 
@@ -147,6 +162,7 @@ function NovoPedidoForm({ onClose }) {
         item_tipo:           i.tipo,
         prod:                i.tipo === 'produto' ? parseInt(i.item_id) : null,
         serv:                i.tipo === 'servico' ? parseInt(i.item_id) : null,
+        aplano:              i.tipo === 'plano' && i.isAlunoPlano ? parseInt(i.item_id) : null,
         item_descricao:      i.descricao,
         item_quantidade:     parseInt(i.qtd) || 1,
         item_valor_unitario: parseFloat(i.valor).toFixed(2),
@@ -159,7 +175,10 @@ function NovoPedidoForm({ onClose }) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-5 max-h-[75vh] overflow-y-auto">
       {/* Cliente */}
       <FormField label="Aluno">
-        <Select value={watch('alu')} onValueChange={v => setValue('alu', v)}>
+        <Select value={watch('alu')} onValueChange={v => {
+          setValue('alu', v)
+          setItens(prev => prev.map(i => i.tipo === 'plano' ? { ...i, item_id: '__none__', descricao: '', valor: '', isAlunoPlano: false } : i))
+        }}>
           <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
@@ -232,7 +251,11 @@ function NovoPedidoForm({ onClose }) {
                     onChange={e => {
                       const opt = opcoes.find(o => String(o.id) === e.target.value)
                       updateItem(idx, 'item_id', e.target.value)
-                      if (opt) { updateItem(idx, 'descricao', opt.label.split(' — ')[0]); updateItem(idx, 'valor', parseFloat(opt.valor).toFixed(2)) }
+                      if (opt) {
+                        updateItem(idx, 'descricao', opt.label.split(' — ')[0])
+                        updateItem(idx, 'valor', parseFloat(opt.valor).toFixed(2))
+                        updateItem(idx, 'isAlunoPlano', opt.isAlunoPlano ?? false)
+                      }
                     }}
                   >
                     <option value="__none__">Selecionar...</option>

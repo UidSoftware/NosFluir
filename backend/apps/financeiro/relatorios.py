@@ -116,10 +116,10 @@ def relatorio_fluxo_caixa(request):
 @api_view(['GET'])
 @permission_classes([IsFinanceiroOuAdmin])
 def relatorio_extrato(request):
-    """Extrato de movimentações de uma conta em um período."""
+    """Extrato de movimentações de uma conta. Se mes/ano omitidos, retorna todos os lançamentos."""
     conta_id = request.GET.get('conta')
-    mes      = int(request.GET.get('mes', timezone.now().month))
-    ano      = int(request.GET.get('ano', timezone.now().year))
+    mes_raw  = request.GET.get('mes')
+    ano_raw  = request.GET.get('ano')
 
     if not conta_id:
         return Response({'detail': 'Informe a conta.'}, status=400)
@@ -129,12 +129,21 @@ def relatorio_extrato(request):
     except Conta.DoesNotExist:
         return Response({'detail': 'Conta não encontrada.'}, status=404)
 
-    inicio, fim = _mes_range(ano, mes)
+    qs = LivroCaixa.objects.filter(conta_id=conta_id, deleted_at__isnull=True).select_related('plano_contas')
 
-    lancamentos = LivroCaixa.objects.filter(conta_id=conta_id).filter(
-        Q(lcx_competencia__range=[inicio, fim]) |
-        Q(lcx_competencia__isnull=True, lica_data_lancamento__date__range=[inicio, fim])
-    ).select_related('plano_contas').order_by('lica_id')
+    if mes_raw and ano_raw:
+        mes, ano = int(mes_raw), int(ano_raw)
+        inicio, fim = _mes_range(ano, mes)
+        qs = qs.filter(
+            Q(lcx_competencia__range=[inicio, fim]) |
+            Q(lcx_competencia__isnull=True, lica_data_lancamento__date__range=[inicio, fim])
+        )
+        periodo = f'{mes:02d}/{ano}'
+    else:
+        mes, ano = None, None
+        periodo  = 'todos'
+
+    lancamentos = qs.order_by('lica_data_lancamento', 'lica_id')
 
     saldo  = Decimal(str(conta.cont_saldo_inicial))
     itens  = []
@@ -143,6 +152,7 @@ def relatorio_extrato(request):
         saldo += delta
         data   = str(lanc.lcx_competencia or lanc.lica_data_lancamento.date())
         itens.append({
+            'id':           lanc.lica_id,
             'data':         data,
             'historico':    lanc.lica_historico,
             'tipo':         lanc.lica_tipo_lancamento,
@@ -154,7 +164,7 @@ def relatorio_extrato(request):
     return Response({
         'conta_id':      conta.cont_id,
         'conta_nome':    conta.cont_nome,
-        'periodo':       f'{mes:02d}/{ano}',
+        'periodo':       periodo,
         'saldo_inicial': float(conta.cont_saldo_inicial),
         'saldo_final':   float(saldo),
         'lancamentos':   itens,

@@ -6,7 +6,7 @@ import {
   ChevronRightIcon, BookOpen, CreditCard, Wallet, ClipboardList,
   UserCheck, CalendarDays, ListTodo, FileText, Activity,
   TrendingUp, Repeat2, Building2, Package, Banknote, UserCog, BellOff,
-  Camera, ArrowLeftRight, ShoppingCart, Wrench,
+  Camera, ArrowLeftRight, ShoppingCart, Wrench, Landmark,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -27,6 +27,7 @@ const MENU = [
     icon: DollarSign,
     permission: 'financeiro',
     children: [
+      { label: 'Minhas Contas',      path: '/financas/minhas-contas',   icon: Landmark },
       { label: 'Livro Caixa',        path: '/financas/livro-caixa',     icon: BookOpen },
       { label: 'Contas a Pagar',     path: '/financas/contas-pagar',    icon: CreditCard },
       { label: 'Contas a Receber',   path: '/financas/contas-receber',  icon: Wallet },

@@ -20,6 +20,7 @@ import ProdutosPage           from '@/pages/financas/ProdutosPage'
 import ConfiguracaoFinanceiraPage from '@/pages/financas/ConfiguracaoFinanceiraPage'
 import TransferenciaPage          from '@/pages/financas/TransferenciaPage'
 import PedidosPage               from '@/pages/financas/PedidosPage'
+import MinhasContasPage          from '@/pages/financas/MinhasContasPage'
 import DREPage                  from '@/pages/relatorios/DREPage'
 import FluxoCaixaPage           from '@/pages/relatorios/FluxoCaixaPage'
 import ExtratoPorContaPage      from '@/pages/relatorios/ExtratoPorContaPage'
@@ -84,6 +85,7 @@ export const router = createBrowserRouter(
             {
               element: <PerfilRoute perfisPermitidos={['Administrador', 'Financeiro']} />,
               children: [
+                { path: '/financas/minhas-contas',    element: <MinhasContasPage /> },
                 { path: '/financas/livro-caixa',      element: <LivroCaixaPage /> },
                 { path: '/financas/contas-pagar',     element: <ContasPagarPage /> },
                 { path: '/financas/contas-receber',   element: <ContasReceberPage /> },

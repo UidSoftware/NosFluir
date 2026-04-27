@@ -1004,7 +1004,7 @@ docker exec nosfluir-backend-1 python manage.py test \
 - [x] Frontend transferência (`/financeiro/transferencia`)
 - [x] Testes ✅
 
-### Parte E: ✅ COMPLETO (25/04/2026) + Refactor (26/04/2026)
+### Parte E: ✅ COMPLETO (25/04/2026) + Refactor + Fixes (26/04/2026)
 - [x] Model `Produto` com estoque
 - [x] Model `Pedido` com número auto (PED-XXXX)
 - [x] Model `PedidoItem`
@@ -1015,12 +1015,19 @@ docker exec nosfluir-backend-1 python manage.py test \
 - [x] Testes ✅
 
 **Refatoração ServicoProduto → Serviço + Produto separados (26/04/2026):**
-- [x] Campo `serv_tipo` removido do model `ServicoProduto` (migration 0010)
-- [x] `ServicoProduto` rebatizado para "Serviço" (verbose_name, `__str__`, serializer, view)
+- [x] Campo `serv_tipo` removido do model `ServicoProduto` (migration `0010_remove_servicoproduto_serv_tipo`)
+- [x] `ServicoProduto` rebatizado para "Serviço" — verbose_name, `__str__`, serializer, view, admin, tests
+- [x] Todas as referências "Serviço/Produto" removidas do frontend (ContasPagar, ContasReceber, Planos)
 - [x] `ServicosPage` limpa — sem campo tipo, sem referência a produto
 - [x] `ProdutosPage` criada — CRUD completo + badge de estoque baixo + alerta no topo
-- [x] Sidebar: "Serviços/Produtos" → "Serviços" + novo item "Produtos"
-- [x] Rota `/financas/produtos` adicionada
+- [x] Sidebar: "Serviços/Produtos" → "Serviços" (ícone Wrench) + novo item "Produtos" (ícone Package)
+- [x] Rota `/financas/produtos` adicionada em `routes/index.jsx`
+
+**Bug corrigido — Pedidos: item tipo Plano não carregava select (26/04/2026):**
+- [x] `getOpcoes('plano')` retornava `[]` — não tinha o caso implementado
+- [x] Condição JSX `item.tipo !== 'plano'` forçava input de texto livre em vez do select
+- [x] Adicionado fetch de `PlanosPagamentos` no `NovoPedidoForm`
+- [x] Select de plano exibe: nome do serviço — tipo do plano — valor/mês
 
 ### Parte F: ✅ COMPLETO (25/04/2026)
 - [x] DRE simples por período (`/relatorios/dre`)

@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 25/04/2026 | Versão: 10.0
+> Última atualização: 26/04/2026 | Versão: 10.1
 
 ---
 
@@ -147,7 +147,7 @@ created_at = models.DateTimeField(...)
 | Conta | conta | tipo: corrente/poupanca/caixa; fixtures: 3 contas iniciais |
 | PlanoContas | plano_contas | classificação contábil; plc_codigo único; fixtures: 16 categorias |
 | Fornecedor | fornecedor | |
-| ServicoProduto | servico_produto | endpoint: `/api/servicos-produtos/` |
+| ServicoProduto | servico_produto | catálogo de **serviços** — `serv_tipo` removido; endpoint: `/api/servicos-produtos/` |
 | ContasPagar | contas_pagar | `forn` nullable; `cpa_tipo`/`conta`/`plano_contas` FKs; pró-labore NÃO gera LivroCaixa |
 | ContasReceber | contas_receber | `alu` nullable; `rec_tipo`/`conta`/`plano_contas` FKs; validação inteligente por tipo |
 | PlanosPagamentos | planos_pagamentos | |
@@ -730,6 +730,13 @@ git pull origin main && docker compose restart nginx
 - [x] Frontend: `DREPage`, `FluxoCaixaPage`, `ExtratoPorContaPage`
 
 **55 testes passando (financeiro: 55, operacional: 20, técnico: 33 — total: 108)**
+
+### Fase 10.1 — Refatorações e Correções (26/04/2026) ✅ EM PRODUÇÃO
+
+- [x] **Bug ConfiguracaoFinanceiraPage:** dupla extração `.results` no `useList` — Contas e PlanoContas mostravam "0 registros". Corrigido com destructuring direto: `const { data: contas, count: total, page, setPage } = useList(...)`
+- [x] **Desvinculação ServicoProduto → Serviço:** campo `serv_tipo` removido do model, serializer, views, admin e tests (migration `0010`). Todas as referências "Serviço/Produto" no frontend trocadas para "Serviço"
+- [x] **ProdutosPage criada:** CRUD completo + badge de estoque baixo + alerta no topo da página. Sidebar atualizada com item "Produtos" separado de "Serviços"
+- [x] **Bug PedidosPage — item tipo Plano:** `getOpcoes('plano')` retornava `[]` e o JSX caía em input de texto livre. Corrigido: fetch de `PlanosPagamentos`, case adicionado ao `getOpcoes`, condição JSX corrigida
 
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

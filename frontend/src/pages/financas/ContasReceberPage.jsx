@@ -327,7 +327,7 @@ function ContaReceberForm({ rec, onClose }) {
       )}
 
       {/* Serviço + Plano */}
-      <FormField label="Serviço/Produto">
+      <FormField label="Serviço">
         <Select value={watch('serv')} onValueChange={handleServChange} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Nenhum (opcional)" /></SelectTrigger>
           <SelectContent>

@@ -52,8 +52,8 @@ class FornecedorAdmin(admin.ModelAdmin):
 
 @admin.register(ServicoProduto)
 class ServicoProdutoAdmin(admin.ModelAdmin):
-    list_display = ['serv_nome', 'serv_tipo', 'serv_valor_base', 'serv_ativo']
-    list_filter = ['serv_tipo', 'serv_ativo']
+    list_display = ['serv_nome', 'serv_valor_base', 'serv_ativo']
+    list_filter = ['serv_ativo']
     search_fields = ['serv_nome']
 
 

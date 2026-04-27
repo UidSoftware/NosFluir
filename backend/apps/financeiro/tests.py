@@ -53,7 +53,6 @@ def criar_servico():
     return ServicoProduto.objects.create(
         serv_nome='Pilates Mensal',
         serv_valor_base=Decimal('350.00'),
-        serv_tipo='servico',
     )
 
 

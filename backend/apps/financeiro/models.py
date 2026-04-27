@@ -118,7 +118,7 @@ class ContasPagar(BaseModel):
     )
     serv = models.ForeignKey(
         ServicoProduto, on_delete=models.SET_NULL,
-        null=True, blank=True, verbose_name='serviço/produto'
+        null=True, blank=True, verbose_name='serviço'
     )
     plano_contas = models.ForeignKey(
         'PlanoContas', on_delete=models.PROTECT,
@@ -187,7 +187,7 @@ class ContasReceber(BaseModel):
     )
     serv = models.ForeignKey(
         ServicoProduto, on_delete=models.SET_NULL,
-        null=True, blank=True, verbose_name='serviço/produto'
+        null=True, blank=True, verbose_name='serviço'
     )
     plano_contas = models.ForeignKey(
         'PlanoContas', on_delete=models.PROTECT,

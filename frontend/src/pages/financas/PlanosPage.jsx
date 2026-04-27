@@ -58,7 +58,7 @@ function PlanoForm({ plano, onClose }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
-      <FormField label="Serviço/Produto *">
+      <FormField label="Serviço *">
         <Select value={watch('serv')} onValueChange={v => setValue('serv', v)} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Selecionar serviço..." /></SelectTrigger>
           <SelectContent>

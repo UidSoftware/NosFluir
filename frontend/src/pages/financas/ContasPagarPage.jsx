@@ -320,7 +320,7 @@ function ContaPagarForm({ pag, onClose }) {
       </div>
 
       {/* Serviço */}
-      <FormField label="Serviço/Produto">
+      <FormField label="Serviço">
         <Select value={watch('serv')} onValueChange={v => setValue('serv', v)} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Nenhum (opcional)" /></SelectTrigger>
           <SelectContent>

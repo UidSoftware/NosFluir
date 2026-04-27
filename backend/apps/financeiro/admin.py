@@ -75,7 +75,7 @@ class ContasReceberAdmin(admin.ModelAdmin):
 
 @admin.register(PlanosPagamentos)
 class PlanosPagamentosAdmin(admin.ModelAdmin):
-    list_display = ['serv', 'plan_tipo_plano', 'plan_valor_plano', 'plan_dia_vencimento']
+    list_display = ['serv', 'plan_tipo_plano', 'plan_valor_plano']
     list_filter = ['plan_tipo_plano']
     search_fields = ['serv__serv_nome']
 

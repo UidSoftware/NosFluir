@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 27/04/2026 | Versão: 10.2
+> Última atualização: 28/04/2026 | Versão: 10.3
 
 ---
 
@@ -374,7 +374,8 @@ Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/transferencia/       (POST — gera 2 lançamentos no LivroCaixa)
 ✅ /api/relatorios/dre/      (GET ?mes=&ano=)
 ✅ /api/relatorios/fluxo-caixa/  (GET ?meses=)
-✅ /api/relatorios/extrato/  (GET ?conta=&mes=&ano=)
+✅ /api/livro-caixa/          (GET + POST — ReadCreateViewSet; update/delete retornam 405)
+✅ /api/relatorios/extrato/  (GET ?conta= — mes/ano opcionais; sem eles retorna todos os lançamentos)
 ❌ /api/operacional/alunos/  ❌ /api/tecnico/exercicios/  ← ERRADO
 ❌ /api/servicos/            ← ERRADO (correto: /api/servicos-produtos/)
 ```
@@ -477,6 +478,8 @@ git pull origin main && docker compose restart nginx
 | `Must supply api_key` no upload de foto | Vars Cloudinary não declaradas no `docker-compose.yml` | Adicionar `CLOUDINARY_*` na seção `environment` do backend no compose |
 | `Invalid cloud_name Uid_Software` | `CLOUDINARY_CLOUD_NAME` preenchido com o nome da chave API, não do cloud | Usar o cloud name real visível no topo do painel Cloudinary (ex: `dpqy5shqz`) |
 | Upload foto retorna 404 (`/api/api/usuarios/...`) | URL com prefixo `/api/` duplicado — axios já tem `/api` no baseURL | Chamar `api.post('/usuarios/upload-foto/', ...)` sem o prefixo `/api/` |
+| LivroCaixa com `conta: None` e tipo errado | Lançamento criado por signal pré-Fase 10 (sem conta vinculada) | Hard-delete direto pelo shell; soft-delete do ContasPagar/RecebER de origem; recriar corretamente via shell ou UI |
+| Signal dispara ao fazer `save()` num ContasPagar já pago | Signal reage a qualquer `save()`, não só mudança de status | Após corrigir, deletar o lançamento fantasma gerado; ou usar `update()` no QuerySet para evitar o signal |
 
 ---
 
@@ -726,7 +729,7 @@ git pull origin main && docker compose restart nginx
 #### Parte F — Relatórios ✅
 - [x] DRE: `GET /api/relatorios/dre/?mes=&ano=` — agrupa LivroCaixa por plano de contas
 - [x] Fluxo de Caixa: `GET /api/relatorios/fluxo-caixa/?meses=` — projeta pendentes
-- [x] Extrato: `GET /api/relatorios/extrato/?conta=&mes=&ano=` — movimentações por conta
+- [x] Extrato: `GET /api/relatorios/extrato/?conta=` — movimentações por conta; mes/ano opcionais (sem filtro = todos)
 - [x] Frontend: `DREPage`, `FluxoCaixaPage`, `ExtratoPorContaPage`
 
 **55 testes passando (financeiro: 55, operacional: 20, técnico: 33 — total: 108)**
@@ -752,6 +755,24 @@ git pull origin main && docker compose restart nginx
 - [x] `reportlab>=4.2` adicionado ao `requirements.txt`
 - [x] Endpoint `GET /api/pedidos/{id}/recibo/` — gera PDF com cabeçalho Studio Fluir, dados do pedido, tabela de itens, total e forma de pagamento
 - [x] `PedidosPage`: botão de impressão baixa PDF autenticado via axios blob (não abre link direto — respeita JWT)
+
+### Fase 10.3 — Minhas Contas + Correção LivroCaixa (28/04/2026) ✅ EM PRODUÇÃO
+
+#### Tela Minhas Contas
+- [x] `MinhasContasPage` em `/financas/minhas-contas` — sidebar item "Minhas Contas" (primeiro de Finanças)
+- [x] Cards por conta com gradiente por tipo (corrente: azul, poupança: verde, caixa: âmbar) + saldo atual calculado
+- [x] `ContaSerializer`: campo `saldo_atual` (SerializerMethodField — soma entradas/saídas do LivroCaixa para a conta)
+- [x] Clicar no card seleciona a conta e carrega extrato; clicar novamente deseleciona
+- [x] Navegação mês a mês `< Mês Ano >` com resumo entradas/saídas/saldo do período
+- [x] Tabela de transações: data, descrição, categoria, valor +/- colorido, saldo acumulado
+- [x] Botão **+ Lançamento** no cabeçalho do extrato → modal de novo lançamento direto
+- [x] Modal: toggle Entrada/Saída (cor dinâmica), valor, descrição, data, forma de pgto, categoria — POST `/api/livro-caixa/`; saldo e cards atualizam automaticamente após salvar
+
+#### Correção de dado corrompido (LivroCaixa pré-Fase 10)
+- [x] `LivroCaixa ID 2` ("Pagamento: Poupança") — hard-deleted: `conta: None`, `tipo: entrada` vindo de `contas_pagar` (bug de signal pré-Fase 10)
+- [x] `ContasPagar ID 2` ("Poupança") — soft-deleted: conceito errado (depósito em poupança não é conta a pagar)
+- [x] `LivroCaixa ID 3` — hard-deleted: gerado pelo signal ao fazer `save()` no ContasPagar durante a correção
+- [x] Criado `LivroCaixa ID 4` correto: entrada R$ 818,60 na **Poupança Mercado Pago** (data original 23/04/2026)
 
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

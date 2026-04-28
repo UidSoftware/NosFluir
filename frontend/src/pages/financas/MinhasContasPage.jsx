@@ -1,37 +1,33 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Landmark, PiggyBank, Wallet } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useForm } from 'react-hook-form'
+import {
+  ChevronLeft, ChevronRight, TrendingUp, TrendingDown,
+  Landmark, PiggyBank, Wallet, Plus,
+} from 'lucide-react'
 import { fetchAll } from '@/hooks/useApi'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/primitives'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
+import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
 const CONTA_STYLE = {
-  corrente: {
-    bg: 'bg-gradient-to-br from-blue-900 to-blue-700',
-    icon: Landmark,
-    label: 'Conta Corrente',
-  },
-  poupanca: {
-    bg: 'bg-gradient-to-br from-emerald-900 to-emerald-700',
-    icon: PiggyBank,
-    label: 'Poupança',
-  },
-  caixa: {
-    bg: 'bg-gradient-to-br from-amber-900 to-amber-700',
-    icon: Wallet,
-    label: 'Caixa Físico',
-  },
+  corrente: { bg: 'bg-gradient-to-br from-blue-900 to-blue-700',    icon: Landmark, label: 'Conta Corrente' },
+  poupanca: { bg: 'bg-gradient-to-br from-emerald-900 to-emerald-700', icon: PiggyBank, label: 'Poupança' },
+  caixa:    { bg: 'bg-gradient-to-br from-amber-900 to-amber-700',   icon: Wallet,   label: 'Caixa Físico' },
 }
 
 function ContaCard({ conta, selected, onClick }) {
   const style = CONTA_STYLE[conta.cont_tipo] || CONTA_STYLE.caixa
-  const Icon = style.icon
+  const Icon  = style.icon
   const saldo = conta.saldo_atual ?? 0
-
   return (
     <button
       onClick={onClick}
@@ -43,9 +39,7 @@ function ContaCard({ conta, selected, onClick }) {
     >
       <div className="flex items-center justify-between mb-4">
         <Icon className="w-6 h-6 text-white/70" />
-        <span className="text-xs text-white/60 font-medium uppercase tracking-wider">
-          {style.label}
-        </span>
+        <span className="text-xs text-white/60 font-medium uppercase tracking-wider">{style.label}</span>
       </div>
       <p className="text-white/70 text-xs mb-1 truncate">{conta.cont_nome}</p>
       <p className={cn('text-2xl font-bold', saldo >= 0 ? 'text-white' : 'text-red-300')}>
@@ -56,23 +50,14 @@ function ContaCard({ conta, selected, onClick }) {
 }
 
 function MesNav({ mes, ano, onChange }) {
-  const prev = () => {
-    if (mes === 1) onChange(12, ano - 1)
-    else onChange(mes - 1, ano)
-  }
-  const next = () => {
-    if (mes === 12) onChange(1, ano + 1)
-    else onChange(mes + 1, ano)
-  }
-
+  const prev = () => mes === 1  ? onChange(12, ano - 1) : onChange(mes - 1, ano)
+  const next = () => mes === 12 ? onChange(1,  ano + 1) : onChange(mes + 1, ano)
   return (
     <div className="flex items-center gap-3">
       <button onClick={prev} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
         <ChevronLeft className="w-4 h-4" />
       </button>
-      <span className="text-sm font-semibold w-36 text-center">
-        {MESES[mes - 1]} {ano}
-      </span>
+      <span className="text-sm font-semibold w-36 text-center">{MESES[mes - 1]} {ano}</span>
       <button onClick={next} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
         <ChevronRight className="w-4 h-4" />
       </button>
@@ -80,11 +65,160 @@ function MesNav({ mes, ano, onChange }) {
   )
 }
 
+function NovoLancamentoModal({ open, onClose, contaId, onSuccess }) {
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm({
+    defaultValues: {
+      tipo: 'entrada',
+      valor: '',
+      historico: '',
+      lcx_competencia: new Date().toISOString().slice(0, 10),
+      plano_contas: '__none__',
+      lica_forma_pagamento: '',
+    },
+  })
+  const tipo = watch('tipo')
+
+  const { data: planos = [] } = useQuery({
+    queryKey: ['plano-contas-select'],
+    queryFn: () => fetchAll('/plano-contas/'),
+    enabled: open,
+  })
+
+  const mutation = useMutation({
+    mutationFn: data => api.post('/livro-caixa/', data),
+    onSuccess: () => {
+      toast({ title: 'Lançamento criado!' })
+      reset()
+      onSuccess()
+      onClose()
+    },
+    onError: () => toast({ title: 'Erro ao criar lançamento.', variant: 'destructive' }),
+  })
+
+  const onSubmit = data => {
+    const payload = {
+      lica_tipo_lancamento: data.tipo,
+      lica_valor: parseFloat(data.valor),
+      lica_historico: data.historico,
+      lcx_competencia: data.lcx_competencia || null,
+      lica_forma_pagamento: data.lica_forma_pagamento || null,
+      plano_contas: data.plano_contas !== '__none__' ? parseInt(data.plano_contas) : null,
+      conta: contaId,
+    }
+    mutation.mutate(payload)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v) { reset(); onClose() } }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Novo Lançamento</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Toggle Entrada / Saída */}
+          <div className="flex rounded-lg overflow-hidden border border-border">
+            <button
+              type="button"
+              onClick={() => setValue('tipo', 'entrada')}
+              className={cn(
+                'flex-1 py-2 text-sm font-semibold transition-colors',
+                tipo === 'entrada'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-background text-muted-foreground hover:bg-muted',
+              )}
+            >
+              + Entrada
+            </button>
+            <button
+              type="button"
+              onClick={() => setValue('tipo', 'saida')}
+              className={cn(
+                'flex-1 py-2 text-sm font-semibold transition-colors',
+                tipo === 'saida'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-background text-muted-foreground hover:bg-muted',
+              )}
+            >
+              − Saída
+            </button>
+          </div>
+
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Valor *</p>
+            <Input
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="0,00"
+              {...register('valor', { required: true, min: 0.01 })}
+              className={errors.valor ? 'border-red-500' : ''}
+            />
+          </div>
+
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Descrição *</p>
+            <Input
+              placeholder="Histórico do lançamento"
+              {...register('historico', { required: true })}
+              className={errors.historico ? 'border-red-500' : ''}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Data</p>
+              <Input type="date" {...register('lcx_competencia')} />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Forma de Pgto</p>
+              <Input placeholder="Pix, Boleto..." {...register('lica_forma_pagamento')} />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Categoria</p>
+            <Select
+              value={watch('plano_contas')}
+              onValueChange={v => setValue('plano_contas', v)}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__" className="text-muted-foreground italic">Sem categoria</SelectItem>
+                {planos.map(p => (
+                  <SelectItem key={p.plc_id} value={String(p.plc_id)}>
+                    {p.plc_codigo} — {p.plc_nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => { reset(); onClose() }}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={mutation.isPending}
+              className={tipo === 'saida' ? 'bg-red-600 hover:bg-red-700' : ''}
+            >
+              {mutation.isPending ? 'Salvando...' : 'Lançar'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function MinhasContasPage() {
   const hoje = new Date()
   const [contaSel, setContaSel] = useState(null)
-  const [mes, setMes] = useState(hoje.getMonth() + 1)
-  const [ano, setAno] = useState(hoje.getFullYear())
+  const [mes, setMes]           = useState(hoje.getMonth() + 1)
+  const [ano, setAno]           = useState(hoje.getFullYear())
+  const [modalOpen, setModalOpen] = useState(false)
+  const queryClient = useQueryClient()
 
   const { data: contas = [] } = useQuery({
     queryKey: ['contas-minhas'],
@@ -97,6 +231,11 @@ export default function MinhasContasPage() {
       api.get('/relatorios/extrato/', { params: { conta: contaSel, mes, ano } }).then(r => r.data),
     enabled: !!contaSel,
   })
+
+  const handleLancamentoCreated = () => {
+    queryClient.invalidateQueries({ queryKey: ['extrato-conta', contaSel, mes, ano] })
+    queryClient.invalidateQueries({ queryKey: ['contas-minhas'] })
+  }
 
   const entradas = extrato?.lancamentos.filter(l => l.tipo === 'entrada').reduce((s, l) => s + l.valor, 0) ?? 0
   const saidas   = extrato?.lancamentos.filter(l => l.tipo === 'saida').reduce((s, l) => s + l.valor, 0) ?? 0
@@ -125,18 +264,21 @@ export default function MinhasContasPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <MesNav mes={mes} ano={ano} onChange={(m, a) => { setMes(m); setAno(a) }} />
 
-              <div className="flex gap-4 text-sm">
-                <span className="flex items-center gap-1 text-emerald-400">
+              <div className="flex items-center gap-4 flex-wrap">
+                <span className="flex items-center gap-1 text-sm text-emerald-400">
                   <TrendingUp className="w-4 h-4" />
                   {formatCurrency(entradas)}
                 </span>
-                <span className="flex items-center gap-1 text-red-400">
+                <span className="flex items-center gap-1 text-sm text-red-400">
                   <TrendingDown className="w-4 h-4" />
                   {formatCurrency(saidas)}
                 </span>
-                <span className={cn('font-semibold', (entradas - saidas) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                  Saldo período: {formatCurrency(entradas - saidas)}
+                <span className={cn('text-sm font-semibold', (entradas - saidas) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                  {formatCurrency(entradas - saidas)}
                 </span>
+                <Button size="sm" onClick={() => setModalOpen(true)} className="gap-1">
+                  <Plus className="w-3.5 h-3.5" /> Lançamento
+                </Button>
               </div>
             </div>
 
@@ -185,7 +327,6 @@ export default function MinhasContasPage() {
               </div>
             )}
 
-            {/* Rodapé com saldo final do período */}
             {extrato && (
               <div className="flex justify-end pt-2 border-t border-border">
                 <div className="text-right">
@@ -205,6 +346,13 @@ export default function MinhasContasPage() {
           Selecione uma conta para ver o extrato.
         </p>
       )}
+
+      <NovoLancamentoModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        contaId={contaSel}
+        onSuccess={handleLancamentoCreated}
+      />
     </div>
   )
 }

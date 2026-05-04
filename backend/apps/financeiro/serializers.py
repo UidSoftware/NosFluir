@@ -194,6 +194,7 @@ class PlanosPagamentosSerializer(serializers.ModelSerializer):
 class AlunoPlanoSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
     alu_nome = serializers.CharField(source='aluno.alu_nome', read_only=True)
+    serv_nome = serializers.CharField(source='plano.serv.serv_nome', read_only=True)
     plan_descricao = serializers.SerializerMethodField()
     plan_valor_plano = serializers.SerializerMethodField()
 
@@ -201,7 +202,7 @@ class AlunoPlanoSerializer(serializers.ModelSerializer):
         model = AlunoPlano
         fields = [
             'id', 'aplano_id', 'aluno', 'alu_nome',
-            'plano', 'plan_descricao', 'plan_valor_plano',
+            'plano', 'serv_nome', 'plan_descricao', 'plan_valor_plano',
             'aplano_dia_vencimento',
             'aplano_data_inicio', 'aplano_data_fim',
             'aplano_ativo', 'aplano_observacoes',

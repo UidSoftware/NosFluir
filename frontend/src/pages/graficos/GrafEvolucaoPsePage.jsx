@@ -19,8 +19,15 @@ const fmtData = (iso) => {
   return `${d}/${m}`
 }
 
+const MODALIDADE_OPTS = [
+  { value: null,        label: 'Todos' },
+  { value: 'funcional', label: 'Funcional' },
+  { value: 'pilates',   label: 'Pilates' },
+]
+
 export default function GrafEvolucaoPsePage() {
   const [turId, setTurId] = useState('')
+  const [modalidade, setModalidade] = useState(null)
 
   const { data: turmas } = useQuery({
     queryKey: ['turmas-select-pse'],
@@ -29,9 +36,10 @@ export default function GrafEvolucaoPsePage() {
   })
 
   const { data: registros, isLoading } = useQuery({
-    queryKey: ['evolucao-pse', turId],
-    queryFn: () => api.get('/relatorios/evolucao-pse/', { params: { tur: turId } })
-      .then(r => r.data),
+    queryKey: ['evolucao-pse', turId, modalidade],
+    queryFn: () => api.get('/relatorios/evolucao-pse/', {
+      params: { tur: turId, ...(modalidade ? { modalidade } : {}) },
+    }).then(r => r.data),
     enabled: !!turId,
   })
 
@@ -60,15 +68,35 @@ export default function GrafEvolucaoPsePage() {
         description="Percepção Subjetiva de Esforço (Borg 6–20) por aula"
       />
 
-      <FormField label="Turma" className="max-w-xs">
-        <Select value={turId || '__none__'} onValueChange={v => setTurId(v === '__none__' ? '' : v)}>
-          <SelectTrigger><SelectValue placeholder="Selecionar turma..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar turma...</SelectItem>
-            {turmas?.map(t => <SelectItem key={t.tur_id} value={String(t.tur_id)}>{t.tur_nome}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </FormField>
+      <div className="flex flex-wrap items-end gap-4">
+        <FormField label="Turma" className="max-w-xs">
+          <Select value={turId || '__none__'} onValueChange={v => setTurId(v === '__none__' ? '' : v)}>
+            <SelectTrigger><SelectValue placeholder="Selecionar turma..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar turma...</SelectItem>
+              {turmas?.map(t => <SelectItem key={t.tur_id} value={String(t.tur_id)}>{t.tur_nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </FormField>
+
+        <div className="flex gap-1 pb-0.5">
+          {MODALIDADE_OPTS.map(opt => (
+            <button
+              key={String(opt.value)}
+              onClick={() => setModalidade(opt.value)}
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                modalidade === opt.value
+                  ? opt.value === 'funcional' ? 'bg-fluir-cyan/20 text-fluir-cyan border border-fluir-cyan/40'
+                    : opt.value === 'pilates' ? 'bg-fluir-purple/20 text-fluir-purple border border-fluir-purple/40'
+                    : 'bg-muted text-foreground border border-border'
+                  : 'text-muted-foreground border border-border/50 hover:border-border'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {!turId ? (
         <Card>

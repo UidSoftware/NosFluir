@@ -228,19 +228,24 @@ def evolucao_carga(request):
 @api_view(['GET'])
 @perm_classes([IsProfessorOuAdmin])
 def evolucao_pse(request):
-    """GET /api/relatorios/evolucao-pse/?tur=X"""
+    """GET /api/relatorios/evolucao-pse/?tur=X&modalidade=pilates|funcional"""
     tur_id = request.query_params.get('tur')
     if not tur_id:
         return Response({'detail': 'Parâmetro tur é obrigatório.'}, status=400)
 
+    qs = MinistrarAula.objects.filter(
+        aula__tur=tur_id,
+        miau_tipo_presenca='presente',
+        miau_pse__isnull=False,
+        deleted_at__isnull=True,
+    )
+
+    modalidade = request.query_params.get('modalidade')
+    if modalidade:
+        qs = qs.filter(aula__aul_modalidade=modalidade)
+
     dados = (
-        MinistrarAula.objects
-        .filter(
-            aula__tur=tur_id,
-            miau_tipo_presenca='presente',
-            miau_pse__isnull=False,
-            deleted_at__isnull=True,
-        )
+        qs
         .values(
             'aula__aul_id',
             'aula__aul_numero_ciclo',

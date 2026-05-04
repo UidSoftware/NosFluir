@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Input, FormField, Spinner } from '@/components/ui/primitives'
+import { Input, FormField, Spinner, Badge } from '@/components/ui/primitives'
 import { formatDate, formatCPF, formatCurrency, formatDateTime, onlyNumbers } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
@@ -332,13 +332,18 @@ function PlanosSection({ alunoId }) {
           {planosAluno.map(ap => (
             <div key={ap.aplano_id} className={`rounded-md border px-3 py-2 text-xs ${ap.aplano_ativo ? 'border-border' : 'border-border/30 opacity-50'}`}>
               <div className="flex items-center justify-between gap-2">
-                <div>
-                  <span className="font-medium text-sm">{ap.plan_descricao}</span>
-                  {ap.aplano_dia_vencimento && <span className="text-muted-foreground ml-2">· vence dia {ap.aplano_dia_vencimento}</span>}
-                  <span className="text-muted-foreground ml-2">desde {formatDate(ap.aplano_data_inicio)}</span>
-                  <span className={`ml-2 ${ap.aplano_ativo ? 'text-emerald-400' : 'text-red-400'}`}>
-                    · {ap.aplano_ativo ? 'Ativo' : 'Encerrado'}
-                  </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-sm truncate">{ap.serv_nome || ap.plan_descricao}</span>
+                    <Badge variant={ap.aplano_ativo ? 'success' : 'secondary'}>
+                      {ap.aplano_ativo ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground mt-0.5">
+                    {ap.aplano_dia_vencimento && <span>dia {ap.aplano_dia_vencimento} · </span>}
+                    {ap.plan_valor_plano && <span>{formatCurrency(ap.plan_valor_plano)}</span>}
+                    <span className="ml-1">· desde {formatDate(ap.aplano_data_inicio)}</span>
+                  </p>
                   {ap.aplano_observacoes && <p className="italic text-muted-foreground mt-0.5">{ap.aplano_observacoes}</p>}
                 </div>
                 {ap.aplano_ativo && (

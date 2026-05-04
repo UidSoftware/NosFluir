@@ -349,6 +349,14 @@ export default function AulasPage() {
       ),
     },
     {
+      key: 'fitr_nome', header: 'Ficha',
+      headerClassName: 'hidden md:table-cell',
+      cellClassName: 'hidden md:table-cell',
+      render: r => r.fitr_nome
+        ? <span className="text-sm">{r.fitr_nome}</span>
+        : <span className="text-xs text-muted-foreground italic">Sem ficha</span>,
+    },
+    {
       key: 'func_nome', header: 'Professor',
       headerClassName: 'hidden sm:table-cell',
       cellClassName: 'hidden sm:table-cell',

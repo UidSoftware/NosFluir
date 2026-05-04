@@ -43,33 +43,18 @@ export default function GrafEvolucaoPsePage() {
     enabled: !!turId,
   })
 
-  // Quando "Todos": separar linhas por ciclo+modalidade para evitar sobreposição
-  // Quando modalidade específica: linhas só por ciclo
-  const MOD_LABEL = { pilates: 'Pilates', funcional: 'Funcional' }
+  // Pivotar por data (eixo X), uma linha por ciclo
+  const ciclos = [...new Set((registros || []).map(r => r.ciclo ?? 1))].sort((a, b) => a - b)
 
-  const series = modalidade
-    ? [...new Set((registros || []).map(r => r.ciclo ?? 1))].sort((a, b) => a - b)
-        .map(c => ({ key: `Ciclo ${c}`, ciclo: c, mod: null }))
-    : [...new Set((registros || []).map(r => `${r.ciclo ?? 1}|${r.modalidade}`))].sort()
-        .map(s => {
-          const [cicloStr, mod] = s.split('|')
-          const ciclo = parseInt(cicloStr)
-          const label = mod ? `Ciclo ${ciclo} — ${MOD_LABEL[mod] ?? mod}` : `Ciclo ${ciclo}`
-          return { key: label, ciclo, mod }
-        })
-
+  // Cada ponto = uma aula (data única)
   const datas = [...new Set((registros || []).map(r => r.data).filter(Boolean))].sort()
 
   const chartData = datas.map(dt => {
     const ponto = { label: fmtData(dt), data: dt }
-    series.forEach(s => {
-      const reg = (registros || []).find(r =>
-        r.data === dt &&
-        (r.ciclo ?? 1) === s.ciclo &&
-        (s.mod === null || r.modalidade === s.mod)
-      )
-      ponto[s.key] = reg?.pse_medio ?? null
-      if (reg) ponto[`_t_${s.key}`] = reg.total
+    ciclos.forEach(ciclo => {
+      const reg = (registros || []).find(r => r.data === dt && (r.ciclo ?? 1) === ciclo)
+      ponto[`Ciclo ${ciclo}`] = reg?.pse_medio ?? null
+      if (reg) ponto[`_total_${ciclo}`] = reg.total
     })
     return ponto
   })
@@ -147,18 +132,19 @@ export default function GrafEvolucaoPsePage() {
                 <Tooltip
                   formatter={(val, name, props) => {
                     if (val == null) return ['—', name]
-                    const total = props.payload[`_t_${name}`]
-                    return [`${val.toFixed(1)} (${total} aluno${total !== 1 ? 's' : ''})`, name]
+                    const cicloNum = name.replace('Ciclo ', '')
+                    const total = props.payload[`_total_${cicloNum}`]
+                    return [`${val.toFixed(1)} (${total} alunos)`, name]
                   }}
                   labelFormatter={l => `Aula: ${l}`}
                   contentStyle={{ background: '#1a1833', border: '1px solid #2d2b55', fontSize: 12 }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                {series.map((s, i) => (
+                {ciclos.map((ciclo, i) => (
                   <Line
-                    key={s.key}
+                    key={ciclo}
                     type="monotone"
-                    dataKey={s.key}
+                    dataKey={`Ciclo ${ciclo}`}
                     stroke={COLORS[i % COLORS.length]}
                     strokeWidth={2}
                     dot={{ r: 4 }}

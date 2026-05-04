@@ -254,6 +254,7 @@ def evolucao_pse(request):
             'aula__aul_numero_ciclo',
             'aula__aul_posicao_ciclo',
             'aula__aul_data',
+            'aula__aul_modalidade',
         )
         .annotate(pse_medio=Avg('miau_pse'), total=Count('miau_id'))
         .order_by('aula__aul_data', 'aula__aul_id')
@@ -261,12 +262,13 @@ def evolucao_pse(request):
 
     result = [
         {
-            'aula_id':   d['aula__aul_id'],
-            'ciclo':     d['aula__aul_numero_ciclo'],
-            'posicao':   d['aula__aul_posicao_ciclo'],
-            'data':      d['aula__aul_data'].isoformat() if d['aula__aul_data'] else None,
-            'pse_medio': round(d['pse_medio'], 1) if d['pse_medio'] else None,
-            'total':     d['total'],
+            'aula_id':    d['aula__aul_id'],
+            'ciclo':      d['aula__aul_numero_ciclo'],
+            'posicao':    d['aula__aul_posicao_ciclo'],
+            'data':       d['aula__aul_data'].isoformat() if d['aula__aul_data'] else None,
+            'modalidade': d['aula__aul_modalidade'],
+            'pse_medio':  round(d['pse_medio'], 1) if d['pse_medio'] else None,
+            'total':      d['total'],
         }
         for d in dados
     ]

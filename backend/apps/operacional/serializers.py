@@ -115,15 +115,27 @@ class TurmaAlunosSerializer(serializers.ModelSerializer):
             'data_matricula', 'ativo', 'created_at', 'updated_at',
         ]
         read_only_fields = ['tual_id', 'created_at', 'updated_at']
+        # Desabilita o UniqueTogetherValidator automático — tratamos manualmente
+        # para poder restaurar registros soft-deleted (tur+alu removidos e re-adicionados)
+        validators = []
 
     def validate(self, data):
-        # RN014: máximo 15 alunos por turma
         turma = data.get('tur', getattr(self.instance, 'tur', None))
+        alu   = data.get('alu', getattr(self.instance, 'alu', None))
+
+        if turma and alu and not self.instance:
+            existing = TurmaAlunos.objects.filter(tur=turma, alu=alu).first()
+            if existing and existing.deleted_at is None:
+                raise serializers.ValidationError(
+                    {'non_field_errors': ['Aluno já está matriculado nesta turma.']}
+                )
+            # Se existir soft-deleted, o viewset vai restaurar — não bloqueia aqui
+
+        # RN014: máximo 15 alunos por turma
         if turma:
             total = TurmaAlunos.objects.filter(
                 tur=turma, ativo=True, deleted_at__isnull=True
             ).count()
-            # Se for criação (sem instance), verifica limite
             if not self.instance and total >= 15:
                 raise serializers.ValidationError(
                     {'tur': f'Turma "{turma.tur_nome}" já atingiu o limite de 15 alunos.'}

@@ -1,5 +1,7 @@
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from rest_framework import status
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -64,6 +66,31 @@ class TurmaAlunosViewSet(AuditMixin, ModelViewSet):
     filterset_fields = ['tur', 'alu', 'ativo', 'alu__alu_ativo']
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
     ordering_fields = ['data_matricula']
+
+    def create(self, request, *args, **kwargs):
+        # Se o aluno já foi removido (soft-delete) da turma, restaura em vez de criar novo
+        tur_id = request.data.get('tur')
+        alu_id = request.data.get('alu')
+        existing = TurmaAlunos.objects.filter(
+            tur_id=tur_id, alu_id=alu_id, deleted_at__isnull=False
+        ).first()
+        if existing:
+            total = TurmaAlunos.objects.filter(
+                tur_id=tur_id, ativo=True, deleted_at__isnull=True
+            ).count()
+            if total >= 15:
+                return Response(
+                    {'tur': 'Turma já atingiu o limite de 15 alunos.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            existing.deleted_at = None
+            existing.deleted_by = None
+            existing.ativo = True
+            existing.updated_by = request.user
+            existing.save()
+            serializer = self.get_serializer(existing)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return super().create(request, *args, **kwargs)
 
 
 class FichaAlunoViewSet(AuditMixin, ModelViewSet):

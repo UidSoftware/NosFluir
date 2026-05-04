@@ -10,9 +10,12 @@ from apps.core.mixins import AuditMixin
 from apps.core.permissions import IsProfessorOuAdmin
 
 from .models import Acessorio, Aparelho, Aulas, CreditoReposicao, Exercicio, FichaTreino, FichaTreinoExercicios, MinistrarAula, ProgramaTurma, RegistroExercicioAluno
+from rest_framework.pagination import PageNumberPagination
+
 from .serializers import (
     AcessorioSerializer, AparelhoSerializer, AulasSerializer, MinistrarAulaSerializer,
-    CreditoReposicaoSerializer, ExercicioSerializer, FichaTreinoSerializer, FichaTreinoExerciciosSerializer,
+    CreditoReposicaoSerializer, ExercicioSerializer, FaltaSemJustificativaSerializer,
+    FichaTreinoSerializer, FichaTreinoExerciciosSerializer,
     ProgramaTurmaSerializer, RegistroExercicioAlunoSerializer,
 )
 
@@ -268,3 +271,26 @@ def evolucao_pse(request):
         for d in dados
     ]
     return Response(result)
+
+
+@api_view(['GET'])
+def faltas_sem_justificativa(request):
+    """GET /api/faltas-sem-justificativa/?alu=X&tur=Y&aul_data=Z"""
+    qs = (
+        MinistrarAula.objects
+        .filter(miau_tipo_presenca='falta', miau_tipo_falta='sem_aviso', deleted_at__isnull=True)
+        .select_related('alu', 'tur', 'aula')
+        .order_by('-aula__aul_data')
+    )
+
+    if alu := request.query_params.get('alu'):
+        qs = qs.filter(alu=alu)
+    if tur := request.query_params.get('tur'):
+        qs = qs.filter(tur=tur)
+    if aul_data := request.query_params.get('aul_data'):
+        qs = qs.filter(aula__aul_data=aul_data)
+
+    paginator = PageNumberPagination()
+    page = paginator.paginate_queryset(qs, request)
+    serializer = FaltaSemJustificativaSerializer(page if page is not None else qs, many=True)
+    return paginator.get_paginated_response(serializer.data) if page is not None else Response(serializer.data)

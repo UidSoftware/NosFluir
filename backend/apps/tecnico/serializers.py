@@ -224,6 +224,19 @@ class RegistroExercicioAlunoSerializer(serializers.ModelSerializer):
         read_only_fields = ['reg_id', 'created_at', 'updated_at']
 
 
+class FaltaSemJustificativaSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)
+    tur_nome = serializers.CharField(source='tur.tur_nome', read_only=True)
+    aul_data = serializers.DateField(source='aula.aul_data', read_only=True, allow_null=True)
+    aul_modalidade = serializers.CharField(source='aula.aul_modalidade', read_only=True, allow_null=True)
+
+    class Meta:
+        model = MinistrarAula
+        fields = ['id', 'miau_id', 'alu', 'alu_nome', 'tur', 'tur_nome', 'aul_data', 'aul_modalidade']
+        read_only_fields = ['miau_id']
+
+
 class CreditoReposicaoSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
     alu_nome = serializers.CharField(source='alu.alu_nome', read_only=True)

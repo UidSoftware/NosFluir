@@ -5,7 +5,7 @@ from .views import (
     AcessorioViewSet, AparelhoViewSet, AulasViewSet, MinistrarAulaViewSet,
     CreditoReposicaoViewSet, ExercicioViewSet, FichaTreinoViewSet, FichaTreinoExerciciosViewSet,
     ProgramaTurmaViewSet, RegistroExercicioAlunoViewSet,
-    evolucao_carga, evolucao_pse,
+    evolucao_carga, evolucao_pse, faltas_sem_justificativa,
 )
 
 router = DefaultRouter()
@@ -22,6 +22,7 @@ router.register('registro-exercicio-aluno', RegistroExercicioAlunoViewSet, basen
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('relatorios/evolucao-carga/', evolucao_carga, name='evolucao-carga'),
-    path('relatorios/evolucao-pse/',   evolucao_pse,   name='evolucao-pse'),
+    path('relatorios/evolucao-carga/',   evolucao_carga,             name='evolucao-carga'),
+    path('relatorios/evolucao-pse/',     evolucao_pse,               name='evolucao-pse'),
+    path('faltas-sem-justificativa/',    faltas_sem_justificativa,   name='faltas-sem-justificativa'),
 ]

@@ -43,18 +43,26 @@ export default function GrafEvolucaoPsePage() {
     enabled: !!turId,
   })
 
-  // Pivotar por data (eixo X), uma linha por ciclo
+  // Eixo X = posição da ficha no ciclo (1, 2, 3...), linhas por ciclo
+  // Isso permite comparar a mesma ficha entre ciclos → ver condicionamento
   const ciclos = [...new Set((registros || []).map(r => r.ciclo ?? 1))].sort((a, b) => a - b)
 
-  // Cada ponto = uma aula (data única)
-  const datas = [...new Set((registros || []).map(r => r.data).filter(Boolean))].sort()
+  const posicoes = [...new Set((registros || []).map(r => r.posicao).filter(v => v != null))].sort((a, b) => a - b)
 
-  const chartData = datas.map(dt => {
-    const ponto = { label: fmtData(dt), data: dt }
+  // Usa posicao como chave; fitr_nome como label do eixo X
+  const chartData = posicoes.map(pos => {
+    const ref = (registros || []).find(r => r.posicao === pos)
+    const nome = ref?.fitr_nome ?? `Ficha ${pos}`
+    // Extrai só o título da ficha (remove prefixo "Aula N.N- ")
+    const label = nome.replace(/^Aula\s+[\d.]+\s*[-–]\s*/i, '').trim() || nome
+    const ponto = { label, posicao: pos }
     ciclos.forEach(ciclo => {
-      const reg = (registros || []).find(r => r.data === dt && (r.ciclo ?? 1) === ciclo)
+      const reg = (registros || []).find(r => r.posicao === pos && (r.ciclo ?? 1) === ciclo)
       ponto[`Ciclo ${ciclo}`] = reg?.pse_medio ?? null
-      if (reg) ponto[`_total_${ciclo}`] = reg.total
+      if (reg) {
+        ponto[`_total_${ciclo}`] = reg.total
+        ponto[`_data_${ciclo}`]  = reg.data
+      }
     })
     return ponto
   })
@@ -132,11 +140,12 @@ export default function GrafEvolucaoPsePage() {
                 <Tooltip
                   formatter={(val, name, props) => {
                     if (val == null) return ['—', name]
-                    const cicloNum = name.replace('Ciclo ', '')
-                    const total = props.payload[`_total_${cicloNum}`]
-                    return [`${val.toFixed(1)} (${total} alunos)`, name]
+                    const total = props.payload[`_total_${name}`]
+                    const data  = props.payload[`_data_${name}`]
+                    const dataFmt = data ? ` · ${fmtData(data)}` : ''
+                    return [`${val.toFixed(1)} (${total} alunos${dataFmt})`, name]
                   }}
-                  labelFormatter={l => `Aula: ${l}`}
+                  labelFormatter={l => `Ficha: ${l}`}
                   contentStyle={{ background: '#1a1833', border: '1px solid #2d2b55', fontSize: 12 }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />

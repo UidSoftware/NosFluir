@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 28/04/2026 | Versão: 10.3
+> Última atualização: 04/05/2026 | Versão: 11.0
 
 ---
 
@@ -376,6 +376,7 @@ Todos os endpoints ficam direto em /api/ — sem prefixo de app:
 ✅ /api/relatorios/fluxo-caixa/  (GET ?meses=)
 ✅ /api/livro-caixa/          (GET + POST — ReadCreateViewSet; update/delete retornam 405)
 ✅ /api/relatorios/extrato/  (GET ?conta= — mes/ano opcionais; sem eles retorna todos os lançamentos)
+✅ /api/faltas-sem-justificativa/  (GET ?alu=&tur=&aul_data= — MinistrarAula com miau_tipo_falta=sem_aviso, paginado)
 ❌ /api/operacional/alunos/  ❌ /api/tecnico/exercicios/  ← ERRADO
 ❌ /api/servicos/            ← ERRADO (correto: /api/servicos-produtos/)
 ```
@@ -480,6 +481,8 @@ git pull origin main && docker compose restart nginx
 | Upload foto retorna 404 (`/api/api/usuarios/...`) | URL com prefixo `/api/` duplicado — axios já tem `/api` no baseURL | Chamar `api.post('/usuarios/upload-foto/', ...)` sem o prefixo `/api/` |
 | LivroCaixa com `conta: None` e tipo errado | Lançamento criado por signal pré-Fase 10 (sem conta vinculada) | Hard-delete direto pelo shell; soft-delete do ContasPagar/RecebER de origem; recriar corretamente via shell ou UI |
 | Signal dispara ao fazer `save()` num ContasPagar já pago | Signal reage a qualquer `save()`, não só mudança de status | Após corrigir, deletar o lançamento fantasma gerado; ou usar `update()` no QuerySet para evitar o signal |
+| POST `/api/turma-alunos/` retorna 400 ao re-adicionar aluno removido | `unique_together = [['tur','alu']]` bloqueia mesmo com soft-delete (registro ainda existe no banco) | `TurmaAlunosViewSet.create()` detecta registro soft-deleted e restaura; serializer com `validators=[]` + validação manual excluindo deleted |
+| Gráfico PSE mostra fichas diferentes na mesma linha de ciclo | Eixo X era por data — fichas distintas do mesmo ciclo apareciam como pontos consecutivos sem sentido comparativo | Eixo X agora usa `aul_posicao_ciclo` (posição da ficha no programa); tooltip mostra nome da ficha + data |
 
 ---
 
@@ -774,11 +777,42 @@ git pull origin main && docker compose restart nginx
 - [x] `LivroCaixa ID 3` — hard-deleted: gerado pelo signal ao fazer `save()` no ContasPagar durante a correção
 - [x] Criado `LivroCaixa ID 4` correto: entrada R$ 818,60 na **Poupança Mercado Pago** (data original 23/04/2026)
 
+### Fase 11 — Melhorias e Correções (04/05/2026) — EM PRODUÇÃO (Seções 1 e 2)
+
+#### Fix: TurmaAlunos — re-adicionar aluno removido ✅
+- [x] Bug: `unique_together [['tur','alu']]` bloqueava re-add após soft-delete → `POST 400`
+- [x] `TurmaAlunosViewSet.create()`: detecta registro soft-deleted e restaura (deleted_at=None, ativo=True)
+- [x] `TurmaAlunosSerializer`: `validators=[]` + validação manual excluindo soft-deleteds do check de unicidade
+
+#### Seção 1 — Pequenos e Médios ✅
+- [x] **1.1 Gráfico PSE por modalidade:** parâmetro `?modalidade=` no endpoint; toggle Todos/Funcional/Pilates no frontend
+- [x] **1.2 AulasPage — coluna Ficha:** exibe `fitr_nome` na tabela (hidden mobile, visível md+); "Sem ficha" em tom suave
+- [x] **1.3 AlunosPage — plano compacto:** `serv_nome` adicionado ao `AlunoPlanoSerializer`; display: nome + Badge Ativo/Inativo + "dia X · R$ valor · desde data"
+- [x] **Fix PSE chart:** eixo X mudado de data → `aul_posicao_ciclo` (posição da ficha no programa); tooltip mostra ficha + data + PSE + alunos; backend inclui `fitr_nome`
+
+#### Seção 2 — Reposições: Faltas Sem Justificativa ✅
+- [x] **Endpoint** `GET /api/faltas-sem-justificativa/` — `MinistrarAula` com `miau_tipo_falta=sem_aviso`; filtros `alu/tur/aul_data`; paginado; `FaltaSemJustificativaSerializer` com `alu_nome`, `tur_nome`, `aul_data`, `aul_modalidade`
+- [x] **ReposicoesPage:** filtro "Sem Justificativa" alterna listagem de créditos → listagem de faltas
+- [x] **Modal justificativa retroativa:** seleciona tipo (justificada/atestado) + datetime do aviso + obs → cria `AvisoFalta` (signal gera crédito se elegível) → PATCH `miau_tipo_falta='justificada'`; auditoria via `updated_by`/`updated_at`
+
+#### Seções 3 e 4 — Pendentes
+- [ ] Seção 3: Repetição automática de Contas a Pagar/Receber
+- [ ] Seção 4: Carrinho de pedidos (PedidosPage)
+
+#### Pendência técnica — Refatoração de Ciclos (a discutir)
+- `aul_numero_ciclo` calculado por posição individual — pode divergir se aulas pularem posições
+- Lógica correta: ciclo = quantas vezes a posição 1 apareceu antes da aula atual
+- PSE chart depende de `ProgramaTurma` — turmas sem programa ficam sem dados no gráfico
+- A discutir: puxar ciclo direto das Aulas (ordem cronológica), sem depender de ProgramaTurma
+
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
 - [ ] Crédito expirado — sem job automático para atualizar status
 - [ ] Agendamentos do site exigem Aluno pré-existente — design a revisar com clientes
 - [ ] Dashboard: alerta de estoque baixo (consome `/api/produtos/alertas-estoque/`)
+- [ ] Fase 11 Seção 3: repetição automática de contas
+- [ ] Fase 11 Seção 4: carrinho de pedidos
+- [ ] Refatoração de ciclos: lógica mais simples sem depender de ProgramaTurma
 
 ---
 

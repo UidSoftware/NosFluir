@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 05/05/2026 | Versão: 11.1
+> Última atualização: 05/05/2026 | Versão: 11.2
 
 ---
 
@@ -827,9 +827,11 @@ git pull origin main && docker compose restart nginx
 - [x] 4.2 Catálogo com tabs Produtos/Serviços/Planos e busca client-side
 - [x] 4.3 CarrinhoItem com +/- quantidade e total dinâmico; estado local em useState
 - [x] 4.4 Mobile: barra inferior fixa com total + drawer deslizante com carrinho completo
-- [x] Backend inalterado — mesmo payload de antes
+- [x] 4.5 Parcelas no pagamento futuro: campo `ped_num_parcelas` (IntegerField, default=1) + migration `0012`
+  - Signal cria N ContasReceber mensais (ROUND_DOWN + resto na última; ex: `Pedido PED-0001 1/3`)
+  - Carrinho: input "N parcelas" aparece inline ao marcar Futuro; desmarcar reseta para 1
 
-**117 testes passando (financeiro: 55, operacional: 20, técnico: 33 — 5 novos PSE/FC + reposições)**
+**117 testes passando (financeiro: 55, operacional: 20, técnico: 33)**
 
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

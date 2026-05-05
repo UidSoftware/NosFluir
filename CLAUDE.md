@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 04/05/2026 | Versão: 11.0
+> Última atualização: 05/05/2026 | Versão: 11.1
 
 ---
 
@@ -804,6 +804,32 @@ git pull origin main && docker compose restart nginx
 - Lógica correta: ciclo = quantas vezes a posição 1 apareceu antes da aula atual
 - PSE chart depende de `ProgramaTurma` — turmas sem programa ficam sem dados no gráfico
 - A discutir: puxar ciclo direto das Aulas (ordem cronológica), sem depender de ProgramaTurma
+
+### Fase 11 — Melhorias e Correções ✅ COMPLETO E EM PRODUÇÃO (05/05/2026)
+
+#### Seção 1 — Pequenos ✅
+- [x] 1.1 Gráfico PSE filtrado por modalidade (toggle Funcional/Pilates/Todos)
+- [x] 1.2 AulasPage exibe nome da FichaTreino usada na aula (ou "Sem ficha")
+- [x] 1.3 Plano do aluno: nome compacto + dia vencimento + badge Ativo/Inativo
+
+#### Seção 2 — Reposições: Faltas Sem Justificativa ✅
+- [x] 2.1 Filtro "Sem Justificativa" na ReposicoesPage
+- [x] 2.2 Endpoint `GET /api/faltas-sem-justificativa/` + listagem com aluno/turma/data
+- [x] 2.3 Modal de justificativa retroativa: cria AvisoFalta → signal → CreditoReposicao automático
+
+#### Seção 3 — Repetição Automática ✅
+- [x] 3.1 Campo repetição nos forms de ContasPagar e ContasReceber (checkbox + qtd + periodicidade)
+- [x] 3.2 Backend: `_add_months()` + `perform_create` cria N cópias em `transaction.atomic()`; campo `repeticao` (write_only DictField) nos serializers
+- [x] 3.3 Preview das próximas datas exibido no form antes de salvar
+
+#### Seção 4 — Carrinho de Pedidos ✅
+- [x] 4.1 PedidosPage reescrita: lista de pedidos (ListView) + visão de carrinho (CartView)
+- [x] 4.2 Catálogo com tabs Produtos/Serviços/Planos e busca client-side
+- [x] 4.3 CarrinhoItem com +/- quantidade e total dinâmico; estado local em useState
+- [x] 4.4 Mobile: barra inferior fixa com total + drawer deslizante com carrinho completo
+- [x] Backend inalterado — mesmo payload de antes
+
+**117 testes passando (financeiro: 55, operacional: 20, técnico: 33 — 5 novos PSE/FC + reposições)**
 
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

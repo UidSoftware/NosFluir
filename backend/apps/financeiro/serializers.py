@@ -317,7 +317,7 @@ class PedidoSerializer(serializers.ModelSerializer):
         model = Pedido
         fields = ['id', 'ped_id', 'ped_numero', 'alu', 'alu_nome', 'ped_nome_cliente',
                   'ped_data', 'ped_total', 'ped_forma_pagamento', 'ped_status',
-                  'ped_pagamento_futuro', 'conta', 'conta_nome', 'ped_observacoes',
+                  'ped_pagamento_futuro', 'ped_num_parcelas', 'conta', 'conta_nome', 'ped_observacoes',
                   'itens', 'created_at', 'updated_at']
         read_only_fields = ['ped_id', 'ped_numero', 'ped_total', 'created_at', 'updated_at']
 

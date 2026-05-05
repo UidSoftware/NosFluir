@@ -111,6 +111,7 @@ function CartView({ onVoltar }) {
   const [contaId,     setContaId]     = useState('__none__')
   const [forma,       setForma]       = useState('__none__')
   const [pagFuturo,   setPagFuturo]   = useState(false)
+  const [numParcelas, setNumParcelas] = useState(1)
   const [obs,         setObs]         = useState('')
   const [pedData,     setPedData]     = useState(new Date().toISOString().split('T')[0])
   const [busca,       setBusca]       = useState('')
@@ -199,6 +200,7 @@ function CartView({ onVoltar }) {
       ped_data:             pedData,
       ped_forma_pagamento:  forma !== '__none__' ? forma : null,
       ped_pagamento_futuro: pagFuturo,
+      ped_num_parcelas:     pagFuturo ? (parseInt(numParcelas) || 1) : 1,
       conta:                contaId !== '__none__' ? parseInt(contaId) : null,
       ped_status:           'pendente',
       ped_observacoes:      obs || null,
@@ -278,9 +280,20 @@ function CartView({ onVoltar }) {
         </FormField>
         <FormField label="Pagamento">
           <label className="flex items-center gap-2 mt-2 cursor-pointer">
-            <input type="checkbox" checked={pagFuturo} onChange={e => setPagFuturo(e.target.checked)} className="w-4 h-4" />
+            <input type="checkbox" checked={pagFuturo} onChange={e => { setPagFuturo(e.target.checked); setNumParcelas(1) }} className="w-4 h-4" />
             <span className="text-sm">Futuro</span>
           </label>
+          {pagFuturo && (
+            <div className="flex items-center gap-2 mt-1.5">
+              <Input
+                type="number" min="1" max="36"
+                value={numParcelas}
+                onChange={e => setNumParcelas(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-20 h-8 text-sm"
+              />
+              <span className="text-xs text-muted-foreground">parcela{numParcelas !== 1 ? 's' : ''}</span>
+            </div>
+          )}
         </FormField>
       </div>
 

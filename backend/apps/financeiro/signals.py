@@ -1,8 +1,20 @@
-from decimal import Decimal
+import calendar
+from datetime import date as _date
+from decimal import Decimal, ROUND_DOWN
 
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
+
+def _add_months(dt, months):
+    if dt is None:
+        return None
+    m = dt.month - 1 + months
+    year = dt.year + m // 12
+    month = m % 12 + 1
+    day = min(dt.day, calendar.monthrange(year, month)[1])
+    return _date(year, month, day)
 
 from .models import ContasPagar, ContasReceber, LivroCaixa, Pedido
 
@@ -130,19 +142,27 @@ def processar_pedido(sender, instance, **kwargs):
                 created_by=instance.updated_by or instance.created_by,
             )
         else:
-            ContasReceber.objects.create(
-                alu=instance.alu,
-                rec_nome_pagador=instance.ped_nome_cliente,
-                rec_tipo='produto',
-                rec_descricao=f'Pedido {instance.ped_numero}',
-                rec_valor_unitario=instance.ped_total,
-                rec_quantidade=1,
-                rec_desconto=Decimal('0.00'),
-                rec_valor_total=instance.ped_total,
-                rec_data_emissao=instance.ped_data,
-                rec_data_vencimento=instance.ped_data,
-                rec_status='pendente',
-                conta=instance.conta,
-                created_by=instance.updated_by or instance.created_by,
-                updated_by=instance.updated_by or instance.created_by,
-            )
+            num = max(1, instance.ped_num_parcelas or 1)
+            valor_base = (instance.ped_total / num).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+            resto = instance.ped_total - valor_base * num
+            user = instance.updated_by or instance.created_by
+            for i in range(num):
+                valor = valor_base + (resto if i == num - 1 else Decimal('0.00'))
+                sufixo = f' {i + 1}/{num}' if num > 1 else ''
+                vencimento = _add_months(instance.ped_data, i + 1) if num > 1 else instance.ped_data
+                ContasReceber.objects.create(
+                    alu=instance.alu,
+                    rec_nome_pagador=instance.ped_nome_cliente,
+                    rec_tipo='produto',
+                    rec_descricao=f'Pedido {instance.ped_numero}{sufixo}',
+                    rec_valor_unitario=valor,
+                    rec_quantidade=1,
+                    rec_desconto=Decimal('0.00'),
+                    rec_valor_total=valor,
+                    rec_data_emissao=instance.ped_data,
+                    rec_data_vencimento=vencimento,
+                    rec_status='pendente',
+                    conta=instance.conta,
+                    created_by=user,
+                    updated_by=user,
+                )

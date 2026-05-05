@@ -420,6 +420,7 @@ class Pedido(BaseModel):
     ped_forma_pagamento = models.CharField('forma de pagamento', max_length=20, choices=FORMA_CHOICES, null=True, blank=True)
     ped_status          = models.CharField('status', max_length=20, choices=STATUS_CHOICES, default='pendente')
     ped_pagamento_futuro = models.BooleanField('pagamento futuro', default=False)
+    ped_num_parcelas     = models.IntegerField('número de parcelas', default=1)
     conta = models.ForeignKey(
         'Conta', on_delete=models.PROTECT,
         null=True, blank=True, verbose_name='conta'

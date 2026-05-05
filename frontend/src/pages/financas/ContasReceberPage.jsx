@@ -18,6 +18,21 @@ import api from '@/services/api'
 const KEY      = 'contas-receber'
 const ENDPOINT = '/contas-receber/'
 
+const PERIODICIDADES_REC = [
+  { value: 'mensal',     label: 'Mensal',     meses: 1 },
+  { value: 'trimestral', label: 'Trimestral', meses: 3 },
+  { value: 'semestral',  label: 'Semestral',  meses: 6 },
+]
+
+function addMonthsPreviewRec(dateStr, months) {
+  if (!dateStr) return null
+  const d = new Date(dateStr + 'T12:00:00')
+  const m = d.getMonth() + months
+  d.setFullYear(d.getFullYear() + Math.floor(m / 12))
+  d.setMonth(m % 12)
+  return d.toLocaleDateString('pt-BR')
+}
+
 const TIPOS_RECEITA = [
   { value: 'mensalidade',  label: 'Mensalidade' },
   { value: 'avaliacao',    label: 'Avaliação Física' },
@@ -177,6 +192,16 @@ function ContaReceberForm({ rec, onClose }) {
   const update = useUpdate(KEY, ENDPOINT, { onSuccess: onClose })
   const busy   = create.isPending || update.isPending
 
+  const [repetir,       setRepetir]       = useState(false)
+  const [qtdRep,        setQtdRep]        = useState(3)
+  const [periodicidade, setPeriodicidade] = useState('mensal')
+  const vencimento = watch('rec_data_vencimento')
+  const preview = useMemo(() => {
+    if (!repetir || !vencimento) return []
+    const meses = PERIODICIDADES_REC.find(p => p.value === periodicidade)?.meses || 1
+    return Array.from({ length: parseInt(qtdRep) || 1 }, (_, i) => addMonthsPreviewRec(vencimento, meses * i))
+  }, [repetir, vencimento, qtdRep, periodicidade])
+
   const status  = watch('rec_status')
   const aluId   = watch('alu')
   const recTipo = watch('rec_tipo')
@@ -244,8 +269,14 @@ function ContaReceberForm({ rec, onClose }) {
       rec_desconto:         parseFloat(data.rec_desconto) || 0,
     }
 
-    if (rec) update.mutate({ id: rec.rec_id, data: payload })
-    else      create.mutate(payload)
+    if (rec) {
+      update.mutate({ id: rec.rec_id, data: payload })
+    } else {
+      if (repetir && parseInt(qtdRep) > 1) {
+        payload.repeticao = { quantidade: parseInt(qtdRep), periodicidade }
+      }
+      create.mutate(payload)
+    }
   }
 
   return (
@@ -323,6 +354,43 @@ function ContaReceberForm({ rec, onClose }) {
               </SelectContent>
             </Select>
           </FormField>
+        </div>
+      )}
+
+      {/* Repetição Automática — só no cadastro */}
+      {!rec && (
+        <div className="rounded-lg border border-border/40 bg-fluir-dark-3/40 p-3 space-y-2.5">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={repetir} onChange={e => setRepetir(e.target.checked)} className="w-4 h-4" />
+            <span className="text-sm font-medium">Repetição Automática</span>
+          </label>
+          {repetir && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Quantidade">
+                  <Input type="number" min="2" max="60" value={qtdRep} onChange={e => setQtdRep(e.target.value)} />
+                </FormField>
+                <FormField label="Periodicidade">
+                  <select
+                    value={periodicidade}
+                    onChange={e => setPeriodicidade(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                  >
+                    {PERIODICIDADES_REC.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
+                </FormField>
+              </div>
+              {preview.length > 0 && (
+                <div className="space-y-0.5">
+                  <p className="text-xs text-muted-foreground font-medium">Preview:</p>
+                  {preview.slice(0, 3).map((d, i) => (
+                    <p key={i} className="text-xs text-muted-foreground">• Venc. {d} — {formatCurrency(total)}</p>
+                  ))}
+                  {preview.length > 3 && <p className="text-xs text-muted-foreground">... e mais {preview.length - 3}</p>}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 

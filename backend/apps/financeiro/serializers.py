@@ -75,6 +75,7 @@ class ContasPagarSerializer(serializers.ModelSerializer):
     serv_nome         = serializers.CharField(source='serv.serv_nome', read_only=True, default=None)
     plano_contas_nome = serializers.CharField(source='plano_contas.plc_nome', read_only=True, default=None)
     conta_nome        = serializers.CharField(source='conta.cont_nome', read_only=True, default=None)
+    repeticao         = serializers.DictField(required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = ContasPagar
@@ -88,6 +89,7 @@ class ContasPagarSerializer(serializers.ModelSerializer):
             'pag_data_emissao', 'pag_data_vencimento', 'pag_data_pagamento',
             'pag_descricao', 'pag_quantidade', 'pag_valor_unitario', 'pag_valor_total',
             'pag_status', 'pag_forma_pagamento', 'pag_observacoes',
+            'repeticao',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['pag_id', 'pag_valor_total', 'created_at', 'updated_at']
@@ -119,6 +121,7 @@ class ContasReceberSerializer(serializers.ModelSerializer):
     serv_nome         = serializers.CharField(source='serv.serv_nome', read_only=True, default=None)
     plano_contas_nome = serializers.CharField(source='plano_contas.plc_nome', read_only=True, default=None)
     conta_nome        = serializers.CharField(source='conta.cont_nome', read_only=True, default=None)
+    repeticao         = serializers.DictField(required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = ContasReceber
@@ -132,6 +135,7 @@ class ContasReceberSerializer(serializers.ModelSerializer):
             'rec_data_emissao', 'rec_data_vencimento', 'rec_data_recebimento',
             'rec_descricao', 'rec_quantidade', 'rec_valor_unitario', 'rec_desconto', 'rec_valor_total',
             'rec_status', 'rec_forma_recebimento', 'rec_plano_tipo', 'rec_observacoes',
+            'repeticao',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['rec_id', 'rec_valor_total', 'created_at', 'updated_at']

@@ -1,3 +1,5 @@
+import calendar
+from datetime import date as _date
 from decimal import Decimal
 
 import io
@@ -27,6 +29,17 @@ from .serializers import (
     PedidoSerializer, PlanoContasSerializer, PlanosPagamentosSerializer,
     ProdutoSerializer, ServicoProdutoSerializer,
 )
+
+
+def _add_months(dt, months):
+    """Adiciona meses a uma data, respeitando meses mais curtos (ex: 31/jan + 1 mês = 28/fev)."""
+    if dt is None:
+        return None
+    m = dt.month - 1 + months
+    year = dt.year + m // 12
+    month = m % 12 + 1
+    day = min(dt.day, calendar.monthrange(year, month)[1])
+    return _date(year, month, day)
 
 
 class ContaViewSet(AuditMixin, ModelViewSet):
@@ -97,6 +110,36 @@ class ContasPagarViewSet(AuditMixin, ModelViewSet):
         ).update(pag_status='vencido', updated_at=timezone.now())
         return super().list(request, *args, **kwargs)
 
+    def perform_create(self, serializer):
+        user = self.request.user
+        repeticao = serializer.validated_data.pop('repeticao', None)
+        with transaction.atomic():
+            instance = serializer.save(created_by=user)
+            if repeticao:
+                qtd = int(repeticao.get('quantidade', 1))
+                per = repeticao.get('periodicidade', 'mensal')
+                meses = {'mensal': 1, 'trimestral': 3, 'semestral': 6}.get(per, 1)
+                for i in range(1, qtd):
+                    nova_venc = _add_months(instance.pag_data_vencimento, meses * i)
+                    ContasPagar(
+                        forn=instance.forn,
+                        serv=instance.serv,
+                        cpa_nome_credor=instance.cpa_nome_credor,
+                        cpa_tipo=instance.cpa_tipo,
+                        pag_descricao=instance.pag_descricao,
+                        pag_valor_unitario=instance.pag_valor_unitario,
+                        pag_quantidade=instance.pag_quantidade,
+                        pag_valor_total=instance.pag_valor_total,
+                        pag_data_emissao=instance.pag_data_emissao,
+                        pag_data_vencimento=nova_venc,
+                        pag_status='pendente',
+                        conta=instance.conta,
+                        plano_contas=instance.plano_contas,
+                        pag_observacoes=instance.pag_observacoes,
+                        created_by=user,
+                        updated_by=user,
+                    ).save()
+
 
 class ContasReceberViewSet(AuditMixin, ModelViewSet):
     permission_classes = [IsFinanceiroOuAdmin]
@@ -126,6 +169,39 @@ class ContasReceberViewSet(AuditMixin, ModelViewSet):
             deleted_at__isnull=True,
         ).update(rec_status='vencido', updated_at=timezone.now())
         return super().list(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        repeticao = serializer.validated_data.pop('repeticao', None)
+        with transaction.atomic():
+            instance = serializer.save(created_by=user)
+            if repeticao:
+                qtd = int(repeticao.get('quantidade', 1))
+                per = repeticao.get('periodicidade', 'mensal')
+                meses = {'mensal': 1, 'trimestral': 3, 'semestral': 6}.get(per, 1)
+                for i in range(1, qtd):
+                    nova_venc = _add_months(instance.rec_data_vencimento, meses * i)
+                    ContasReceber(
+                        alu=instance.alu,
+                        serv=instance.serv,
+                        aplano=instance.aplano,
+                        rec_nome_pagador=instance.rec_nome_pagador,
+                        rec_tipo=instance.rec_tipo,
+                        rec_descricao=instance.rec_descricao,
+                        rec_valor_unitario=instance.rec_valor_unitario,
+                        rec_quantidade=instance.rec_quantidade,
+                        rec_valor_total=instance.rec_valor_total,
+                        rec_desconto=instance.rec_desconto,
+                        rec_data_emissao=instance.rec_data_emissao,
+                        rec_data_vencimento=nova_venc,
+                        rec_status='pendente',
+                        conta=instance.conta,
+                        plano_contas=instance.plano_contas,
+                        rec_observacoes=instance.rec_observacoes,
+                        rec_plano_tipo=instance.rec_plano_tipo,
+                        created_by=user,
+                        updated_by=user,
+                    ).save()
 
 
 class PlanosPagamentosViewSet(AuditMixin, ModelViewSet):

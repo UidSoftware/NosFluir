@@ -29,6 +29,21 @@ const TIPOS_DESPESA = [
 
 const FORMAS = ['PIX', 'Dinheiro', 'Cartão', 'Boleto', 'Transferência']
 
+const PERIODICIDADES = [
+  { value: 'mensal',     label: 'Mensal',     meses: 1 },
+  { value: 'trimestral', label: 'Trimestral', meses: 3 },
+  { value: 'semestral',  label: 'Semestral',  meses: 6 },
+]
+
+function addMonthsPreview(dateStr, months) {
+  if (!dateStr) return null
+  const d = new Date(dateStr + 'T12:00:00')
+  const m = d.getMonth() + months
+  d.setFullYear(d.getFullYear() + Math.floor(m / 12))
+  d.setMonth(m % 12)
+  return d.toLocaleDateString('pt-BR')
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function getStatusInfo(r) {
@@ -169,6 +184,16 @@ function ContaPagarForm({ pag, onClose }) {
   const busy   = create.isPending || update.isPending
   const status = watch('pag_status')
 
+  const [repetir,       setRepetir]       = useState(false)
+  const [qtdRep,        setQtdRep]        = useState(3)
+  const [periodicidade, setPeriodicidade] = useState('mensal')
+  const vencimento = watch('pag_data_vencimento')
+  const preview = useMemo(() => {
+    if (!repetir || !vencimento) return []
+    const meses = PERIODICIDADES.find(p => p.value === periodicidade)?.meses || 1
+    return Array.from({ length: parseInt(qtdRep) || 1 }, (_, i) => addMonthsPreview(vencimento, meses * i))
+  }, [repetir, vencimento, qtdRep, periodicidade])
+
   const qtd   = parseFloat(watch('pag_quantidade') || 1)
   const unit  = parseFloat(watch('pag_valor_unitario') || 0)
   const total = qtd * unit
@@ -200,8 +225,14 @@ function ContaPagarForm({ pag, onClose }) {
       pag_forma_pagamento: status === 'pago' && data.pag_forma_pagamento !== '__none__' ? data.pag_forma_pagamento : null,
       pag_observacoes:     data.pag_observacoes || null,
     }
-    if (pag) update.mutate({ id: pag.pag_id, data: payload })
-    else      create.mutate(payload)
+    if (pag) {
+      update.mutate({ id: pag.pag_id, data: payload })
+    } else {
+      if (repetir && parseInt(qtdRep) > 1) {
+        payload.repeticao = { quantidade: parseInt(qtdRep), periodicidade }
+      }
+      create.mutate(payload)
+    }
   }
 
   return (
@@ -294,6 +325,43 @@ function ContaPagarForm({ pag, onClose }) {
               </SelectContent>
             </Select>
           </FormField>
+        </div>
+      )}
+
+      {/* Repetição Automática — só no cadastro */}
+      {!pag && (
+        <div className="rounded-lg border border-border/40 bg-fluir-dark-3/40 p-3 space-y-2.5">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={repetir} onChange={e => setRepetir(e.target.checked)} className="w-4 h-4" />
+            <span className="text-sm font-medium">Repetição Automática</span>
+          </label>
+          {repetir && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Quantidade">
+                  <Input type="number" min="2" max="60" value={qtdRep} onChange={e => setQtdRep(e.target.value)} />
+                </FormField>
+                <FormField label="Periodicidade">
+                  <select
+                    value={periodicidade}
+                    onChange={e => setPeriodicidade(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                  >
+                    {PERIODICIDADES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
+                </FormField>
+              </div>
+              {preview.length > 0 && (
+                <div className="space-y-0.5">
+                  <p className="text-xs text-muted-foreground font-medium">Preview:</p>
+                  {preview.slice(0, 3).map((d, i) => (
+                    <p key={i} className="text-xs text-muted-foreground">• Venc. {d} — {formatCurrency(total)}</p>
+                  ))}
+                  {preview.length > 3 && <p className="text-xs text-muted-foreground">... e mais {preview.length - 3}</p>}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 

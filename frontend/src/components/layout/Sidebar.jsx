@@ -32,8 +32,6 @@ const MENU = [
       { label: 'Contas a Receber',   path: '/financas/contas-receber',  icon: Wallet },
       { label: 'Folha de Pagamento', path: '/financas/folha-pagamento', icon: Banknote },
       { label: 'Fornecedores',       path: '/financas/fornecedores',    icon: Building2 },
-      { label: 'Transferência',       path: '/financas/transferencia',   icon: ArrowLeftRight },
-      { label: 'Configuração',       path: '/financas/configuracao',    icon: Settings2 },
     ],
   },
   {

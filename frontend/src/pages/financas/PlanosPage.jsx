@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { ClipboardList, Plus, Pencil, Trash2 } from 'lucide-react'
+import { ClipboardList, Plus, Pencil, Trash2, Zap, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SearchFilter } from '@/components/shared/SearchFilter'
@@ -15,6 +15,7 @@ import { Input, FormField } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
+import api from '@/services/api'
 
 const ENDPOINT = '/planos-pagamentos/'
 const KEY      = 'planos'
@@ -95,6 +96,91 @@ function PlanoForm({ plano, onClose }) {
 
 const TIPO_LABEL = { mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral' }
 
+function SecaoGerarMensalidades() {
+  const [resultado, setResultado]     = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [dryRunResult, setDryRunResult] = useState(null)
+
+  const dryRun = useMutation({
+    mutationFn: () => api.post('/gerar-mensalidades/', { dry_run: true }).then(r => r.data),
+    onSuccess: (data) => { setDryRunResult(data); setConfirmOpen(true) },
+    onError: () => toast({ title: 'Erro ao consultar mensalidades', variant: 'destructive' }),
+  })
+
+  const gerar = useMutation({
+    mutationFn: () => api.post('/gerar-mensalidades/', {}).then(r => r.data),
+    onSuccess: (data) => {
+      setConfirmOpen(false)
+      setDryRunResult(null)
+      setResultado(data)
+      toast({ title: `${data.criadas} mensalidade(s) gerada(s) para ${data.mes_referencia}`, variant: 'success' })
+    },
+    onError: () => toast({ title: 'Erro ao gerar mensalidades', variant: 'destructive' }),
+  })
+
+  return (
+    <Card>
+      <CardContent className="p-5 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="font-semibold flex items-center gap-2">
+              <Zap className="w-4 h-4 text-fluir-cyan" /> Gerar Mensalidades
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Gera cobranças do próximo mês para todos os alunos com plano ativo e dia de vencimento definido. Não duplica se já existir.
+            </p>
+          </div>
+          <Button onClick={() => dryRun.mutate()} disabled={dryRun.isPending || gerar.isPending} size="sm" className="shrink-0">
+            {dryRun.isPending ? 'Verificando...' : 'Gerar Mensalidades'}
+          </Button>
+        </div>
+
+        {resultado && (
+          <div className="rounded-md bg-muted/40 p-3 text-sm">
+            <p className="font-medium flex items-center gap-1.5 text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" />
+              {resultado.mes_referencia} — {resultado.criadas} criada(s), {resultado.ignoradas} ignorada(s)
+            </p>
+          </div>
+        )}
+
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Confirmar Geração de Mensalidades</DialogTitle></DialogHeader>
+            {dryRunResult && (
+              <div className="space-y-3">
+                <div className="rounded-md bg-muted/40 px-4 py-3 text-sm">
+                  <p className="font-semibold text-fluir-cyan">{dryRunResult.mes_referencia}</p>
+                  <p className="text-muted-foreground mt-1">
+                    {dryRunResult.criadas} cobrança(s) serão criadas · {dryRunResult.ignoradas} já existem ou com contrato encerrado
+                  </p>
+                </div>
+                {dryRunResult.criadas === 0 && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Todas as mensalidades já foram geradas para este mês.
+                  </p>
+                )}
+                {dryRunResult.detalhes?.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto text-xs space-y-0.5 rounded border border-border/40 p-2">
+                    {dryRunResult.detalhes.map((d, i) => <p key={i} className="text-muted-foreground">{d.trim()}</p>)}
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancelar</Button>
+              <Button onClick={() => gerar.mutate()} disabled={gerar.isPending || dryRunResult?.criadas === 0}>
+                {gerar.isPending ? 'Gerando...' : `Confirmar (${dryRunResult?.criadas ?? 0})`}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function PlanosPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected]   = useState(null)
@@ -149,6 +235,8 @@ export default function PlanosPage() {
         onConfirm={() => { del.mutate(deleteId); setDeleteId(null) }}
         isLoading={del.isPending}
       />
+
+      <SecaoGerarMensalidades />
     </div>
   )
 }

@@ -8,7 +8,11 @@ from .views import (
     ProdutoViewSet, ServicoProdutoViewSet, transferencia_entre_contas,
     gerar_mensalidades,
 )
-from .relatorios import relatorio_dre, relatorio_extrato, relatorio_fluxo_caixa
+from .relatorios import (
+    relatorio_dre, relatorio_dre_pdf,
+    relatorio_extrato,
+    relatorio_fluxo_caixa, relatorio_fluxo_caixa_pdf,
+)
 
 router = DefaultRouter()
 router.register('contas', ContaViewSet, basename='contas')
@@ -28,7 +32,9 @@ urlpatterns = [
     path('', include(router.urls)),
     path('transferencia/',        transferencia_entre_contas, name='transferencia'),
     path('gerar-mensalidades/',   gerar_mensalidades,         name='gerar-mensalidades'),
-    path('relatorios/dre/',       relatorio_dre,              name='relatorio-dre'),
-    path('relatorios/fluxo-caixa/', relatorio_fluxo_caixa,   name='relatorio-fluxo-caixa'),
-    path('relatorios/extrato/',   relatorio_extrato,          name='relatorio-extrato'),
+    path('relatorios/dre/',             relatorio_dre,              name='relatorio-dre'),
+    path('relatorios/dre/pdf/',         relatorio_dre_pdf,          name='relatorio-dre-pdf'),
+    path('relatorios/fluxo-caixa/',     relatorio_fluxo_caixa,      name='relatorio-fluxo-caixa'),
+    path('relatorios/fluxo-caixa/pdf/', relatorio_fluxo_caixa_pdf,  name='relatorio-fluxo-caixa-pdf'),
+    path('relatorios/extrato/',         relatorio_extrato,           name='relatorio-extrato'),
 ]

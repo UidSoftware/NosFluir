@@ -96,13 +96,17 @@ function NovoLancamentoModal({ open, onClose, contaId, onSuccess }) {
   })
 
   const onSubmit = data => {
+    if (data.plano_contas === '__none__') {
+      toast({ title: 'Selecione uma categoria para o lançamento.', variant: 'destructive' })
+      return
+    }
     const payload = {
       lica_tipo_lancamento: data.tipo,
       lica_valor: parseFloat(data.valor),
       lica_historico: data.historico,
       lcx_competencia: data.lcx_competencia || null,
       lica_forma_pagamento: data.lica_forma_pagamento || null,
-      plano_contas: data.plano_contas !== '__none__' ? parseInt(data.plano_contas) : null,
+      plano_contas: parseInt(data.plano_contas),
       conta: contaId,
     }
     mutation.mutate(payload)
@@ -177,14 +181,14 @@ function NovoLancamentoModal({ open, onClose, contaId, onSuccess }) {
           </div>
 
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Categoria</p>
+            <p className="text-xs text-muted-foreground mb-1">Categoria <span className="text-red-400">*</span></p>
             <Select
               value={watch('plano_contas')}
               onValueChange={v => setValue('plano_contas', v)}
             >
-              <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecionar categoria..." /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__" className="text-muted-foreground italic">Sem categoria</SelectItem>
+                <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar categoria...</SelectItem>
                 {planos.map(p => (
                   <SelectItem key={p.plc_id} value={String(p.plc_id)}>
                     {p.plc_codigo} — {p.plc_nome}

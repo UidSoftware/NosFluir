@@ -1,32 +1,47 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
 import { useList } from '@/hooks/useApi'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SearchFilter } from '@/components/shared/SearchFilter'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import api from '@/services/api'
 
 const ENDPOINT = '/livro-caixa/'
 const KEY      = 'livro-caixa'
 
 export default function LivroCaixaPage() {
   const [tipoFilter, setTipoFilter] = useState('all')
+  const [activeFilters, setActiveFilters] = useState({})
 
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
 
-  const totalEntradas = data.reduce((s, r) => r.lica_tipo_lancamento === 'entrada' ? s + parseFloat(r.lica_valor || 0) : s, 0)
-  const totalSaidas   = data.reduce((s, r) => r.lica_tipo_lancamento === 'saida'   ? s + parseFloat(r.lica_valor || 0) : s, 0)
-  const saldoAtual    = data.length > 0 ? parseFloat(data[data.length - 1]?.lica_saldo_atual || 0) : 0
+  const { data: totais } = useQuery({
+    queryKey: ['livro-caixa-totais', activeFilters],
+    queryFn: () => api.get('/livro-caixa/totais/', { params: activeFilters }).then(r => r.data),
+  })
+
+  const totalEntradas = totais?.total_entradas ?? 0
+  const totalSaidas   = totais?.total_saidas   ?? 0
+  const saldoAtual    = totais?.saldo           ?? 0
 
   const handleTipoChange = (v) => {
     setTipoFilter(v)
-    setFilters(v && v !== 'all' ? { lica_tipo_lancamento: v } : {})
+    const f = v && v !== 'all' ? { lica_tipo_lancamento: v } : {}
+    setActiveFilters(prev => ({ ...prev, lica_tipo_lancamento: f.lica_tipo_lancamento }))
+    setFilters(f)
+  }
+
+  const handleSearch = (q) => {
+    const f = q ? { search: q } : {}
+    setActiveFilters(prev => ({ ...prev, search: q || undefined }))
+    setFilters(f)
   }
 
   const columns = [
@@ -43,7 +58,7 @@ export default function LivroCaixaPage() {
         </div>
       ),
     },
-    { key: 'lica_categoria',    header: 'Categoria',      render: r => r.plano_contas_nome || r.lica_categoria || '—' },
+    { key: 'lica_categoria',    header: 'Categoria', render: r => r.plano_contas_nome || r.lica_categoria || '—' },
     {
       key: 'lica_valor', header: 'Valor',
       render: r => (
@@ -52,8 +67,7 @@ export default function LivroCaixaPage() {
         </span>
       ),
     },
-    { key: 'lica_saldo_atual',     header: 'Saldo', render: r => formatCurrency(r.lica_saldo_atual) },
-    { key: 'lica_data_lancamento', header: 'Data',  render: r => formatDate(r.lica_data_lancamento) },
+    { key: 'lica_data_lancamento', header: 'Data', render: r => formatDate(r.lica_data_lancamento) },
   ]
 
   return (
@@ -63,7 +77,6 @@ export default function LivroCaixaPage() {
         description="Registro automático de todas as movimentações financeiras"
       />
 
-      {/* Resumo */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
@@ -93,7 +106,7 @@ export default function LivroCaixaPage() {
               <DollarSign className="w-4 h-4 text-fluir-purple" />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase">Saldo Atual</p>
+              <p className="text-[10px] text-muted-foreground uppercase">Saldo Global</p>
               <p className={cn('text-sm font-semibold', saldoAtual >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                 {formatCurrency(saldoAtual)}
               </p>
@@ -104,7 +117,7 @@ export default function LivroCaixaPage() {
 
       <Card>
         <CardContent className="p-5 space-y-4">
-          <SearchFilter placeholder="Buscar por histórico..." onSearch={q => setFilters(q ? { search: q } : {})}>
+          <SearchFilter placeholder="Buscar por histórico..." onSearch={handleSearch}>
             <Select value={tipoFilter} onValueChange={handleTipoChange}>
               <SelectTrigger className="w-32"><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>

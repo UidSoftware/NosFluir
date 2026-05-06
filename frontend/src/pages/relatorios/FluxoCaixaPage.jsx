@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp } from 'lucide-react'
+import { FileDown } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,16 @@ export default function FluxoCaixaPage() {
   const totSaidas   = data.reduce((s, r) => s + r.saidas,   0)
   const totSaldo    = totEntradas - totSaidas
 
+  const baixarPdf = async () => {
+    const resp = await api.get('/relatorios/fluxo-caixa/pdf/', { params: { meses }, responseType: 'blob' })
+    const url = URL.createObjectURL(new Blob([resp.data], { type: 'application/pdf' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `fluxo-caixa-${meses}meses.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader title="Fluxo de Caixa Projetado" />
@@ -32,6 +42,11 @@ export default function FluxoCaixaPage() {
               {m === 1 ? 'Mês atual' : `${m} meses`}
             </Button>
           ))}
+          {data.length > 0 && (
+            <Button size="sm" variant="outline" onClick={baixarPdf} className="gap-1.5 ml-auto">
+              <FileDown className="w-4 h-4" /> Exportar PDF
+            </Button>
+          )}
         </CardContent>
       </Card>
 

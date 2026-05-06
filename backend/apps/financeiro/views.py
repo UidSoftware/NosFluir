@@ -246,6 +246,22 @@ class LivroCaixaViewSet(AuditMixin, ReadCreateViewSet):
     search_fields = ['lica_historico']
     ordering_fields = ['lica_id', 'lica_data_lancamento', 'lica_valor']
 
+    @action(detail=False, methods=['get'], url_path='totais')
+    def totais(self, request):
+        from django.db.models import Sum, Q
+        qs = self.filter_queryset(self.get_queryset())
+        agg = qs.aggregate(
+            total_entradas=Sum('lica_valor', filter=Q(lica_tipo_lancamento='entrada')),
+            total_saidas=Sum('lica_valor', filter=Q(lica_tipo_lancamento='saida')),
+        )
+        entradas = agg['total_entradas'] or Decimal('0.00')
+        saidas   = agg['total_saidas']   or Decimal('0.00')
+        return Response({
+            'total_entradas': float(entradas),
+            'total_saidas':   float(saidas),
+            'saldo':          float(entradas - saidas),
+        })
+
     def perform_create(self, serializer):
         with transaction.atomic():
             ultimo = LivroCaixa.objects.select_for_update().order_by('-lica_id').first()

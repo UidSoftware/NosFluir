@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { BarChart2 } from 'lucide-react'
+import { FileDown } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -44,6 +44,16 @@ export default function DREPage() {
 
   const aplicar = () => setQuery({ mes: parseInt(mes), ano: parseInt(ano) })
 
+  const baixarPdf = async () => {
+    const resp = await api.get('/relatorios/dre/pdf/', { params: { mes: query.mes, ano: query.ano }, responseType: 'blob' })
+    const url = URL.createObjectURL(new Blob([resp.data], { type: 'application/pdf' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `dre-${String(query.mes).padStart(2,'0')}-${query.ano}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const resOp  = data?.resultado_operacional ?? 0
   const resLiq = data?.resultado_liquido     ?? 0
 
@@ -71,6 +81,11 @@ export default function DREPage() {
             </div>
           </div>
           <Button onClick={aplicar}>Gerar DRE</Button>
+          {data && (
+            <Button variant="outline" onClick={baixarPdf} className="gap-1.5">
+              <FileDown className="w-4 h-4" /> Exportar PDF
+            </Button>
+          )}
         </CardContent>
       </Card>
 

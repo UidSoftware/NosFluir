@@ -6,33 +6,62 @@ import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { Input, FormField } from '@/components/ui/primitives'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import api from '@/services/api'
+import { fetchAll } from '@/hooks/useApi'
 
 export default function RelLivroCaixaPage() {
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim]       = useState('')
+  const [tipo, setTipo]             = useState('all')
+  const [conta, setConta]           = useState('all')
   const [page, setPage]             = useState(1)
 
+  const { data: contas = [] } = useQuery({
+    queryKey: ['contas-select'],
+    queryFn: () => fetchAll('/contas/'),
+  })
+
+  const params = {
+    page,
+    ...(dataInicio                  && { data_inicio: dataInicio }),
+    ...(dataFim                     && { data_fim: dataFim }),
+    ...(tipo  !== 'all'             && { lica_tipo_lancamento: tipo }),
+    ...(conta !== 'all'             && { conta }),
+  }
+
   const { data, isLoading } = useQuery({
-    queryKey: ['rel-livro-caixa', dataInicio, dataFim, page],
-    queryFn: () => api.get('/livro-caixa/', {
-      params: { data_inicio: dataInicio || undefined, data_fim: dataFim || undefined, page },
-    }).then(r => r.data),
+    queryKey: ['rel-livro-caixa', params],
+    queryFn: () => api.get('/livro-caixa/', { params }).then(r => r.data),
+  })
+
+  const totaisParams = { ...params }
+  delete totaisParams.page
+  const { data: totais } = useQuery({
+    queryKey: ['rel-livro-caixa-totais', totaisParams],
+    queryFn: () => api.get('/livro-caixa/totais/', { params: totaisParams }).then(r => r.data),
   })
 
   const items      = data?.results ?? []
-  const count      = data?.count ?? 0
+  const count      = data?.count   ?? 0
   const totalPages = Math.ceil(count / 20) || 1
 
-  const totalEntradas = items.filter(r => r.lica_tipo_lancamento === 'entrada').reduce((s, r) => s + parseFloat(r.lica_valor || 0), 0)
-  const totalSaidas   = items.filter(r => r.lica_tipo_lancamento === 'saida').reduce((s, r) => s + parseFloat(r.lica_valor || 0), 0)
-  const saldo         = totalEntradas - totalSaidas
+  const totalEntradas = totais?.total_entradas ?? 0
+  const totalSaidas   = totais?.total_saidas   ?? 0
+  const saldo         = totais?.saldo          ?? 0
+
+  const resetPage = () => setPage(1)
 
   const columns = [
     { key: 'lica_tipo_lancamento', header: 'Tipo',      render: r => <StatusBadge status={r.lica_tipo_lancamento} /> },
-    { key: 'lica_historico',       header: 'Histórico', render: r => r.lica_historico },
+    {
+      key: 'conta_nome', header: 'Conta',
+      render: r => <span className="text-sm text-muted-foreground">{r.conta_nome || '—'}</span>,
+    },
+    { key: 'lica_historico', header: 'Histórico', render: r => r.lica_historico },
+    { key: 'plano_contas_nome', header: 'Categoria', render: r => r.plano_contas_nome || r.lica_categoria || '—' },
     {
       key: 'lica_valor', header: 'Valor',
       render: r => (
@@ -49,16 +78,39 @@ export default function RelLivroCaixaPage() {
       <PageHeader title="Relatório — Livro Caixa" />
       <Card>
         <CardContent className="p-5 space-y-4">
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 items-end">
             <FormField label="Data Início" className="min-w-[140px]">
-              <Input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setPage(1) }} />
+              <Input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); resetPage() }} />
             </FormField>
             <FormField label="Data Fim" className="min-w-[140px]">
-              <Input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); setPage(1) }} />
+              <Input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); resetPage() }} />
+            </FormField>
+            <FormField label="Tipo">
+              <Select value={tipo} onValueChange={v => { setTipo(v); resetPage() }}>
+                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="entrada">Entradas</SelectItem>
+                  <SelectItem value="saida">Saídas</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField label="Conta">
+              <Select value={conta} onValueChange={v => { setConta(v); resetPage() }}>
+                <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as contas</SelectItem>
+                  {contas.map(c => (
+                    <SelectItem key={c.cont_id} value={String(c.cont_id)}>{c.cont_nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </FormField>
           </div>
+
           <DataTable columns={columns} data={items} isLoading={isLoading} emptyMessage="Nenhum lançamento no período." />
-          <div className="flex items-center justify-between pt-2 border-t border-border">
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border">
             <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
             <div className="flex items-center gap-4 text-sm">
               <span>Entradas: <span className="text-emerald-400 font-medium">{formatCurrency(totalEntradas)}</span></span>

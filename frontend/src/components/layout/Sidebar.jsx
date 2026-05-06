@@ -28,7 +28,6 @@ const MENU = [
     permission: 'financeiro',
     children: [
       { label: 'Minhas Contas',      path: '/financas/minhas-contas',   icon: Landmark },
-      { label: 'Livro Caixa',        path: '/financas/livro-caixa',     icon: BookOpen },
       { label: 'Contas a Pagar',     path: '/financas/contas-pagar',    icon: CreditCard },
       { label: 'Contas a Receber',   path: '/financas/contas-receber',  icon: Wallet },
       { label: 'Planos de Pagamentos', path: '/financas/planos',         icon: ClipboardList },

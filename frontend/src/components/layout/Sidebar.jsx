@@ -6,7 +6,7 @@ import {
   ChevronRightIcon, BookOpen, CreditCard, Wallet, ClipboardList,
   UserCheck, CalendarDays, ListTodo, FileText, Activity,
   TrendingUp, Repeat2, Building2, Package, Banknote, UserCog, BellOff,
-  Camera, ArrowLeftRight, ShoppingCart, Wrench, Landmark,
+  Camera, ArrowLeftRight, ShoppingCart, Wrench, Landmark, ShoppingBag, Briefcase,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -30,14 +30,22 @@ const MENU = [
       { label: 'Minhas Contas',      path: '/financas/minhas-contas',   icon: Landmark },
       { label: 'Contas a Pagar',     path: '/financas/contas-pagar',    icon: CreditCard },
       { label: 'Contas a Receber',   path: '/financas/contas-receber',  icon: Wallet },
-      { label: 'Planos de Pagamentos', path: '/financas/planos',         icon: ClipboardList },
       { label: 'Folha de Pagamento', path: '/financas/folha-pagamento', icon: Banknote },
       { label: 'Fornecedores',       path: '/financas/fornecedores',    icon: Building2 },
-      { label: 'Serviços',            path: '/financas/servicos',        icon: Wrench },
-      { label: 'Produtos',            path: '/financas/produtos',        icon: Package },
-      { label: 'Pedidos',             path: '/financas/pedidos',         icon: ShoppingCart },
       { label: 'Transferência',       path: '/financas/transferencia',   icon: ArrowLeftRight },
       { label: 'Configuração',       path: '/financas/configuracao',    icon: Settings2 },
+    ],
+  },
+  {
+    id: 'pagamentos',
+    label: 'Pagamentos',
+    icon: ShoppingBag,
+    permission: 'financeiro',
+    children: [
+      { label: 'Planos de Pagamento', path: '/pagamentos/planos',   icon: ClipboardList },
+      { label: 'Pedidos',             path: '/pagamentos/pedidos',  icon: ShoppingCart },
+      { label: 'Produtos',            path: '/pagamentos/produtos', icon: Package },
+      { label: 'Serviços',            path: '/pagamentos/servicos', icon: Briefcase },
     ],
   },
   {

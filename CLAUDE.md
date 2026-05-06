@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 05/05/2026 | Versão: 11.2
+> Última atualização: 06/05/2026 | Versão: 12.0
 
 ---
 
@@ -833,13 +833,42 @@ git pull origin main && docker compose restart nginx
 
 **117 testes passando (financeiro: 55, operacional: 20, técnico: 33)**
 
+### Fase 12 — Reorganização de Menu e UX ✅ COMPLETO E EM PRODUÇÃO (06/05/2026)
+
+#### Item 1 — Configuração ✅
+- [x] Aparelhos e Acessórios removidos do menu Configuração (redundantes — já acessíveis dentro de Exercícios); rotas mantidas
+
+#### Item 2 — Menu Pagamentos ✅
+- [x] Novo grupo **Pagamentos** (ícone ShoppingBag) criado após Finanças
+- [x] Movidos para Pagamentos: Planos de Pagamento, Pedidos, Produtos, Serviços
+- [x] Novas rotas `/pagamentos/planos|pedidos|produtos|servicos`
+- [x] Redirects automáticos de `/financas/planos|pedidos|produtos|servicos` → novos paths
+
+#### Item 3 — Minhas Contas absorve Configuração e Transferência ✅
+- [x] Botão "Nova Conta" no header → modal com form de criação inline
+- [x] Botão "Transferir entre contas" abaixo dos cards (aparece com ≥2 contas) → modal com form de transferência
+- [x] Configuração e Transferência removidos do menu Finanças (rotas mantidas)
+
+#### Item 4 — Gerar Mensalidades → Contas a Receber ✅
+- [x] Botão "⚡ Gerar Mensalidades" no header de ContasReceberPage (ao lado de "Nova Conta")
+- [x] Dry-run automático ao clicar → modal de confirmação com preview → após gerar refetch da lista
+- [x] Removido de PlanosPage e ConfiguracaoFinanceiraPage
+
+#### Correções e melhorias do dia ✅
+- [x] **Livro Caixa — Auditoria Global:** totais via `/livro-caixa/totais/` (agregado DB, respeita filtros); coluna saldo_atual removida da tabela (sem sentido multi-conta); cards sempre corretos
+- [x] **PDF DRE:** `GET /api/relatorios/dre/pdf/` — download autenticado via axios blob
+- [x] **PDF Fluxo de Caixa:** `GET /api/relatorios/fluxo-caixa/pdf/` — tabela mensal com cores
+- [x] **Categoria obrigatória** no lançamento manual (MinhasContasPage bloqueia sem plano_contas)
+- [x] **Livro Caixa removido de Finanças** — fica apenas em Relatórios
+- [x] **RelLivroCaixaPage:** filtros Tipo + Conta adicionados; coluna Conta na tabela; totais corretos
+
+**117 testes passando (financeiro: 55, operacional: 20, técnico: 33)**
+
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
 - [ ] Crédito expirado — sem job automático para atualizar status
 - [ ] Agendamentos do site exigem Aluno pré-existente — design a revisar com clientes
 - [ ] Dashboard: alerta de estoque baixo (consome `/api/produtos/alertas-estoque/`)
-- [ ] Fase 11 Seção 3: repetição automática de contas
-- [ ] Fase 11 Seção 4: carrinho de pedidos
 - [ ] Refatoração de ciclos: lógica mais simples sem depender de ProgramaTurma
 
 ---

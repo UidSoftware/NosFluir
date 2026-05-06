@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Wallet, Plus, Pencil, Trash2, DollarSign, ChevronDown, ChevronUp } from 'lucide-react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Wallet, Plus, Pencil, Trash2, DollarSign, ChevronDown, ChevronUp, Zap, CheckCircle2, AlertCircle } from 'lucide-react'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useForm } from 'react-hook-form'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -515,6 +515,8 @@ export default function ContasReceberPage() {
   const [modalPagar,   setModalPagar]  = useState(null)
   const [deleteId,     setDeleteId]    = useState(null)
   const [mesesAbertos, setMesesAbertos]= useState({})
+  const [modalMens,    setModalMens]   = useState(false)
+  const [dryRunResult, setDryRunResult]= useState(null)
 
   const { gte, lte } = calcPeriodo(periodo)
 
@@ -530,6 +532,23 @@ export default function ContasReceberPage() {
   })
 
   const del = useDelete(KEY, ENDPOINT, { onSuccess: refetch, successMsg: 'Conta excluída.' })
+
+  const dryRun = useMutation({
+    mutationFn: () => api.post('/gerar-mensalidades/', { dry_run: true }).then(r => r.data),
+    onSuccess: (data) => { setDryRunResult(data); setModalMens(true) },
+    onError: () => toast({ title: 'Erro ao consultar mensalidades.', variant: 'destructive' }),
+  })
+
+  const gerarMens = useMutation({
+    mutationFn: () => api.post('/gerar-mensalidades/', {}).then(r => r.data),
+    onSuccess: (data) => {
+      setModalMens(false)
+      setDryRunResult(null)
+      refetch()
+      toast({ title: `${data.criadas} mensalidade(s) gerada(s) para ${data.mes_referencia}`, variant: 'success' })
+    },
+    onError: () => toast({ title: 'Erro ao gerar mensalidades.', variant: 'destructive' }),
+  })
 
   // Agrupa por mês
   const porMes = useMemo(() => {
@@ -551,7 +570,14 @@ export default function ContasReceberPage() {
       <PageHeader
         title="Contas a Receber"
         description="Receitas agrupadas por mês de vencimento"
-        actions={<Button onClick={() => setModalForm('novo')}><Plus className="w-4 h-4" />Nova Conta</Button>}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => dryRun.mutate()} disabled={dryRun.isPending} className="gap-1.5">
+              <Zap className="w-4 h-4" />{dryRun.isPending ? 'Verificando...' : 'Gerar Mensalidades'}
+            </Button>
+            <Button onClick={() => setModalForm('novo')}><Plus className="w-4 h-4" />Nova Conta</Button>
+          </div>
+        }
       />
 
       {/* Filtros */}
@@ -665,6 +691,40 @@ export default function ContasReceberPage() {
         onConfirm={() => { del.mutate(deleteId); setDeleteId(null) }}
         isLoading={del.isPending}
       />
+
+      {/* Modal Gerar Mensalidades */}
+      <Dialog open={modalMens} onOpenChange={v => { if (!v) { setModalMens(false); setDryRunResult(null) } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Confirmar Geração de Mensalidades</DialogTitle></DialogHeader>
+          {dryRunResult && (
+            <div className="space-y-3">
+              <div className="rounded-md bg-muted/40 px-4 py-3 text-sm">
+                <p className="font-semibold text-fluir-cyan">{dryRunResult.mes_referencia}</p>
+                <p className="text-muted-foreground mt-1">
+                  {dryRunResult.criadas} cobrança(s) serão criadas · {dryRunResult.ignoradas} já existem ou com contrato encerrado
+                </p>
+              </div>
+              {dryRunResult.criadas === 0 && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  Todas as mensalidades já foram geradas para este mês.
+                </p>
+              )}
+              {dryRunResult.detalhes?.length > 0 && (
+                <div className="max-h-40 overflow-y-auto text-xs space-y-0.5 rounded border border-border/40 p-2">
+                  {dryRunResult.detalhes.map((d, i) => <p key={i} className="text-muted-foreground">{d.trim()}</p>)}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setModalMens(false); setDryRunResult(null) }}>Cancelar</Button>
+            <Button onClick={() => gerarMens.mutate()} disabled={gerarMens.isPending || dryRunResult?.criadas === 0}>
+              {gerarMens.isPending ? 'Gerando...' : `Confirmar (${dryRunResult?.criadas ?? 0})`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

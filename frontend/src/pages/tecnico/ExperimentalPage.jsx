@@ -46,18 +46,20 @@ const MOD_CLS    = {
 const DOW_DIA = { 1:'seg', 2:'ter', 3:'qua', 4:'qui', 5:'sex' }
 const MES_PT  = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
 
+// Usa data local (não UTC) para evitar deslocamento de fuso
+const isoLocal = (dt) =>
+  `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+
 function gerarSemanas(numSemanas) {
   const hoje     = new Date()
   const hojeDow  = hoje.getDay()
-  const seg      = new Date(hoje)
-  seg.setDate(hoje.getDate() - (hojeDow === 0 ? 6 : hojeDow - 1))
+  const seg      = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - (hojeDow === 0 ? 6 : hojeDow - 1))
   const semanas  = []
   for (let w = 0; w < numSemanas; w++) {
     const sem = []
     for (let d = 0; d < 5; d++) {
-      const dt = new Date(seg)
-      dt.setDate(seg.getDate() + w * 7 + d)
-      sem.push({ iso: dt.toISOString().slice(0, 10), dt, dia: DOW_DIA[dt.getDay()] })
+      const dt = new Date(seg.getFullYear(), seg.getMonth(), seg.getDate() + w * 7 + d)
+      sem.push({ iso: isoLocal(dt), dt, dia: DOW_DIA[dt.getDay()] })
     }
     semanas.push(sem)
   }
@@ -74,7 +76,7 @@ function SlotCalendar({ slots, slotIdSelecionado, dataAtual, onSelect }) {
   })
 
   const semanas = gerarSemanas(4)
-  const hojeStr = new Date().toISOString().slice(0, 10)
+  const hojeStr = isoLocal(new Date())
 
   const slotsFoco = diaFoco
     ? (slotsByDia[DOW_DIA[new Date(diaFoco + 'T00:00').getDay()]] || [])

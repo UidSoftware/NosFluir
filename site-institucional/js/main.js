@@ -119,17 +119,18 @@ const API_URL = '/api'
 const DOW_DIA_SITE = { 1:'seg', 2:'ter', 3:'qua', 4:'qui', 5:'sex' }
 const MES_PT_SITE  = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
 
+const isoLocalSite = (dt) =>
+  `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+
 function gerarSemanasSite(n) {
   const hoje = new Date(), dow = hoje.getDay()
-  const seg  = new Date(hoje)
-  seg.setDate(hoje.getDate() - (dow === 0 ? 6 : dow - 1))
+  const seg  = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - (dow === 0 ? 6 : dow - 1))
   const semanas = []
   for (let w = 0; w < n; w++) {
     const sem = []
     for (let d = 0; d < 5; d++) {
-      const dt = new Date(seg)
-      dt.setDate(seg.getDate() + w * 7 + d)
-      sem.push({ iso: dt.toISOString().slice(0,10), dt, dia: DOW_DIA_SITE[dt.getDay()] })
+      const dt = new Date(seg.getFullYear(), seg.getMonth(), seg.getDate() + w * 7 + d)
+      sem.push({ iso: isoLocalSite(dt), dt, dia: DOW_DIA_SITE[dt.getDay()] })
     }
     semanas.push(sem)
   }
@@ -145,7 +146,7 @@ function renderCalendario(slots) {
   slots.forEach(s => { if (!byDia[s.slot_dia_semana]) byDia[s.slot_dia_semana] = []; byDia[s.slot_dia_semana].push(s) })
 
   const semanas  = gerarSemanasSite(4)
-  const hojeStr  = new Date().toISOString().slice(0,10)
+  const hojeStr  = isoLocalSite(new Date())
   const meses    = [...new Set(semanas.flat().map(c => c.dt.getMonth()))].map(m => MES_PT_SITE[m]).join(' / ')
 
   let foco = null  // ISO date focado

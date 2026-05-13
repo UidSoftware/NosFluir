@@ -66,6 +66,7 @@ const MENU = [
     icon: Dumbbell,
     permission: 'tecnico',
     children: [
+      { label: 'Experimental',          path: '/tecnico/experimental',     icon: Sparkles },
       { label: 'Aulas',                path: '/tecnico/aulas',            icon: CalendarDays },
       { label: 'Ministrar Aula',     path: '/tecnico/ministrar-aula',   icon: Activity },
       { label: 'Programa das Turmas', path: '/tecnico/programa-turma',  icon: ClipboardList },

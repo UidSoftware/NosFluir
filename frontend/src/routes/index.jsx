@@ -33,6 +33,7 @@ import AgendamentosPage from '@/pages/operacional/AgendamentosPage'
 import AvisosPage       from '@/pages/operacional/AvisosPage'
 
 // Técnico
+import ExperimentalPage       from '@/pages/tecnico/ExperimentalPage'
 import AulasPage              from '@/pages/tecnico/AulasPage'
 import MinistrarAulaPage      from '@/pages/tecnico/MinistrarAulaPage'
 import ProgramaTurmaPage      from '@/pages/tecnico/ProgramaTurmaPage'
@@ -126,6 +127,7 @@ export const router = createBrowserRouter(
             {
               element: <PerfilRoute perfisPermitidos={['Administrador', 'Professor']} />,
               children: [
+                { path: '/tecnico/experimental',      element: <ExperimentalPage /> },
                 { path: '/tecnico/aulas',             element: <AulasPage /> },
                 { path: '/tecnico/ministrar-aula',    element: <MinistrarAulaPage /> },
                 { path: '/tecnico/programa-turma',    element: <ProgramaTurmaPage /> },

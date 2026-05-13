@@ -26,11 +26,13 @@ import FluxoCaixaPage           from '@/pages/relatorios/FluxoCaixaPage'
 import ExtratoPorContaPage      from '@/pages/relatorios/ExtratoPorContaPage'
 
 // Operacional
-import AlunosPage             from '@/pages/operacional/AlunosPage'
-import FuncionariosPage       from '@/pages/operacional/FuncionariosPage'
-import TurmasPage             from '@/pages/operacional/TurmasPage'
-import AgendamentosPage       from '@/pages/operacional/AgendamentosPage'
-import AvisosPage             from '@/pages/operacional/AvisosPage'
+import AlunosPage                       from '@/pages/operacional/AlunosPage'
+import FuncionariosPage                 from '@/pages/operacional/FuncionariosPage'
+import TurmasPage                       from '@/pages/operacional/TurmasPage'
+import AgendamentosPage                 from '@/pages/operacional/AgendamentosPage'
+import AvisosPage                       from '@/pages/operacional/AvisosPage'
+import AgendamentosExperimentaisPage    from '@/pages/operacional/AgendamentosExperimentaisPage'
+import SlotsExperimentaisPage           from '@/pages/operacional/SlotsExperimentaisPage'
 
 // Técnico
 import AulasPage              from '@/pages/tecnico/AulasPage'
@@ -139,11 +141,12 @@ export const router = createBrowserRouter(
             {
               element: <PerfilRoute perfisPermitidos={['Administrador', 'Recepcionista', 'Professor']} />,
               children: [
-                { path: '/operacional/alunos',        element: <AlunosPage /> },
-                { path: '/operacional/funcionarios',  element: <FuncionariosPage /> },
-                { path: '/operacional/turmas',        element: <TurmasPage /> },
-                { path: '/operacional/avisos-falta',  element: <AvisosPage /> },
-                { path: '/operacional/agendamentos',  element: <AgendamentosPage /> },
+                { path: '/operacional/alunos',                       element: <AlunosPage /> },
+                { path: '/operacional/funcionarios',               element: <FuncionariosPage /> },
+                { path: '/operacional/turmas',                     element: <TurmasPage /> },
+                { path: '/operacional/avisos-falta',               element: <AvisosPage /> },
+                { path: '/operacional/agendamentos',               element: <AgendamentosPage /> },
+                { path: '/operacional/agendamentos-experimentais', element: <AgendamentosExperimentaisPage /> },
                 { path: '/relatorios/frequencia',     element: <RelFrequenciaPage /> },
                 { path: '/relatorios/pressao',        element: <RelPressaoPage /> },
                 { path: '/graficos/alunos',           element: <GrafAlunosPage /> },
@@ -155,10 +158,11 @@ export const router = createBrowserRouter(
             {
               element: <PerfilRoute perfisPermitidos={['Administrador']} />,
               children: [
-                { path: '/configuracao/usuarios',     element: <UsuariosPage /> },
-                { path: '/configuracao/profissoes',   element: <ProfissoesPage /> },
-                { path: '/configuracao/aparelhos',    element: <AparelhosPage /> },
-                { path: '/configuracao/acessorios',   element: <AcessoriosPage /> },
+                { path: '/configuracao/usuarios',             element: <UsuariosPage /> },
+                { path: '/configuracao/profissoes',           element: <ProfissoesPage /> },
+                { path: '/configuracao/aparelhos',            element: <AparelhosPage /> },
+                { path: '/configuracao/acessorios',           element: <AcessoriosPage /> },
+                { path: '/configuracao/slots-experimentais',  element: <SlotsExperimentaisPage /> },
               ],
             },
           ],

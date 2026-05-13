@@ -116,69 +116,6 @@ function initScrollAnimations() {
 // ── Formulário de agendamento experimental ───────────────────────────────
 const API_URL = '/api'
 
-const DIA_LABELS  = { seg:'Segunda-feira', ter:'Terça-feira', qua:'Quarta-feira', qui:'Quinta-feira', sex:'Sexta-feira' }
-
-function proximaData(diaSemana) {
-  const alvo = { seg:1, ter:2, qua:3, qui:4, sex:5 }[diaSemana]
-  if (!alvo) return null
-  const hoje = new Date()
-  let diff = alvo - hoje.getDay()
-  if (diff <= 0) diff += 7
-  const d = new Date(hoje)
-  d.setDate(hoje.getDate() + diff)
-  return d.toISOString().slice(0, 10)
-}
-
-async function carregarSlots(modalidade) {
-  const container  = document.getElementById('slotsContainer')
-  const loading    = document.getElementById('slotsLoading')
-  const section    = document.getElementById('slotsSection')
-  if (!container) return
-
-  container.innerHTML = '<p id="slotsLoading" class="form__note">Carregando horários...</p>'
-  section.style.display = ''
-
-  try {
-    const url = `${API_URL}/slots-experimentais/?slot_ativo=true${modalidade !== 'ambos' ? `&slot_modalidade=${modalidade}` : ''}`
-    const res  = await fetch(url)
-    const json = await res.json()
-
-    // inclui slots com modalidade 'ambos' mesmo quando filtrado por pilates/funcional
-    const slots = (json.results || []).filter(s =>
-      s.vagas_disponiveis > 0 && (
-        s.slot_modalidade === modalidade ||
-        s.slot_modalidade === 'ambos' ||
-        modalidade === 'ambos'
-      )
-    )
-
-    if (slots.length === 0) {
-      container.innerHTML = '<p class="form__note">Nenhum horário disponível no momento. Entre em contato pelo WhatsApp 😊</p>'
-      return
-    }
-
-    container.innerHTML = slots.map(s => {
-      const dataProxima = proximaData(s.slot_dia_semana)
-      const hora        = s.slot_hora.slice(0, 5)
-      const diaLabel    = DIA_LABELS[s.slot_dia_semana] || s.slot_dia_semana
-      const vagas       = s.vagas_disponiveis
-      const vagasLabel  = vagas === 1 ? '1 vaga' : `${vagas} vagas`
-      return `
-        <label class="form__radio-card form__radio-card--wide">
-          <input type="radio" name="slot_id" value="${s.slot_id}"
-            data-dia="${s.slot_dia_semana}" data-hora="${hora}"
-            data-data="${dataProxima || ''}" data-modalidade="${s.slot_modalidade}" />
-          <span>
-            <strong>${diaLabel} às ${hora}</strong>
-            <small>${vagasLabel} disponível${vagas > 1 ? 'is' : ''}</small>
-          </span>
-        </label>`
-    }).join('')
-  } catch {
-    container.innerHTML = '<p class="form__note">Erro ao carregar horários. Tente pelo WhatsApp.</p>'
-  }
-}
-
 function initFormAgendamento(form) {
   const formFields = document.getElementById('formFields')
   const formSuccess= document.getElementById('formSuccess')
@@ -186,31 +123,22 @@ function initFormAgendamento(form) {
   const btnText    = document.getElementById('btnText')
   const btnLoading = document.getElementById('btnLoading')
 
-  // Carrega slots ao selecionar modalidade
-  document.querySelectorAll('input[name="modalidade"]').forEach(radio => {
-    radio.addEventListener('change', () => carregarSlots(radio.value))
-  })
-
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
 
-    const modalidade  = form.querySelector('input[name="modalidade"]:checked')?.value
-    const slotInput   = form.querySelector('input[name="slot_id"]:checked')
-    const nome        = form.nome?.value.trim()
-    const telefone    = form.telefone?.value.trim()
-    const nascimento  = form.nascimento?.value
+    const modalidade    = form.querySelector('input[name="modalidade"]:checked')?.value
+    const nome          = form.nome?.value.trim()
+    const telefone      = form.telefone?.value.trim()
+    const nascimento    = form.nascimento?.value
+    const dataAgendada  = form.data_agendada?.value
+    const horaAgendada  = form.hora_agendada?.value
 
-    if (!modalidade)    { alert('Selecione a modalidade de interesse.'); return }
-    if (!slotInput)     { alert('Selecione um horário disponível.'); return }
-    if (!nome)          { alert('Informe seu nome completo.'); return }
-    if (!telefone)      { alert('Informe seu WhatsApp.'); return }
-    if (!nascimento)    { alert('Informe sua data de nascimento.'); return }
-
-    const slotId       = parseInt(slotInput.value)
-    const dataAgendada = slotInput.dataset.data
-    const horaAgendada = slotInput.dataset.hora
-
-    if (!dataAgendada) { alert('Erro ao calcular a data. Tente novamente.'); return }
+    if (!modalidade)   { alert('Selecione a modalidade de interesse.'); return }
+    if (!nome)         { alert('Informe seu nome completo.'); return }
+    if (!telefone)     { alert('Informe seu WhatsApp.'); return }
+    if (!nascimento)   { alert('Informe sua data de nascimento.'); return }
+    if (!dataAgendada) { alert('Informe a data preferida.'); return }
+    if (!horaAgendada) { alert('Informe o horário preferido.'); return }
 
     if (btnText)    btnText.style.display    = 'none'
     if (btnLoading) btnLoading.style.display = 'inline'
@@ -221,7 +149,6 @@ function initFormAgendamento(form) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          slot:                slotId,
           age_nome:            nome,
           age_telefone:        telefone,
           age_nascimento:      nascimento,
@@ -239,17 +166,14 @@ function initFormAgendamento(form) {
         if (formSuccess) formSuccess.style.display = 'block'
       } else {
         const err = await resp.json().catch(() => ({}))
-        const msg = Object.values(err).flat().join(' ') || 'Erro ao enviar.'
-        throw new Error(msg)
+        throw new Error(Object.values(err).flat().join(' ') || 'Erro ao enviar.')
       }
     } catch (err) {
       const wppMsg = encodeURIComponent(
         `Olá! Gostaria de agendar uma aula experimental.\n\n` +
-        `*Nome:* ${nome}\n` +
-        `*Modalidade:* ${modalidade}\n` +
-        `*Tel:* ${telefone}`
+        `*Nome:* ${nome}\n*Modalidade:* ${modalidade}\n*Tel:* ${telefone}`
       )
-      alert(`Não foi possível agendar agora (${err.message || 'erro'}). Você será redirecionado para o WhatsApp.`)
+      alert(`Não foi possível agendar agora. Você será redirecionado para o WhatsApp.`)
       window.open(`https://wa.me/5534998218204?text=${wppMsg}`, '_blank')
     } finally {
       if (btnText)    btnText.style.display    = 'inline'

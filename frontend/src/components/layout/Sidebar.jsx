@@ -56,9 +56,8 @@ const MENU = [
       { label: 'Alunos',         path: '/operacional/alunos',        icon: Users },
       { label: 'Funcionários',   path: '/operacional/funcionarios',  icon: UserCheck },
       { label: 'Turmas',         path: '/operacional/turmas',        icon: CalendarDays },
-      { label: 'Faltas',          path: '/operacional/avisos-falta',              icon: BellOff },
-      { label: 'Agendamentos',   path: '/operacional/agendamentos',              icon: ListTodo },
-      { label: 'Aulas Experimentais', path: '/operacional/agendamentos-experimentais', icon: Sparkles },
+      { label: 'Faltas',        path: '/operacional/avisos-falta', icon: BellOff },
+      { label: 'Agendamentos', path: '/operacional/agendamentos', icon: ListTodo },
     ],
   },
   {
@@ -109,9 +108,8 @@ const MENU = [
     icon: Settings,
     permission: 'admin',
     children: [
-      { label: 'Usuários',             path: '/configuracao/usuarios',             icon: UserCog },
-      { label: 'Profissões',           path: '/configuracao/profissoes',           icon: ClipboardList },
-      { label: 'Slots Experimentais',  path: '/configuracao/slots-experimentais',  icon: FlaskConical },
+      { label: 'Usuários',   path: '/configuracao/usuarios',   icon: UserCog },
+      { label: 'Profissões', path: '/configuracao/profissoes', icon: ClipboardList },
     ],
   },
 ]

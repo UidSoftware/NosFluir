@@ -101,13 +101,15 @@
                 </div>
               </div>
 
-              <!-- PASSO 2: Horários disponíveis (carregado da API) -->
-              <div class="form__row" id="slotsSection" style="display:none">
+              <!-- PASSO 2: Data e horário -->
+              <div class="form__row form__row--2">
                 <div class="form__group">
-                  <label>Horário disponível *</label>
-                  <div id="slotsContainer" class="form__radio-group form__radio-group--col">
-                    <p id="slotsLoading" class="form__note">Carregando horários...</p>
-                  </div>
+                  <label for="data_agendada">Data preferida *</label>
+                  <input type="date" id="data_agendada" name="data_agendada" required />
+                </div>
+                <div class="form__group">
+                  <label for="hora_agendada">Horário preferido *</label>
+                  <input type="time" id="hora_agendada" name="hora_agendada" required />
                 </div>
               </div>
 

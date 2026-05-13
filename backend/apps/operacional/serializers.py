@@ -196,13 +196,11 @@ class SlotExperimentalSerializer(serializers.ModelSerializer):
 
 class AgendamentoExperimentalSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
-    slot_dia_semana = serializers.CharField(source='slot.slot_dia_semana', read_only=True)
-    slot_hora = serializers.TimeField(source='slot.slot_hora', read_only=True)
 
     class Meta:
         model = AgendamentoExperimental
         fields = [
-            'id', 'age_id', 'slot', 'slot_dia_semana', 'slot_hora',
+            'id', 'age_id', 'slot',
             'age_nome', 'age_telefone', 'age_nascimento', 'age_modalidade',
             'age_disponibilidade', 'age_problema_saude',
             'age_data_agendada', 'age_hora_agendada',
@@ -210,13 +208,6 @@ class AgendamentoExperimentalSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
         read_only_fields = ['age_id', 'created_at', 'updated_at']
-
-    def validate(self, data):
-        slot = data.get('slot')
-        if slot and not self.instance:
-            if slot.vagas_disponiveis <= 0:
-                raise serializers.ValidationError({'slot': 'Não há vagas disponíveis neste horário.'})
-        return data
 
 
 class AulaExperimentalSerializer(serializers.ModelSerializer):

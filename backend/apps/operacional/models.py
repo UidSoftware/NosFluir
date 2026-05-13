@@ -272,6 +272,7 @@ class AgendamentoExperimental(BaseModel):
         'SlotExperimental',
         on_delete=models.PROTECT,
         related_name='agendamentos',
+        null=True, blank=True,
     )
     age_nome            = models.CharField(max_length=200)
     age_telefone        = models.CharField(max_length=20)

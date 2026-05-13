@@ -79,6 +79,39 @@
             </div>
 
             <div id="formFields">
+
+              <!-- PASSO 1: Modalidade -->
+              <div class="form__row">
+                <div class="form__group">
+                  <label>Modalidade de interesse *</label>
+                  <div class="form__radio-group" id="modalidadeGroup">
+                    <label class="form__radio-card">
+                      <input type="radio" name="modalidade" value="pilates" />
+                      <span>Mat Pilates</span>
+                    </label>
+                    <label class="form__radio-card">
+                      <input type="radio" name="modalidade" value="funcional" />
+                      <span>Funcional</span>
+                    </label>
+                    <label class="form__radio-card">
+                      <input type="radio" name="modalidade" value="ambos" />
+                      <span>Não sei ainda</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- PASSO 2: Horários disponíveis (carregado da API) -->
+              <div class="form__row" id="slotsSection" style="display:none">
+                <div class="form__group">
+                  <label>Horário disponível *</label>
+                  <div id="slotsContainer" class="form__radio-group form__radio-group--col">
+                    <p id="slotsLoading" class="form__note">Carregando horários...</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- PASSO 3: Dados pessoais -->
               <div class="form__row">
                 <div class="form__group">
                   <label for="nome">Nome completo *</label>
@@ -88,68 +121,38 @@
 
               <div class="form__row form__row--2">
                 <div class="form__group">
-                  <label for="email">E-mail *</label>
-                  <input type="email" id="email" name="email" placeholder="seu@email.com" required />
-                </div>
-                <div class="form__group">
                   <label for="telefone">WhatsApp *</label>
                   <input type="tel" id="telefone" name="telefone" placeholder="(34) 99999-0000" required />
                 </div>
+                <div class="form__group">
+                  <label for="nascimento">Data de nascimento *</label>
+                  <input type="date" id="nascimento" name="nascimento" required />
+                </div>
               </div>
 
+              <!-- PASSO 4: Saúde e objetivo -->
               <div class="form__row">
                 <div class="form__group">
-                  <label for="servico">Modalidade de interesse *</label>
-                  <select id="servico" name="servico" required>
-                    <option value="">Selecionar modalidade...</option>
-                    <option value="Pilates Reformer">Pilates Reformer</option>
-                    <option value="Treinamento Funcional">Treinamento Funcional</option>
-                    <option value="Pilates Solo">Pilates Solo (Mat)</option>
-                    <option value="Pilates para Gestantes">Pilates para Gestantes</option>
-                    <option value="Pilates Terceira Idade">Pilates — Terceira Idade</option>
-                    <option value="Reabilitação">Reabilitação / Dor</option>
-                    <option value="Não sei ainda">Não sei ainda — quero uma indicação</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="form__row form__row--2">
-                <div class="form__group">
-                  <label for="horario">Turno preferido</label>
-                  <select id="horario" name="horario">
-                    <option value="">Selecionar turno...</option>
-                    <option value="Manhã (6h–12h)">Manhã (6h – 12h)</option>
-                    <option value="Tarde (12h–18h)">Tarde (12h – 18h)</option>
-                    <option value="Noite (18h–22h)">Noite (18h – 22h)</option>
-                    <option value="Qualquer horário">Qualquer horário</option>
-                  </select>
-                </div>
-                <div class="form__group">
-                  <label for="como_conheceu">Como nos conheceu?</label>
-                  <select id="como_conheceu" name="como_conheceu">
-                    <option value="">Selecionar...</option>
-                    <option value="Indicação">Indicação de amigo/família</option>
-                    <option value="Instagram">Instagram</option>
-                    <option value="Google">Google</option>
-                    <option value="Passando na rua">Passando pelo local</option>
-                    <option value="Outro">Outro</option>
-                  </select>
+                  <label for="problema_saude">Doenças crônicas, lesões ou dores?</label>
+                  <textarea id="problema_saude" name="problema_saude" rows="2"
+                    placeholder="Conte tudo, não esconda nada 😊 — isso ajuda nossos professores a cuidar melhor de você"></textarea>
                 </div>
               </div>
 
               <div class="form__row">
                 <div class="form__group">
-                  <label for="mensagem">Mensagem (opcional)</label>
-                  <textarea id="mensagem" name="mensagem" rows="3" placeholder="Conte sobre seus objetivos, alguma limitação física ou dúvida..."></textarea>
+                  <label for="disponibilidade">Outros horários que você tem disponibilidade</label>
+                  <input type="text" id="disponibilidade" name="disponibilidade"
+                    placeholder="Ex: Segunda 18h, Sexta 7h..." />
                 </div>
               </div>
 
               <button type="submit" class="btn btn--gradient btn--full" id="btnSubmit">
-                <span id="btnText">Solicitar aula experimental gratuita</span>
+                <span id="btnText">Agendar Minha Aula Experimental</span>
                 <span id="btnLoading" style="display:none">Enviando...</span>
               </button>
 
-              <p class="form__note">Ao enviar, você concorda em receber contato da nossa equipe pelo número ou e-mail informado. Sem spam.</p>
+              <p class="form__note">Ao enviar, você concorda em receber contato da nossa equipe. Nossa equipe confirmará o agendamento pelo WhatsApp.</p>
             </div>
           </form>
         </div>

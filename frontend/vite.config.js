@@ -21,13 +21,26 @@ export default defineConfig({
         theme_color: '#151329',
         background_color: '#151329',
         display: 'standalone',
+        scope: '/sistema/',
         start_url: '/sistema/',
         icons: [
           {
             src: '/static/landing/Icone-401x401-Sem-Fundo.png',
-            sizes: '401x401',
+            sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
+          },
+          {
+            src: '/static/landing/Icone-401x401-Sem-Fundo.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/static/landing/Icone-401x401-Sem-Fundo2-Preto.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },

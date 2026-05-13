@@ -1,8 +1,9 @@
 from django.contrib import admin
 
 from .models import (
-    AgendamentoHorario, AgendamentoTurmas,
-    Aluno, AvisoFalta, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos,
+    AgendamentoExperimental, AgendamentoHorario, AgendamentoTurmas,
+    Aluno, AulaExperimental, AvisoFalta, FichaAluno, Funcionario,
+    Profissao, SlotExperimental, Turma, TurmaAlunos,
 )
 
 
@@ -57,6 +58,33 @@ class AvisoFaltaAdmin(admin.ModelAdmin):
     date_hierarchy = 'avi_data_aula'
     ordering = ['-avi_data_hora_aviso']
     readonly_fields = ['avi_antecedencia_horas', 'avi_gera_credito']
+
+
+@admin.register(SlotExperimental)
+class SlotExperimentalAdmin(admin.ModelAdmin):
+    list_display = ['slot_dia_semana', 'slot_hora', 'slot_modalidade', 'slot_vagas', 'slot_ativo']
+    list_filter = ['slot_ativo', 'slot_modalidade', 'slot_dia_semana']
+    ordering = ['slot_dia_semana', 'slot_hora']
+
+
+@admin.register(AgendamentoExperimental)
+class AgendamentoExperimentalAdmin(admin.ModelAdmin):
+    list_display = ['age_nome', 'age_telefone', 'age_modalidade', 'age_data_agendada', 'age_hora_agendada', 'age_status', 'age_origem']
+    list_filter = ['age_status', 'age_modalidade', 'age_origem']
+    search_fields = ['age_nome', 'age_telefone']
+    date_hierarchy = 'age_data_agendada'
+    ordering = ['age_data_agendada', 'age_hora_agendada']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(AulaExperimental)
+class AulaExperimentalAdmin(admin.ModelAdmin):
+    list_display = ['agendamento', 'func', 'aexp_data', 'aexp_modalidade', 'aexp_cadastrou_aluno', 'aluno']
+    list_filter = ['aexp_modalidade', 'aexp_cadastrou_aluno']
+    search_fields = ['agendamento__age_nome', 'func__func_nome']
+    date_hierarchy = 'aexp_data'
+    ordering = ['-aexp_data']
+    readonly_fields = ['created_at', 'updated_at']
 
 
 @admin.register(AgendamentoHorario)

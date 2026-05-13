@@ -209,6 +209,156 @@ class AvisoFalta(BaseModel):
         return f'Aviso {self.aluno} — {self.avi_data_aula} ({self.avi_tipo})'
 
 
+class SlotExperimental(BaseModel):
+    """Horários disponíveis para aula experimental — cadastrado pelo admin."""
+    DIA_CHOICES = [
+        ('seg', 'Segunda-feira'),
+        ('ter', 'Terça-feira'),
+        ('qua', 'Quarta-feira'),
+        ('qui', 'Quinta-feira'),
+        ('sex', 'Sexta-feira'),
+    ]
+    MODALIDADE_CHOICES = [
+        ('pilates',   'Mat Pilates'),
+        ('funcional', 'Funcional'),
+        ('ambos',     'Ambos'),
+    ]
+
+    slot_id          = models.AutoField(primary_key=True)
+    slot_dia_semana  = models.CharField(max_length=3, choices=DIA_CHOICES)
+    slot_hora        = models.TimeField()
+    slot_modalidade  = models.CharField(max_length=20, choices=MODALIDADE_CHOICES, default='ambos')
+    slot_vagas       = models.IntegerField(default=2)
+    slot_ativo       = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'slot_experimental'
+        verbose_name = 'Slot Experimental'
+        verbose_name_plural = 'Slots Experimentais'
+        unique_together = [('slot_dia_semana', 'slot_hora', 'slot_modalidade')]
+        ordering = ['slot_dia_semana', 'slot_hora']
+
+    @property
+    def vagas_disponiveis(self):
+        from datetime import date
+        ocupadas = self.agendamentos.filter(
+            age_status__in=['pendente', 'confirmado'],
+            age_data_agendada__gte=date.today(),
+            deleted_at__isnull=True,
+        ).count()
+        return max(0, self.slot_vagas - ocupadas)
+
+    def __str__(self):
+        return f"{self.get_slot_dia_semana_display()} {self.slot_hora} — {self.get_slot_modalidade_display()}"
+
+
+class AgendamentoExperimental(BaseModel):
+    """Solicitação de aula experimental — criado pelo site ou sistema."""
+    STATUS_CHOICES = [
+        ('pendente',   'Pendente'),
+        ('confirmado', 'Confirmado'),
+        ('realizado',  'Realizado'),
+        ('cancelado',  'Cancelado'),
+        ('faltou',     'Faltou'),
+    ]
+    MODALIDADE_CHOICES = [
+        ('pilates',   'Mat Pilates'),
+        ('funcional', 'Funcional'),
+        ('ambos',     'Ambos'),
+    ]
+
+    age_id              = models.AutoField(primary_key=True)
+    slot                = models.ForeignKey(
+        'SlotExperimental',
+        on_delete=models.PROTECT,
+        related_name='agendamentos',
+    )
+    age_nome            = models.CharField(max_length=200)
+    age_telefone        = models.CharField(max_length=20)
+    age_nascimento      = models.DateField()
+    age_modalidade      = models.CharField(max_length=20, choices=MODALIDADE_CHOICES)
+    age_disponibilidade = models.TextField(null=True, blank=True)
+    age_problema_saude  = models.TextField(null=True, blank=True)
+    age_data_agendada   = models.DateField()
+    age_hora_agendada   = models.TimeField()
+    age_status          = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendente')
+    age_origem          = models.CharField(
+        max_length=20,
+        choices=[('site', 'Site'), ('sistema', 'Sistema')],
+        default='site',
+    )
+    age_observacoes     = models.TextField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'agendamento_experimental'
+        verbose_name = 'Agendamento Experimental'
+        verbose_name_plural = 'Agendamentos Experimentais'
+        ordering = ['age_data_agendada', 'age_hora_agendada']
+
+    def __str__(self):
+        return f"{self.age_nome} — {self.age_data_agendada} {self.age_hora_agendada}"
+
+
+class AulaExperimental(BaseModel):
+    """Realização da aula experimental com anamnese, testes físicos e decisão de cadastro."""
+    MODALIDADE_CHOICES = [
+        ('pilates',   'Mat Pilates'),
+        ('funcional', 'Funcional'),
+        ('ambos',     'Ambos'),
+    ]
+
+    aexp_id     = models.AutoField(primary_key=True)
+    agendamento = models.OneToOneField(
+        'AgendamentoExperimental',
+        on_delete=models.PROTECT,
+        related_name='aula_experimental',
+    )
+    func        = models.ForeignKey(
+        'Funcionario',
+        on_delete=models.PROTECT,
+        related_name='aulas_experimentais',
+    )
+    aexp_data       = models.DateField()
+    aexp_modalidade = models.CharField(max_length=20, choices=MODALIDADE_CHOICES)
+
+    # Anamnese
+    aexp_profissao        = models.CharField(max_length=100, null=True, blank=True)
+    aexp_doencas_cronicas = models.TextField(null=True, blank=True)
+    aexp_lesoes_dores     = models.TextField(null=True, blank=True)
+    aexp_objetivo         = models.TextField(null=True, blank=True)
+
+    # Testes Físicos (Pré Aula)
+    aexp_agachamento   = models.TextField(null=True, blank=True)
+    aexp_flexibilidade = models.TextField(null=True, blank=True)
+    aexp_equilibrio    = models.TextField(null=True, blank=True)
+    aexp_coordenacao   = models.TextField(null=True, blank=True)
+    aexp_observacoes   = models.TextField(null=True, blank=True)
+
+    # Decisão
+    aexp_cadastrou_aluno = models.BooleanField(default=False)
+    aluno                = models.ForeignKey(
+        'Aluno',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='aula_experimental_origem',
+    )
+
+    class Meta:
+        db_table = 'aula_experimental'
+        verbose_name = 'Aula Experimental'
+        verbose_name_plural = 'Aulas Experimentais'
+        ordering = ['-aexp_data']
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Ao registrar a aula, o agendamento passa para 'realizado'
+        self.agendamento.age_status = 'realizado'
+        self.agendamento.save(update_fields=['age_status'])
+
+    def __str__(self):
+        return f"Experimental {self.agendamento.age_nome} — {self.aexp_data}"
+
+
 class AgendamentoHorario(BaseModel):
     """Pré-agendamento de horários disponíveis dos alunos via site."""
     agho_id = models.AutoField(primary_key=True)

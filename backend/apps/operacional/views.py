@@ -6,16 +6,18 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apps.core.mixins import AuditMixin
-from apps.core.permissions import IsRecepcionistaOuAdmin
+from apps.core.permissions import IsAdministrador, IsProfessorOuAdmin, IsRecepcionistaOuAdmin
 
 from .models import (
-    AgendamentoHorario, AgendamentoTurmas,
-    Aluno, AvisoFalta, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos,
+    AgendamentoExperimental, AgendamentoHorario, AgendamentoTurmas,
+    Aluno, AulaExperimental, AvisoFalta, FichaAluno, Funcionario,
+    Profissao, SlotExperimental, Turma, TurmaAlunos,
 )
 from .serializers import (
-    AgendamentoHorarioSerializer, AgendamentoTurmasSerializer,
-    AlunoSerializer, AvisoFaltaSerializer, FichaAlunoSerializer, FuncionarioSerializer,
-    ProfissaoSerializer, TurmaSerializer, TurmaAlunosSerializer,
+    AgendamentoExperimentalSerializer, AgendamentoHorarioSerializer, AgendamentoTurmasSerializer,
+    AlunoSerializer, AulaExperimentalSerializer, AvisoFaltaSerializer, FichaAlunoSerializer,
+    FuncionarioSerializer, ProfissaoSerializer, SlotExperimentalSerializer,
+    TurmaSerializer, TurmaAlunosSerializer,
 )
 
 
@@ -110,6 +112,56 @@ class AvisoFaltaViewSet(AuditMixin, ModelViewSet):
     filterset_fields = ['aluno', 'turma', 'avi_data_aula', 'avi_tipo', 'avi_gera_credito']
     search_fields = ['aluno__alu_nome', 'turma__tur_nome']
     ordering_fields = ['avi_data_hora_aviso', 'avi_data_aula']
+
+
+class SlotExperimentalViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsAdministrador]
+    queryset = SlotExperimental.objects.filter(deleted_at__isnull=True).order_by('slot_dia_semana', 'slot_hora')
+    serializer_class = SlotExperimentalSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['slot_ativo', 'slot_modalidade']
+
+    def get_permissions(self):
+        # GET público — site usa para listar slots disponíveis
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return super().get_permissions()
+
+
+class AgendamentoExperimentalViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsRecepcionistaOuAdmin]
+    queryset = (
+        AgendamentoExperimental.objects
+        .filter(deleted_at__isnull=True)
+        .select_related('slot')
+        .order_by('age_data_agendada', 'age_hora_agendada')
+    )
+    serializer_class = AgendamentoExperimentalSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['age_status', 'age_modalidade', 'age_data_agendada', 'age_origem']
+    search_fields = ['age_nome', 'age_telefone']
+    ordering_fields = ['age_data_agendada', 'age_hora_agendada', 'created_at']
+
+    def get_permissions(self):
+        # POST público — site e sistema podem agendar sem login
+        if self.action == 'create':
+            return [AllowAny()]
+        return super().get_permissions()
+
+
+class AulaExperimentalViewSet(AuditMixin, ModelViewSet):
+    permission_classes = [IsProfessorOuAdmin]
+    queryset = (
+        AulaExperimental.objects
+        .filter(deleted_at__isnull=True)
+        .select_related('agendamento', 'func', 'aluno')
+        .order_by('-aexp_data')
+    )
+    serializer_class = AulaExperimentalSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['aexp_modalidade', 'aexp_cadastrou_aluno']
+    search_fields = ['agendamento__age_nome', 'func__func_nome']
+    ordering_fields = ['aexp_data']
 
 
 class AgendamentoHorarioViewSet(AuditMixin, ModelViewSet):

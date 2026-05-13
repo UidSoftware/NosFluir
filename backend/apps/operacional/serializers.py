@@ -3,8 +3,9 @@ from datetime import date
 from rest_framework import serializers
 
 from .models import (
-    AgendamentoHorario, AgendamentoTurmas,
-    Aluno, AvisoFalta, FichaAluno, Funcionario, Profissao, Turma, TurmaAlunos,
+    AgendamentoExperimental, AgendamentoHorario, AgendamentoTurmas,
+    Aluno, AulaExperimental, AvisoFalta, FichaAluno, Funcionario,
+    Profissao, SlotExperimental, Turma, TurmaAlunos,
 )
 
 
@@ -174,6 +175,70 @@ class AgendamentoHorarioSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
         read_only_fields = ['agho_id', 'created_at', 'updated_at']
+
+
+class SlotExperimentalSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    vagas_disponiveis = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SlotExperimental
+        fields = [
+            'id', 'slot_id', 'slot_dia_semana', 'slot_hora', 'slot_modalidade',
+            'slot_vagas', 'slot_ativo', 'vagas_disponiveis',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['slot_id', 'created_at', 'updated_at']
+
+    def get_vagas_disponiveis(self, obj):
+        return obj.vagas_disponiveis
+
+
+class AgendamentoExperimentalSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    slot_dia_semana = serializers.CharField(source='slot.slot_dia_semana', read_only=True)
+    slot_hora = serializers.TimeField(source='slot.slot_hora', read_only=True)
+
+    class Meta:
+        model = AgendamentoExperimental
+        fields = [
+            'id', 'age_id', 'slot', 'slot_dia_semana', 'slot_hora',
+            'age_nome', 'age_telefone', 'age_nascimento', 'age_modalidade',
+            'age_disponibilidade', 'age_problema_saude',
+            'age_data_agendada', 'age_hora_agendada',
+            'age_status', 'age_origem', 'age_observacoes',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['age_id', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        slot = data.get('slot')
+        if slot and not self.instance:
+            if slot.vagas_disponiveis <= 0:
+                raise serializers.ValidationError({'slot': 'Não há vagas disponíveis neste horário.'})
+        return data
+
+
+class AulaExperimentalSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    age_nome = serializers.CharField(source='agendamento.age_nome', read_only=True)
+    age_telefone = serializers.CharField(source='agendamento.age_telefone', read_only=True)
+    func_nome = serializers.CharField(source='func.func_nome', read_only=True)
+    alu_nome = serializers.CharField(source='aluno.alu_nome', read_only=True, default=None)
+
+    class Meta:
+        model = AulaExperimental
+        fields = [
+            'id', 'aexp_id', 'agendamento', 'age_nome', 'age_telefone',
+            'func', 'func_nome',
+            'aexp_data', 'aexp_modalidade',
+            'aexp_profissao', 'aexp_doencas_cronicas', 'aexp_lesoes_dores', 'aexp_objetivo',
+            'aexp_agachamento', 'aexp_flexibilidade', 'aexp_equilibrio',
+            'aexp_coordenacao', 'aexp_observacoes',
+            'aexp_cadastrou_aluno', 'aluno', 'alu_nome',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['aexp_id', 'created_at', 'updated_at']
 
 
 class AgendamentoTurmasSerializer(serializers.ModelSerializer):

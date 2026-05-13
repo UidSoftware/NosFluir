@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 13/05/2026 | Versão: 13.0
+> Última atualização: 13/05/2026 | Versão: 13.1
 
 ---
 
@@ -346,6 +346,7 @@ Acessorio   → acess_id    Aulas        → aul_id      User         → id (pa
 ProgramaTurma → prog_id   RegistroExercicioAluno → reg_id   AvisoFalta → avi_id
 AlunoPlano    → aplano_id Conta        → cont_id     PlanoContas  → plc_id
 Produto       → prod_id   Pedido       → ped_id      PedidoItem   → item_id
+SlotExperimental → slot_id  AgendamentoExperimental → age_id  AulaExperimental → aexp_id
 ```
 
 ### FKs no payload (CRÍTICO — sem sufixo `_id`):
@@ -870,26 +871,14 @@ git pull origin main && docker compose restart nginx
 
 **117 testes passando (financeiro: 55, operacional: 20, técnico: 33)**
 
-### Fase 13 — Agendamento e Aula Experimental ✅ COMPLETO (branch feat/fase13-agendamento-experimental)
+### Fase 13 — Agendamento e Aula Experimental ✅ COMPLETO E EM PRODUÇÃO (13/05/2026)
 
-#### Backend — App `operacional`
-- [x] Model `SlotExperimental` + migration `0009_fase13_agendamento_experimental`
-- [x] Model `AgendamentoExperimental` + validação de vagas no serializer
-- [x] Model `AulaExperimental` + save() atualiza age_status automaticamente
-- [x] Endpoints com permissões corretas (GET slots público, POST agendamento público, aula = Professor/Admin)
-- [x] Admin registrado para os 3 models
+#### Backend — App `operacional` (migrations 0009 e 0010)
+- [x] Model `SlotExperimental` — horários recorrentes (dia_semana + hora + modalidade + vagas); `vagas_disponiveis` property; unique: (dia, hora, modalidade)
+- [x] Model `AgendamentoExperimental` — FK `slot` **nullable** (0010); status: pendente/confirmado/realizado/cancelado/faltou; POST público
+- [x] Model `AulaExperimental` — anamnese + testes físicos + decisão; OneToOne com AgendamentoExperimental; `save()` seta `age_status='realizado'` automaticamente
+- [x] Permissões: GET slots público; POST agendamento público; GET/PATCH agendamento = Recepcionista/Admin; aula = Professor/Admin
 - [x] 117 testes passando (sem regressão)
-
-#### Frontend Sistema
-- [x] `SlotsExperimentaisPage` em `/configuracao/slots-experimentais` (Admin)
-- [x] `AgendamentosExperimentaisPage` em `/operacional/agendamentos-experimentais` (Recepcionista/Admin)
-  - Filtros: status, modalidade, data
-  - Painel de detalhes ao clicar no nome do prospecto
-  - Ações: confirmar, cancelar, faltou
-  - Botão "Iniciar Aula Experimental" (Professor/Admin) → modal de aula
-- [x] Formulário de Aula Experimental: anamnese + testes físicos + decisão
-- [x] Modal de cadastro de Aluno pré-preenchido (quando decisão = cadastrar)
-- [x] Sidebar: "Aulas Experimentais" em Operacional + "Slots Experimentais" em Configuração
 
 #### PKs dos novos models:
 ```
@@ -898,15 +887,32 @@ AgendamentoExperimental  → age_id
 AulaExperimental         → aexp_id
 ```
 
-#### FK no payload:
+#### FKs no payload (sem sufixo `_id`):
 ```
-slot (não slot_id), agendamento (não agendamento_id), func (não func_id), aluno (não aluno_id)
+slot, agendamento, func, aluno
 ```
 
-#### Site Institucional
-- [x] Formulário `agendamento.html` reescrito com slots dinâmicos da API
-- [x] JS: seleciona modalidade → carrega slots → calcula próxima data → submete para `/api/agendamento-experimental/`
-- [x] CSS: radio cards para modalidade e slots
+#### Frontend Sistema
+- [x] **AgendamentosPage** (`/operacional/agendamentos`) — 3 abas:
+  - **Horários** e **Turmas** — solicitações do site (read + delete)
+  - **Grade de Horários** — grid visual Seg–Sex × 06h–21h; clique `+` numa célula → mini form (modalidade + vagas) → cria `SlotExperimental`; badge no slot → toggle ativo/inativo; lápis → editar vagas / remover
+  - Botão **"Novo Agendamento Experimental"** no header → abre formulário com calendário
+- [x] **ExperimentalPage** (`/tecnico/experimental`) — item em Técnico antes de "Aulas":
+  - Lista com filtros (status, modalidade, data); clicar no nome → painel de detalhes
+  - Ações: confirmar, cancelar, faltou, iniciar/ver aula experimental
+  - Formulário completo de **AulaExperimental**: anamnese (profissão, doenças, lesões, objetivo) + testes físicos (agachamento, flexibilidade, equilíbrio, coordenação) + decisão (cadastrar como aluno ou encerrar)
+  - Modal de cadastro de **Aluno pré-preenchido** ao decidir "cadastrar" (cria Aluno → vincula na AulaExperimental)
+- [x] **Calendário visual** de slots nos dois formulários de Novo Agendamento:
+  - Grid semanas × dias (Seg–Sex); dias com slots ativos têm bolinha; clique no dia → mostra horários disponíveis como botões (hora + badge modalidade + vagas)
+  - Seleciona horário → preenche automaticamente data, hora, slot_id e modalidade
+  - Data usa horário **local** (não UTC) — sem deslocamento de fuso Brasil
+
+#### Site Institucional (`agendamento.html`)
+- [x] Calendário visual idêntico ao sistema, carregado de `/api/slots-experimentais/?slot_ativo=true`
+- [x] Clica no dia → mostra horários disponíveis; clica no horário → confirma e submete via POST para `/api/agendamento-experimental/`
+- [x] Se slot for "Ambos", aparece select de modalidade
+- [x] Fallback WhatsApp se API falhar
+- [x] CSS: `.cal__grid`, `.cal__horario-btn`, `.cal__horario-tag` para cada modalidade
 
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Sparkles, Plus, UserPlus, X } from 'lucide-react'
+import { Sparkles, Plus, UserPlus, X, CalendarDays } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useList, useCreate, useUpdate, fetchAll } from '@/hooks/useApi'
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input, FormField, Spinner } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/useToast'
-import { formatDate } from '@/lib/utils'
+import { formatDate, cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import api from '@/services/api'
 
@@ -37,25 +37,147 @@ function StatusBadge({ status }) {
   )
 }
 
-const DIA_LABELS = { seg: 'Segunda', ter: 'Terça', qua: 'Quarta', qui: 'Quinta', sex: 'Sexta' }
-const MOD_LABELS  = { pilates: 'Mat Pilates', funcional: 'Funcional', ambos: 'Ambos' }
+const MOD_LABELS = { pilates: 'Mat Pilates', funcional: 'Funcional', ambos: 'Ambos' }
+const MOD_CLS    = {
+  pilates:  'bg-purple-500/20 text-purple-300 border-purple-500/40',
+  funcional:'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+  ambos:    'bg-slate-500/20 text-slate-300 border-slate-500/40',
+}
+const DOW_DIA = { 1:'seg', 2:'ter', 3:'qua', 4:'qui', 5:'sex' }
+const MES_PT  = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
 
-function proximaData(diaSemana) {
-  const alvo = { seg: 1, ter: 2, qua: 3, qui: 4, sex: 5 }[diaSemana]
-  if (!alvo) return ''
-  const hoje = new Date()
-  let diff = alvo - hoje.getDay()
-  if (diff <= 0) diff += 7
-  const d = new Date(hoje)
-  d.setDate(hoje.getDate() + diff)
-  return d.toISOString().slice(0, 10)
+function gerarSemanas(numSemanas) {
+  const hoje     = new Date()
+  const hojeDow  = hoje.getDay()
+  const seg      = new Date(hoje)
+  seg.setDate(hoje.getDate() - (hojeDow === 0 ? 6 : hojeDow - 1))
+  const semanas  = []
+  for (let w = 0; w < numSemanas; w++) {
+    const sem = []
+    for (let d = 0; d < 5; d++) {
+      const dt = new Date(seg)
+      dt.setDate(seg.getDate() + w * 7 + d)
+      sem.push({ iso: dt.toISOString().slice(0, 10), dt, dia: DOW_DIA[dt.getDay()] })
+    }
+    semanas.push(sem)
+  }
+  return semanas
+}
+
+function SlotCalendar({ slots, slotIdSelecionado, dataAtual, onSelect }) {
+  const [diaFoco, setDiaFoco] = useState(null)
+
+  const slotsByDia = {}
+  slots.forEach(s => {
+    if (!slotsByDia[s.slot_dia_semana]) slotsByDia[s.slot_dia_semana] = []
+    slotsByDia[s.slot_dia_semana].push(s)
+  })
+
+  const semanas = gerarSemanas(4)
+  const hojeStr = new Date().toISOString().slice(0, 10)
+
+  const slotsFoco = diaFoco
+    ? (slotsByDia[DOW_DIA[new Date(diaFoco + 'T00:00').getDay()]] || [])
+    : []
+
+  const meses = [...new Set(semanas.flat().map(c => c.dt.getMonth()))]
+  const headerMes = meses.map(m => MES_PT[m]).join(' / ')
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-lg border border-border overflow-hidden">
+        {/* Cabeçalho mês + dias */}
+        <div className="bg-fluir-dark-2/60 px-3 py-1.5 text-xs text-muted-foreground font-medium">{headerMes}</div>
+        <div className="grid grid-cols-5 border-b border-border/50">
+          {['Seg','Ter','Qua','Qui','Sex'].map(d => (
+            <div key={d} className="text-center text-xs text-muted-foreground py-1.5 font-medium">{d}</div>
+          ))}
+        </div>
+
+        {semanas.map((sem, wi) => (
+          <div key={wi} className="grid grid-cols-5 border-t border-border/30">
+            {sem.map(({ iso, dt, dia }) => {
+              const temSlot  = (slotsByDia[dia] || []).length > 0
+              const isPast   = iso < hojeStr
+              const isFoco   = diaFoco === iso
+              const temSel   = dataAtual === iso
+              return (
+                <button
+                  key={iso}
+                  type="button"
+                  disabled={!temSlot || isPast}
+                  onClick={() => setDiaFoco(isFoco ? null : iso)}
+                  className={cn(
+                    'relative py-2 text-center text-sm transition-colors',
+                    isPast         ? 'text-muted-foreground/20 cursor-not-allowed' :
+                    !temSlot       ? 'text-muted-foreground/30 cursor-not-allowed' :
+                    isFoco         ? 'bg-fluir-purple text-white font-semibold' :
+                    temSel         ? 'bg-fluir-purple/20 text-fluir-purple font-semibold' :
+                    'text-foreground hover:bg-fluir-purple/15 cursor-pointer font-medium',
+                  )}
+                >
+                  {dt.getDate()}
+                  {temSlot && !isPast && !isFoco && (
+                    <span className={cn(
+                      'absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full',
+                      temSel ? 'bg-fluir-purple' : 'bg-fluir-purple/50',
+                    )} />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Horários do dia focado */}
+      {diaFoco && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            {new Date(diaFoco + 'T00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {slotsFoco.map(slot => {
+              const isSel = String(slot.slot_id) === String(slotIdSelecionado) && dataAtual === diaFoco
+              return (
+                <button
+                  key={slot.slot_id}
+                  type="button"
+                  onClick={() => onSelect(slot, diaFoco)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all',
+                    isSel
+                      ? 'bg-fluir-purple text-white border-fluir-purple'
+                      : 'border-border hover:border-fluir-purple/50 hover:bg-fluir-purple/10',
+                  )}
+                >
+                  <span className="font-medium tabular-nums">{slot.slot_hora?.slice(0,5)}</span>
+                  <span className={cn('text-xs px-1.5 py-0.5 rounded border', MOD_CLS[slot.slot_modalidade])}>
+                    {MOD_LABELS[slot.slot_modalidade]}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {slot.vagas_disponiveis} vaga{slot.vagas_disponiveis > 1 ? 's' : ''}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {slots.length === 0 && (
+        <p className="text-xs text-muted-foreground text-center py-2">
+          Nenhum horário ativo — configure na aba <strong>Grade de Horários</strong> em Agendamentos.
+        </p>
+      )}
+    </div>
+  )
 }
 
 function NovoAgendamentoForm({ onClose }) {
   const { register, handleSubmit, setValue, watch } = useForm({
     defaultValues: {
-      slot_id: '__none__',
-      age_nome: '', age_telefone: '', age_nascimento: '',
+      slot_id: null, age_nome: '', age_telefone: '', age_nascimento: '',
       age_modalidade: '__none__', age_disponibilidade: '', age_problema_saude: '',
       age_data_agendada: '', age_hora_agendada: '', age_observacoes: '',
     },
@@ -69,37 +191,29 @@ function NovoAgendamentoForm({ onClose }) {
     select:   (all) => all.filter(s => s.slot_ativo && s.vagas_disponiveis > 0),
   })
 
-  const handleSlotChange = (slotId) => {
-    setValue('slot_id', slotId)
-    if (slotId === '__none__') {
-      setValue('age_data_agendada', '')
-      setValue('age_hora_agendada', '')
-      setValue('age_modalidade', '__none__')
-      return
-    }
-    const slot = slots.find(s => String(s.slot_id) === slotId)
-    if (!slot) return
-    setValue('age_data_agendada', proximaData(slot.slot_dia_semana))
+  const handleSlotSelect = (slot, data) => {
+    setValue('slot_id',          slot.slot_id)
+    setValue('age_data_agendada', data)
     setValue('age_hora_agendada', slot.slot_hora?.slice(0, 5) || '')
     if (slot.slot_modalidade !== 'ambos') setValue('age_modalidade', slot.slot_modalidade)
     else setValue('age_modalidade', '__none__')
   }
 
-  const busy = create.isPending
-  const slotId = watch('slot_id')
-  const slotSelecionado = slots.find(s => String(s.slot_id) === slotId)
+  const busy       = create.isPending
+  const slotId     = watch('slot_id')
+  const dataAg     = watch('age_data_agendada')
+  const slotSel    = slots.find(s => s.slot_id === slotId)
 
   const onSubmit = (data) => {
     const modalidade = data.age_modalidade !== '__none__' ? data.age_modalidade : null
-    const slotVal    = data.slot_id !== '__none__' ? parseInt(data.slot_id) : null
-    if (!slotVal)                  { toast({ title: 'Selecione um horário disponível.', variant: 'destructive' }); return }
+    if (!data.slot_id)             { toast({ title: 'Selecione um horário no calendário.', variant: 'destructive' }); return }
     if (!data.age_nome.trim())     { toast({ title: 'Informe o nome.', variant: 'destructive' }); return }
     if (!data.age_telefone.trim()) { toast({ title: 'Informe o telefone.', variant: 'destructive' }); return }
     if (!data.age_nascimento)      { toast({ title: 'Informe a data de nascimento.', variant: 'destructive' }); return }
     if (!modalidade)               { toast({ title: 'Selecione a modalidade.', variant: 'destructive' }); return }
 
     create.mutate({
-      slot: slotVal,
+      slot: data.slot_id,
       age_nome: data.age_nome.trim(), age_telefone: data.age_telefone.trim(),
       age_nascimento: data.age_nascimento, age_modalidade: modalidade,
       age_disponibilidade: data.age_disponibilidade || null,
@@ -113,40 +227,30 @@ function NovoAgendamentoForm({ onClose }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
 
-      {/* Slot disponível */}
-      <FormField label="Horário disponível *">
-        <Select value={watch('slot_id')} onValueChange={handleSlotChange} disabled={busy || loadingSlots}>
-          <SelectTrigger><SelectValue placeholder={loadingSlots ? 'Carregando...' : 'Selecionar horário...'} /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar...</SelectItem>
-            {slots.map(s => (
-              <SelectItem key={s.slot_id} value={String(s.slot_id)}>
-                {DIA_LABELS[s.slot_dia_semana]} {s.slot_hora?.slice(0, 5)} — {MOD_LABELS[s.slot_modalidade]}
-                {' '}({s.vagas_disponiveis} vaga{s.vagas_disponiveis > 1 ? 's' : ''})
-              </SelectItem>
-            ))}
-            {slots.length === 0 && !loadingSlots && (
-              <SelectItem value="__none__" disabled className="text-muted-foreground text-xs">
-                Nenhum horário disponível — configure na aba Grade de Horários
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
-        {/* Resumo do slot selecionado */}
-        {slotSelecionado && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Próxima aula: <span className="text-foreground font-medium">
-              {watch('age_data_agendada')
-                ? new Date(watch('age_data_agendada') + 'T00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })
-                : '—'}
-            </span> às {slotSelecionado.slot_hora?.slice(0,5)}
+      {/* Calendário de slots */}
+      <div>
+        <p className="text-xs font-medium text-muted-foreground mb-2">
+          {loadingSlots ? 'Carregando horários...' : 'Selecione um dia disponível *'}
+        </p>
+        {!loadingSlots && (
+          <SlotCalendar
+            slots={slots}
+            slotIdSelecionado={slotId}
+            dataAtual={dataAg}
+            onSelect={handleSlotSelect}
+          />
+        )}
+        {slotSel && dataAg && (
+          <p className="text-xs text-emerald-400 mt-2">
+            ✓ {new Date(dataAg + 'T00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}
+            {' '}às {slotSel.slot_hora?.slice(0,5)} — {MOD_LABELS[slotSel.slot_modalidade]}
           </p>
         )}
-      </FormField>
+      </div>
 
-      {/* Modalidade — só aparece se slot for 'ambos' */}
-      {(slotSelecionado?.slot_modalidade === 'ambos' || watch('slot_id') === '__none__') && (
-        <FormField label={`Modalidade *${slotSelecionado?.slot_modalidade === 'ambos' ? ' (slot permite ambas)' : ''}`}>
+      {/* Modalidade — só quando slot for 'ambos' */}
+      {slotSel?.slot_modalidade === 'ambos' && (
+        <FormField label="Modalidade da aula *">
           <Select value={watch('age_modalidade')} onValueChange={v => setValue('age_modalidade', v)} disabled={busy}>
             <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
             <SelectContent>
@@ -159,9 +263,9 @@ function NovoAgendamentoForm({ onClose }) {
         </FormField>
       )}
 
-      {/* Data (editável para ajuste pontual) */}
-      {slotSelecionado && (
-        <FormField label="Data *">
+      {/* Data ajustável (mostrada após selecionar slot) */}
+      {slotSel && (
+        <FormField label="Confirmar data *">
           <Input type="date" {...register('age_data_agendada')} disabled={busy} />
         </FormField>
       )}

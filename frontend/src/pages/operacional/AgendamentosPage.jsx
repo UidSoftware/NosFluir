@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { ListTodo, Trash2, Clock, Calendar, CalendarDays, Plus, X, Pencil } from 'lucide-react'
+import { ListTodo, Trash2, Clock, Calendar, CalendarDays, Plus, X, Pencil, Sparkles } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useList, useDelete, fetchAll } from '@/hooks/useApi'
+import { useList, useCreate, useDelete, fetchAll } from '@/hooks/useApi'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SearchFilter } from '@/components/shared/SearchFilter'
 import { Button } from '@/components/ui/button'
@@ -68,6 +68,205 @@ const TURMAS_COLS = [
   { key: 'agtu_nivelamento',          header: 'Nível',      render: r => r.agtu_nivelamento || '—' },
   { key: 'created',                   header: 'Enviado em', render: r => formatDateTime(r.created_at) },
 ]
+
+// ── Calendário de slots (compartilhado com Novo Agendamento) ──────────────
+const KEY_AGE   = 'agendamento-experimental'
+const MOD_LABELS_AG = { pilates: 'Mat Pilates', funcional: 'Funcional', ambos: 'Ambos' }
+const MOD_CLS_AG    = {
+  pilates:  'bg-purple-500/20 text-purple-300 border-purple-500/40',
+  funcional:'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+  ambos:    'bg-slate-500/20 text-slate-300 border-slate-500/40',
+}
+const DOW_DIA_AG = { 1:'seg', 2:'ter', 3:'qua', 4:'qui', 5:'sex' }
+const MES_PT_AG  = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+
+function gerarSemanas(n) {
+  const hoje = new Date()
+  const dow  = hoje.getDay()
+  const seg  = new Date(hoje)
+  seg.setDate(hoje.getDate() - (dow === 0 ? 6 : dow - 1))
+  const out = []
+  for (let w = 0; w < n; w++) {
+    const sem = []
+    for (let d = 0; d < 5; d++) {
+      const dt = new Date(seg)
+      dt.setDate(seg.getDate() + w * 7 + d)
+      sem.push({ iso: dt.toISOString().slice(0, 10), dt, dia: DOW_DIA_AG[dt.getDay()] })
+    }
+    out.push(sem)
+  }
+  return out
+}
+
+function SlotCalendar({ slots, slotIdSel, dataAtual, onSelect }) {
+  const [diaFoco, setDiaFoco] = useState(null)
+  const byDia = {}
+  slots.forEach(s => { if (!byDia[s.slot_dia_semana]) byDia[s.slot_dia_semana] = []; byDia[s.slot_dia_semana].push(s) })
+  const semanas = gerarSemanas(4)
+  const hojeStr = new Date().toISOString().slice(0, 10)
+  const slotsFoco = diaFoco ? (byDia[DOW_DIA_AG[new Date(diaFoco + 'T00:00').getDay()]] || []) : []
+  const meses = [...new Set(semanas.flat().map(c => c.dt.getMonth()))].map(m => MES_PT_AG[m]).join(' / ')
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="bg-fluir-dark-2/60 px-3 py-1.5 text-xs text-muted-foreground font-medium">{meses}</div>
+        <div className="grid grid-cols-5 border-b border-border/50">
+          {['Seg','Ter','Qua','Qui','Sex'].map(d => (
+            <div key={d} className="text-center text-xs text-muted-foreground py-1.5 font-medium">{d}</div>
+          ))}
+        </div>
+        {semanas.map((sem, wi) => (
+          <div key={wi} className="grid grid-cols-5 border-t border-border/30">
+            {sem.map(({ iso, dt, dia }) => {
+              const temSlot = (byDia[dia] || []).length > 0
+              const isPast  = iso < hojeStr
+              const isFoco  = diaFoco === iso
+              const temSel  = dataAtual === iso
+              return (
+                <button key={iso} type="button" disabled={!temSlot || isPast}
+                  onClick={() => setDiaFoco(isFoco ? null : iso)}
+                  className={cn(
+                    'relative py-2 text-center text-sm transition-colors',
+                    isPast    ? 'text-muted-foreground/20 cursor-not-allowed' :
+                    !temSlot  ? 'text-muted-foreground/30 cursor-not-allowed' :
+                    isFoco    ? 'bg-fluir-purple text-white font-semibold' :
+                    temSel    ? 'bg-fluir-purple/20 text-fluir-purple font-semibold' :
+                    'text-foreground hover:bg-fluir-purple/15 cursor-pointer font-medium',
+                  )}>
+                  {dt.getDate()}
+                  {temSlot && !isPast && !isFoco && (
+                    <span className={cn('absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full', temSel ? 'bg-fluir-purple' : 'bg-fluir-purple/50')} />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+      {diaFoco && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            {new Date(diaFoco + 'T00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {slotsFoco.map(slot => {
+              const isSel = String(slot.slot_id) === String(slotIdSel) && dataAtual === diaFoco
+              return (
+                <button key={slot.slot_id} type="button" onClick={() => onSelect(slot, diaFoco)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all',
+                    isSel ? 'bg-fluir-purple text-white border-fluir-purple'
+                          : 'border-border hover:border-fluir-purple/50 hover:bg-fluir-purple/10',
+                  )}>
+                  <span className="font-medium tabular-nums">{slot.slot_hora?.slice(0,5)}</span>
+                  <span className={cn('text-xs px-1.5 py-0.5 rounded border', MOD_CLS_AG[slot.slot_modalidade])}>
+                    {MOD_LABELS_AG[slot.slot_modalidade]}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{slot.vagas_disponiveis} vaga{slot.vagas_disponiveis > 1 ? 's' : ''}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {slots.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum horário ativo — use a <strong>Grade de Horários</strong> para configurar.</p>}
+    </div>
+  )
+}
+
+function NovoAgendamentoExpForm({ onClose }) {
+  const { register, handleSubmit, setValue, watch } = useForm({
+    defaultValues: {
+      slot_id: null, age_nome: '', age_telefone: '', age_nascimento: '',
+      age_modalidade: '__none__', age_disponibilidade: '', age_problema_saude: '',
+      age_data_agendada: '', age_hora_agendada: '',
+    },
+  })
+  const create = useCreate(KEY_AGE, `/${KEY_AGE}/`, { successMsg: 'Agendamento criado.', onSuccess: onClose })
+  const { data: slots = [], isLoading: loadingSlots } = useQuery({
+    queryKey: ['slots-disponiveis'],
+    queryFn:  () => fetchAll('/slots-experimentais/'),
+    select:   (all) => all.filter(s => s.slot_ativo && s.vagas_disponiveis > 0),
+  })
+  const slotId  = watch('slot_id')
+  const dataAg  = watch('age_data_agendada')
+  const slotSel = slots.find(s => s.slot_id === slotId)
+  const busy    = create.isPending
+
+  const handleSlotSelect = (slot, data) => {
+    setValue('slot_id',           slot.slot_id)
+    setValue('age_data_agendada', data)
+    setValue('age_hora_agendada', slot.slot_hora?.slice(0,5) || '')
+    if (slot.slot_modalidade !== 'ambos') setValue('age_modalidade', slot.slot_modalidade)
+    else setValue('age_modalidade', '__none__')
+  }
+
+  const onSubmit = (data) => {
+    const modalidade = data.age_modalidade !== '__none__' ? data.age_modalidade : null
+    if (!data.slot_id)             { toast({ title: 'Selecione um horário no calendário.', variant: 'destructive' }); return }
+    if (!data.age_nome.trim())     { toast({ title: 'Informe o nome.', variant: 'destructive' }); return }
+    if (!data.age_telefone.trim()) { toast({ title: 'Informe o telefone.', variant: 'destructive' }); return }
+    if (!data.age_nascimento)      { toast({ title: 'Informe a data de nascimento.', variant: 'destructive' }); return }
+    if (!modalidade)               { toast({ title: 'Selecione a modalidade.', variant: 'destructive' }); return }
+    create.mutate({
+      slot: data.slot_id, age_nome: data.age_nome.trim(), age_telefone: data.age_telefone.trim(),
+      age_nascimento: data.age_nascimento, age_modalidade: modalidade,
+      age_disponibilidade: data.age_disponibilidade || null,
+      age_problema_saude:  data.age_problema_saude  || null,
+      age_data_agendada: data.age_data_agendada, age_hora_agendada: data.age_hora_agendada,
+      age_origem: 'sistema',
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+      <div>
+        <p className="text-xs font-medium text-muted-foreground mb-2">
+          {loadingSlots ? 'Carregando horários...' : 'Selecione um dia disponível *'}
+        </p>
+        {!loadingSlots && <SlotCalendar slots={slots} slotIdSel={slotId} dataAtual={dataAg} onSelect={handleSlotSelect} />}
+        {slotSel && dataAg && (
+          <p className="text-xs text-emerald-400 mt-2">
+            ✓ {new Date(dataAg + 'T00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}
+            {' '}às {slotSel.slot_hora?.slice(0,5)} — {MOD_LABELS_AG[slotSel.slot_modalidade]}
+          </p>
+        )}
+      </div>
+      {slotSel?.slot_modalidade === 'ambos' && (
+        <FormField label="Modalidade da aula *">
+          <Select value={watch('age_modalidade')} onValueChange={v => setValue('age_modalidade', v)} disabled={busy}>
+            <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar...</SelectItem>
+              <SelectItem value="pilates">Mat Pilates</SelectItem>
+              <SelectItem value="funcional">Funcional</SelectItem>
+              <SelectItem value="ambos">Ambos</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+      )}
+      {slotSel && <FormField label="Confirmar data *"><Input type="date" {...register('age_data_agendada')} disabled={busy} /></FormField>}
+      <div className="grid grid-cols-2 gap-3">
+        <FormField label="Nome completo *" className="col-span-2"><Input {...register('age_nome')} disabled={busy} placeholder="Nome do prospecto" /></FormField>
+        <FormField label="Telefone *"><Input {...register('age_telefone')} disabled={busy} placeholder="(34) 9xxxx-xxxx" /></FormField>
+        <FormField label="Nascimento *"><Input type="date" {...register('age_nascimento')} disabled={busy} /></FormField>
+      </div>
+      <FormField label="Saúde / Lesões">
+        <textarea {...register('age_problema_saude')} disabled={busy} rows={2}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+          placeholder="Doenças, lesões — conte tudo 😊" />
+      </FormField>
+      <FormField label="Outros horários disponíveis">
+        <Input {...register('age_disponibilidade')} disabled={busy} placeholder="Ex: Segunda 18h, Sexta 7h..." />
+      </FormField>
+      <DialogFooter>
+        <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
+        <Button type="submit" disabled={busy}>{busy ? <Spinner className="mr-2" /> : null}Agendar</Button>
+      </DialogFooter>
+    </form>
+  )
+}
 
 // ── Aba Grade de Horários (estilo barbearia) ──────────────────────────────
 const DIAS = [
@@ -362,12 +561,18 @@ const TABS = [
 
 export default function AgendamentosPage() {
   const [activeTab, setActiveTab] = useState('horarios')
+  const [modalExp, setModalExp]   = useState(false)
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Agendamentos"
         description="Solicitações do site e controle de horários para aulas experimentais"
+        actions={
+          <Button onClick={() => setModalExp(true)}>
+            <Sparkles className="w-4 h-4 mr-1.5" />Novo Agendamento Experimental
+          </Button>
+        }
       />
 
       <Card>
@@ -395,6 +600,13 @@ export default function AgendamentosPage() {
           {activeTab === 'grade' && <TabGrade />}
         </CardContent>
       </Card>
+
+      <Dialog open={modalExp} onOpenChange={setModalExp}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-fluir-purple" />Novo Agendamento Experimental</DialogTitle></DialogHeader>
+          <NovoAgendamentoExpForm onClose={() => setModalExp(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

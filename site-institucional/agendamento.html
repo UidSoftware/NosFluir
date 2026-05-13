@@ -101,15 +101,43 @@
                 </div>
               </div>
 
-              <!-- PASSO 2: Data e horário -->
-              <div class="form__row form__row--2">
+              <!-- PASSO 2: Calendário de horários disponíveis -->
+              <div class="form__row" id="calSection">
                 <div class="form__group">
-                  <label for="data_agendada">Data preferida *</label>
-                  <input type="date" id="data_agendada" name="data_agendada" required />
+                  <label>Quando você quer vir? *</label>
+                  <div id="calContainer">
+                    <p class="form__note" id="calLoading">Carregando horários disponíveis...</p>
+                  </div>
+                  <!-- Horários do dia selecionado -->
+                  <div id="horariosContainer" style="display:none" class="cal__horarios"></div>
+                  <!-- Confirmação -->
+                  <p id="slotConfirm" class="form__note form__note--success" style="display:none"></p>
+                  <!-- Campos hidden -->
+                  <input type="hidden" id="slot_id"      name="slot_id" />
+                  <input type="hidden" id="data_agendada" name="data_agendada" />
+                  <input type="hidden" id="hora_agendada" name="hora_agendada" />
+                  <input type="hidden" id="slot_modalidade_val" name="slot_modalidade_val" />
                 </div>
+              </div>
+
+              <!-- Modalidade — só aparece se slot for 'ambos' -->
+              <div class="form__row" id="modalidadeSection" style="display:none">
                 <div class="form__group">
-                  <label for="hora_agendada">Horário preferido *</label>
-                  <input type="time" id="hora_agendada" name="hora_agendada" required />
+                  <label>Modalidade de interesse *</label>
+                  <div class="form__radio-group" id="modalidadeGroup">
+                    <label class="form__radio-card">
+                      <input type="radio" name="modalidade" value="pilates" />
+                      <span>Mat Pilates</span>
+                    </label>
+                    <label class="form__radio-card">
+                      <input type="radio" name="modalidade" value="funcional" />
+                      <span>Funcional</span>
+                    </label>
+                    <label class="form__radio-card">
+                      <input type="radio" name="modalidade" value="ambos" />
+                      <span>Sem preferência</span>
+                    </label>
+                  </div>
                 </div>
               </div>
 

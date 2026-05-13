@@ -37,38 +37,136 @@ function StatusBadge({ status }) {
   )
 }
 
+const DIA_LABELS = { seg: 'Segunda', ter: 'Terça', qua: 'Quarta', qui: 'Quinta', sex: 'Sexta' }
+const MOD_LABELS  = { pilates: 'Mat Pilates', funcional: 'Funcional', ambos: 'Ambos' }
+
+function proximaData(diaSemana) {
+  const alvo = { seg: 1, ter: 2, qua: 3, qui: 4, sex: 5 }[diaSemana]
+  if (!alvo) return ''
+  const hoje = new Date()
+  let diff = alvo - hoje.getDay()
+  if (diff <= 0) diff += 7
+  const d = new Date(hoje)
+  d.setDate(hoje.getDate() + diff)
+  return d.toISOString().slice(0, 10)
+}
+
 function NovoAgendamentoForm({ onClose }) {
   const { register, handleSubmit, setValue, watch } = useForm({
     defaultValues: {
+      slot_id: '__none__',
       age_nome: '', age_telefone: '', age_nascimento: '',
       age_modalidade: '__none__', age_disponibilidade: '', age_problema_saude: '',
-      age_data_agendada: new Date().toISOString().slice(0, 10),
-      age_hora_agendada: '', age_observacoes: '',
+      age_data_agendada: '', age_hora_agendada: '', age_observacoes: '',
     },
   })
+
   const create = useCreate(KEY_AGE, `/${KEY_AGE}/`, { successMsg: 'Agendamento criado.', onSuccess: onClose })
+
+  const { data: slots = [], isLoading: loadingSlots } = useQuery({
+    queryKey: ['slots-disponiveis'],
+    queryFn:  () => fetchAll('/slots-experimentais/'),
+    select:   (all) => all.filter(s => s.slot_ativo && s.vagas_disponiveis > 0),
+  })
+
+  const handleSlotChange = (slotId) => {
+    setValue('slot_id', slotId)
+    if (slotId === '__none__') {
+      setValue('age_data_agendada', '')
+      setValue('age_hora_agendada', '')
+      setValue('age_modalidade', '__none__')
+      return
+    }
+    const slot = slots.find(s => String(s.slot_id) === slotId)
+    if (!slot) return
+    setValue('age_data_agendada', proximaData(slot.slot_dia_semana))
+    setValue('age_hora_agendada', slot.slot_hora?.slice(0, 5) || '')
+    if (slot.slot_modalidade !== 'ambos') setValue('age_modalidade', slot.slot_modalidade)
+    else setValue('age_modalidade', '__none__')
+  }
+
   const busy = create.isPending
+  const slotId = watch('slot_id')
+  const slotSelecionado = slots.find(s => String(s.slot_id) === slotId)
 
   const onSubmit = (data) => {
     const modalidade = data.age_modalidade !== '__none__' ? data.age_modalidade : null
+    const slotVal    = data.slot_id !== '__none__' ? parseInt(data.slot_id) : null
+    if (!slotVal)                  { toast({ title: 'Selecione um horário disponível.', variant: 'destructive' }); return }
     if (!data.age_nome.trim())     { toast({ title: 'Informe o nome.', variant: 'destructive' }); return }
     if (!data.age_telefone.trim()) { toast({ title: 'Informe o telefone.', variant: 'destructive' }); return }
     if (!data.age_nascimento)      { toast({ title: 'Informe a data de nascimento.', variant: 'destructive' }); return }
     if (!modalidade)               { toast({ title: 'Selecione a modalidade.', variant: 'destructive' }); return }
-    if (!data.age_data_agendada)   { toast({ title: 'Informe a data.', variant: 'destructive' }); return }
-    if (!data.age_hora_agendada)   { toast({ title: 'Informe o horário.', variant: 'destructive' }); return }
+
     create.mutate({
+      slot: slotVal,
       age_nome: data.age_nome.trim(), age_telefone: data.age_telefone.trim(),
       age_nascimento: data.age_nascimento, age_modalidade: modalidade,
       age_disponibilidade: data.age_disponibilidade || null,
-      age_problema_saude: data.age_problema_saude || null,
-      age_data_agendada: data.age_data_agendada, age_hora_agendada: data.age_hora_agendada,
+      age_problema_saude:  data.age_problema_saude  || null,
+      age_data_agendada: data.age_data_agendada,
+      age_hora_agendada: data.age_hora_agendada,
       age_origem: 'sistema', age_observacoes: data.age_observacoes || null,
     })
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+
+      {/* Slot disponível */}
+      <FormField label="Horário disponível *">
+        <Select value={watch('slot_id')} onValueChange={handleSlotChange} disabled={busy || loadingSlots}>
+          <SelectTrigger><SelectValue placeholder={loadingSlots ? 'Carregando...' : 'Selecionar horário...'} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar...</SelectItem>
+            {slots.map(s => (
+              <SelectItem key={s.slot_id} value={String(s.slot_id)}>
+                {DIA_LABELS[s.slot_dia_semana]} {s.slot_hora?.slice(0, 5)} — {MOD_LABELS[s.slot_modalidade]}
+                {' '}({s.vagas_disponiveis} vaga{s.vagas_disponiveis > 1 ? 's' : ''})
+              </SelectItem>
+            ))}
+            {slots.length === 0 && !loadingSlots && (
+              <SelectItem value="__none__" disabled className="text-muted-foreground text-xs">
+                Nenhum horário disponível — configure na aba Grade de Horários
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+        {/* Resumo do slot selecionado */}
+        {slotSelecionado && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Próxima aula: <span className="text-foreground font-medium">
+              {watch('age_data_agendada')
+                ? new Date(watch('age_data_agendada') + 'T00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })
+                : '—'}
+            </span> às {slotSelecionado.slot_hora?.slice(0,5)}
+          </p>
+        )}
+      </FormField>
+
+      {/* Modalidade — só aparece se slot for 'ambos' */}
+      {(slotSelecionado?.slot_modalidade === 'ambos' || watch('slot_id') === '__none__') && (
+        <FormField label={`Modalidade *${slotSelecionado?.slot_modalidade === 'ambos' ? ' (slot permite ambas)' : ''}`}>
+          <Select value={watch('age_modalidade')} onValueChange={v => setValue('age_modalidade', v)} disabled={busy}>
+            <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar...</SelectItem>
+              <SelectItem value="pilates">Mat Pilates</SelectItem>
+              <SelectItem value="funcional">Funcional</SelectItem>
+              <SelectItem value="ambos">Ambos</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+      )}
+
+      {/* Data (editável para ajuste pontual) */}
+      {slotSelecionado && (
+        <FormField label="Data *">
+          <Input type="date" {...register('age_data_agendada')} disabled={busy} />
+        </FormField>
+      )}
+
+      {/* Dados pessoais */}
       <div className="grid grid-cols-2 gap-3">
         <FormField label="Nome completo *" className="col-span-2">
           <Input {...register('age_nome')} disabled={busy} placeholder="Nome do prospecto" />
@@ -80,29 +178,17 @@ function NovoAgendamentoForm({ onClose }) {
           <Input type="date" {...register('age_nascimento')} disabled={busy} />
         </FormField>
       </div>
-      <FormField label="Modalidade *">
-        <Select value={watch('age_modalidade')} onValueChange={v => setValue('age_modalidade', v)} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar...</SelectItem>
-            <SelectItem value="pilates">Mat Pilates</SelectItem>
-            <SelectItem value="funcional">Funcional</SelectItem>
-            <SelectItem value="ambos">Ambos</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
-      <div className="grid grid-cols-2 gap-3">
-        <FormField label="Data *"><Input type="date" {...register('age_data_agendada')} disabled={busy} /></FormField>
-        <FormField label="Horário *"><Input type="time" {...register('age_hora_agendada')} disabled={busy} /></FormField>
-      </div>
+
       <FormField label="Saúde / Lesões">
         <textarea {...register('age_problema_saude')} disabled={busy} rows={2}
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
           placeholder="Doenças, lesões — conte tudo 😊" />
       </FormField>
+
       <FormField label="Outros horários disponíveis">
         <Input {...register('age_disponibilidade')} disabled={busy} placeholder="Ex: Segunda 18h, Sexta 7h..." />
       </FormField>
+
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>{busy ? <Spinner className="mr-2" /> : null}Agendar</Button>

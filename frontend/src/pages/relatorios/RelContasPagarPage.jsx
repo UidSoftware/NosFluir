@@ -28,6 +28,7 @@ export default function RelContasPagarPage() {
 
   const columns = [
     { key: 'pag_descricao',      header: 'Descrição',  render: r => r.pag_descricao },
+    { key: 'conta_nome',         header: 'Conta',       render: r => r.conta_nome ?? <span className="text-muted-foreground">—</span> },
     { key: 'pag_valor_total',    header: 'Valor',       render: r => formatCurrency(r.pag_valor_total) },
     { key: 'pag_data_vencimento',header: 'Vencimento',  render: r => formatDate(r.pag_data_vencimento) },
     { key: 'pag_data_pagamento', header: 'Pagamento',   render: r => formatDate(r.pag_data_pagamento) },

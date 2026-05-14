@@ -127,16 +127,19 @@ def processar_pedido(sender, instance, **kwargs):
         if not instance.ped_pagamento_futuro:
             ultimo = LivroCaixa.objects.select_for_update().order_by('-lica_id').first()
             saldo_ant = ultimo.lica_saldo_atual if ultimo else Decimal('0.00')
+            from .models import PlanoContas
+            plano_venda = PlanoContas.objects.filter(pk=5).first()
             LivroCaixa.objects.create(
                 lica_tipo_lancamento='entrada',
                 lcx_tipo_movimento='entrada',
-                lica_historico=f'Pedido {instance.ped_numero}',
+                lica_historico=f'Recebimento: Pedido {instance.ped_numero}',
                 lica_valor=instance.ped_total,
                 lica_origem_tipo='pedido',
                 lica_origem_id=instance.ped_id,
                 lica_saldo_anterior=saldo_ant,
                 lica_saldo_atual=saldo_ant + instance.ped_total,
                 conta=instance.conta,
+                plano_contas=plano_venda,
                 lica_forma_pagamento=instance.ped_forma_pagamento,
                 lcx_competencia=instance.ped_data,
                 created_by=instance.updated_by or instance.created_by,
@@ -150,6 +153,8 @@ def processar_pedido(sender, instance, **kwargs):
                 valor = valor_base + (resto if i == num - 1 else Decimal('0.00'))
                 sufixo = f' {i + 1}/{num}' if num > 1 else ''
                 vencimento = _add_months(instance.ped_data, i + 1) if num > 1 else instance.ped_data
+                from .models import PlanoContas
+                plano_venda = PlanoContas.objects.filter(pk=5).first()
                 ContasReceber.objects.create(
                     alu=instance.alu,
                     rec_nome_pagador=instance.ped_nome_cliente,
@@ -163,6 +168,7 @@ def processar_pedido(sender, instance, **kwargs):
                     rec_data_vencimento=vencimento,
                     rec_status='pendente',
                     conta=instance.conta,
+                    plano_contas=plano_venda,
                     created_by=user,
                     updated_by=user,
                 )

@@ -476,31 +476,59 @@ function ContaReceberForm({ rec, onClose }) {
 function LinhaRec({ r, onEditar, onExcluir, onPagar }) {
   const status = getStatusInfo(r)
   const podeReceber = r.rec_status !== 'recebido' && r.rec_status !== 'cancelado'
+  const nome = r.alu_nome || r.rec_nome_pagador || '—'
+
+  const acoes = (
+    <div className="flex items-center gap-1">
+      {podeReceber && (
+        <Button size="icon" variant="ghost" title="Confirmar recebimento" onClick={() => onPagar(r)}>
+          <DollarSign className="w-4 h-4 text-green-400" />
+        </Button>
+      )}
+      <Button size="icon" variant="ghost" title="Editar" onClick={() => onEditar(r)}>
+        <Pencil className="w-3.5 h-3.5" />
+      </Button>
+      <Button size="icon" variant="ghost" title="Excluir" onClick={() => onExcluir(r.rec_id)}>
+        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+      </Button>
+    </div>
+  )
 
   return (
-    <div className="flex flex-wrap items-center gap-2 py-2.5 px-3 border-b border-border/30 last:border-0 hover:bg-muted/20 rounded text-sm">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+    <div className="py-2.5 px-3 border-b border-border/30 last:border-0 hover:bg-muted/20 rounded text-sm">
+
+      {/* Mobile: 2 linhas */}
+      <div className="md:hidden">
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full shrink-0 ${status.dot}`} />
+          <span className="font-medium flex-1 min-w-0 truncate">{nome}</span>
+          <Badge variant={status.variant} className="text-[11px] shrink-0">{status.label}</Badge>
+        </div>
+        <div className="flex items-center gap-2 mt-1 pl-4">
+          <span className="text-muted-foreground text-xs">{formatDate(r.rec_data_vencimento)}</span>
+          <span className="font-semibold text-fluir-cyan text-xs">{formatCurrency(r.rec_valor_total)}</span>
+          <div className="ml-auto">{acoes}</div>
+        </div>
+      </div>
+
+      {/* Tablet/Desktop: 1 linha */}
+      <div className="hidden md:flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full shrink-0 ${status.dot}`} />
-        <span className="font-medium truncate">{r.alu_nome || r.rec_nome_pagador || '—'}</span>
-        {r.rec_tipo && <Badge variant="outline" className="text-[10px] hidden md:inline-flex">{TIPOS_RECEITA.find(t => t.value === r.rec_tipo)?.label ?? r.rec_tipo}</Badge>}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="font-medium truncate">{nome}</span>
+          {r.rec_tipo && (
+            <Badge variant="outline" className="text-[10px] shrink-0">
+              {TIPOS_RECEITA.find(t => t.value === r.rec_tipo)?.label ?? r.rec_tipo}
+            </Badge>
+          )}
+        </div>
+        <span className="text-muted-foreground hidden lg:block truncate max-w-[180px]">{r.rec_descricao}</span>
+        <span className="text-muted-foreground text-xs shrink-0">{formatDate(r.rec_data_vencimento)}</span>
+        <span className="font-semibold text-fluir-cyan shrink-0">{formatCurrency(r.rec_valor_total)}</span>
+        <Badge variant={status.variant} className="text-[11px] shrink-0">{status.label}</Badge>
+        <div className="ml-auto">{acoes}</div>
       </div>
-      <span className="text-muted-foreground hidden md:block truncate max-w-[180px]">{r.rec_descricao}</span>
-      <span className="text-muted-foreground text-xs">{formatDate(r.rec_data_vencimento)}</span>
-      <span className="font-semibold text-fluir-cyan">{formatCurrency(r.rec_valor_total)}</span>
-      <Badge variant={status.variant} className="text-[11px]">{status.label}</Badge>
-      <div className="flex items-center gap-1 ml-auto">
-        {podeReceber && (
-          <Button size="icon" variant="ghost" title="Confirmar recebimento" onClick={() => onPagar(r)}>
-            <DollarSign className="w-4 h-4 text-green-400" />
-          </Button>
-        )}
-        <Button size="icon" variant="ghost" title="Editar" onClick={() => onEditar(r)}>
-          <Pencil className="w-3.5 h-3.5" />
-        </Button>
-        <Button size="icon" variant="ghost" title="Excluir" onClick={() => onExcluir(r.rec_id)}>
-          <Trash2 className="w-3.5 h-3.5 text-destructive" />
-        </Button>
-      </div>
+
     </div>
   )
 }

@@ -415,31 +415,59 @@ function ContaPagarForm({ pag, onClose }) {
 function LinhaPag({ r, onEditar, onExcluir, onPagar }) {
   const status  = getStatusInfo(r)
   const podePagar = r.pag_status !== 'pago' && r.pag_status !== 'cancelado'
+  const nome = r.forn_nome || r.cpa_nome_credor || '—'
+
+  const acoes = (
+    <div className="flex items-center gap-1">
+      {podePagar && (
+        <Button size="icon" variant="ghost" title="Confirmar pagamento" onClick={() => onPagar(r)}>
+          <Banknote className="w-4 h-4 text-orange-400" />
+        </Button>
+      )}
+      <Button size="icon" variant="ghost" title="Editar" onClick={() => onEditar(r)}>
+        <Pencil className="w-3.5 h-3.5" />
+      </Button>
+      <Button size="icon" variant="ghost" title="Excluir" onClick={() => onExcluir(r.pag_id)}>
+        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+      </Button>
+    </div>
+  )
 
   return (
-    <div className="flex flex-wrap items-center gap-2 py-2.5 px-3 border-b border-border/30 last:border-0 hover:bg-muted/20 rounded text-sm">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+    <div className="py-2.5 px-3 border-b border-border/30 last:border-0 hover:bg-muted/20 rounded text-sm">
+
+      {/* Mobile: 2 linhas */}
+      <div className="md:hidden">
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full shrink-0 ${status.dot}`} />
+          <span className="font-medium flex-1 min-w-0 truncate">{nome}</span>
+          <Badge variant={status.variant} className="text-[11px] shrink-0">{status.label}</Badge>
+        </div>
+        <div className="flex items-center gap-2 mt-1 pl-4">
+          <span className="text-muted-foreground text-xs">{formatDate(r.pag_data_vencimento)}</span>
+          <span className="font-semibold text-red-400 text-xs">{formatCurrency(r.pag_valor_total)}</span>
+          <div className="ml-auto">{acoes}</div>
+        </div>
+      </div>
+
+      {/* Tablet/Desktop: 1 linha */}
+      <div className="hidden md:flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full shrink-0 ${status.dot}`} />
-        <span className="font-medium truncate">{r.forn_nome || r.cpa_nome_credor || '—'}</span>
-        {r.cpa_tipo && <Badge variant="outline" className="text-[10px] hidden md:inline-flex">{TIPOS_DESPESA.find(t => t.value === r.cpa_tipo)?.label ?? r.cpa_tipo}</Badge>}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="font-medium truncate">{nome}</span>
+          {r.cpa_tipo && (
+            <Badge variant="outline" className="text-[10px] shrink-0">
+              {TIPOS_DESPESA.find(t => t.value === r.cpa_tipo)?.label ?? r.cpa_tipo}
+            </Badge>
+          )}
+        </div>
+        <span className="text-muted-foreground hidden lg:block truncate max-w-[180px]">{r.pag_descricao}</span>
+        <span className="text-muted-foreground text-xs shrink-0">{formatDate(r.pag_data_vencimento)}</span>
+        <span className="font-semibold text-red-400 shrink-0">{formatCurrency(r.pag_valor_total)}</span>
+        <Badge variant={status.variant} className="text-[11px] shrink-0">{status.label}</Badge>
+        <div className="ml-auto">{acoes}</div>
       </div>
-      <span className="text-muted-foreground hidden md:block truncate max-w-[180px]">{r.pag_descricao}</span>
-      <span className="text-muted-foreground text-xs">{formatDate(r.pag_data_vencimento)}</span>
-      <span className="font-semibold text-red-400">{formatCurrency(r.pag_valor_total)}</span>
-      <Badge variant={status.variant} className="text-[11px]">{status.label}</Badge>
-      <div className="flex items-center gap-1 ml-auto">
-        {podePagar && (
-          <Button size="icon" variant="ghost" title="Confirmar pagamento" onClick={() => onPagar(r)}>
-            <Banknote className="w-4 h-4 text-orange-400" />
-          </Button>
-        )}
-        <Button size="icon" variant="ghost" title="Editar" onClick={() => onEditar(r)}>
-          <Pencil className="w-3.5 h-3.5" />
-        </Button>
-        <Button size="icon" variant="ghost" title="Excluir" onClick={() => onExcluir(r.pag_id)}>
-          <Trash2 className="w-3.5 h-3.5 text-destructive" />
-        </Button>
-      </div>
+
     </div>
   )
 }

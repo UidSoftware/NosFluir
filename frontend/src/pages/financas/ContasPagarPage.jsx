@@ -199,7 +199,6 @@ function ContaPagarForm({ pag, onClose }) {
   const total = qtd * unit
 
   const { data: fornecedores } = useQuery({ queryKey: ['fornecedores-select'], queryFn: () => fetchAll('/fornecedores/') })
-  const { data: servicos }     = useQuery({ queryKey: ['servicos-select'],     queryFn: () => fetchAll('/servicos-produtos/', { serv_ativo: true }) })
   const { data: planosContas } = useQuery({ queryKey: ['plano-contas-select'], queryFn: () => fetchAll('/plano-contas/', { plc_ativo: true }) })
   const { data: contas }       = useQuery({ queryKey: ['contas-select'],       queryFn: () => fetchAll('/contas/', { cont_ativo: true }) })
 
@@ -386,17 +385,6 @@ function ContaPagarForm({ pag, onClose }) {
           </Select>
         </FormField>
       </div>
-
-      {/* Serviço */}
-      <FormField label="Serviço">
-        <Select value={watch('serv')} onValueChange={v => setValue('serv', v)} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Nenhum (opcional)" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
-            {servicos?.map(s => <SelectItem key={s.serv_id} value={String(s.serv_id)}>{s.serv_nome}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </FormField>
 
       <FormField label="Observações">
         <Input {...register('pag_observacoes')} placeholder="Observações opcionais" disabled={busy} />

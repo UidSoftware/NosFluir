@@ -7,7 +7,7 @@ const ITENS = [
   { icon: DollarSign,      path: '/financas/contas-receber' },
   { icon: Users,           path: '/operacional/alunos' },
   { icon: Dumbbell,        path: '/tecnico/ministrar-aula' },
-  { icon: BarChart2,       path: '/relatorios' },
+  { icon: BarChart2,       path: '/relatorios/frequencia' },
 ]
 
 export function BottomBar() {

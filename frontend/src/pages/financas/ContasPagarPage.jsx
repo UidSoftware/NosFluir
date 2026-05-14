@@ -381,7 +381,7 @@ function ContaPagarForm({ pag, onClose }) {
             <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__" className="text-muted-foreground italic">Não informar</SelectItem>
-              {planosContas?.map(p => <SelectItem key={p.plc_id} value={String(p.plc_id)}>{p.plc_codigo} — {p.plc_nome}</SelectItem>)}
+              {planosContas?.filter(p => p.plc_tipo?.startsWith('despesa')).map(p => <SelectItem key={p.plc_id} value={String(p.plc_id)}>{p.plc_codigo} — {p.plc_nome}</SelectItem>)}
             </SelectContent>
           </Select>
         </FormField>

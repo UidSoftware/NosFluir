@@ -60,6 +60,18 @@ function getStatusInfo(r) {
   return { label: 'Futuro', variant: 'cyan', dot: 'bg-blue-500' }
 }
 
+// Vencida=0, Pendente=1, Recebida=2, Futuro=3, Cancelada=4
+function ordemStatus(r) {
+  const today = new Date().toISOString().split('T')[0]
+  const venc  = r.rec_data_vencimento?.split('T')[0] ?? ''
+  if (r.rec_status === 'recebido')  return 2
+  if (r.rec_status === 'cancelado') return 4
+  if (r.rec_status === 'vencido' || venc < today) return 0
+  const amanha = new Date(Date.now() + 86_400_000).toISOString().split('T')[0]
+  if (venc <= amanha) return 1
+  return 3
+}
+
 function mesLabel(key) {
   const [ano, mes] = key.split('-')
   const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
@@ -578,7 +590,7 @@ export default function ContasReceberPage() {
     onError: () => toast({ title: 'Erro ao gerar mensalidades.', variant: 'destructive' }),
   })
 
-  // Agrupa por mês
+  // Agrupa por mês e ordena por status: Vencida → Pendente → Recebida → Futuro → Cancelada
   const porMes = useMemo(() => {
     const grupos = {}
     registros.forEach(r => {
@@ -587,6 +599,7 @@ export default function ContasReceberPage() {
       if (!grupos[key]) grupos[key] = []
       grupos[key].push(r)
     })
+    Object.values(grupos).forEach(arr => arr.sort((a, b) => ordemStatus(a) - ordemStatus(b)))
     return Object.entries(grupos).sort(([a], [b]) => a.localeCompare(b))
   }, [registros])
 

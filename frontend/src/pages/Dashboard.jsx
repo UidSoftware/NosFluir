@@ -9,8 +9,7 @@ import {
   ChevronRight, UserCheck,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/primitives'
+import { Badge, Skeleton } from '@/components/ui/primitives'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import api from '@/services/api'

@@ -26,6 +26,7 @@ export default function RelLivroCaixaPage() {
 
   const params = {
     page,
+    ordering: '-lica_data_lancamento',
     ...(dataInicio                  && { data_inicio: dataInicio }),
     ...(dataFim                     && { data_fim: dataFim }),
     ...(tipo  !== 'all'             && { lica_tipo_lancamento: tipo }),
@@ -55,22 +56,19 @@ export default function RelLivroCaixaPage() {
   const resetPage = () => setPage(1)
 
   const columns = [
+    { key: 'lica_data_lancamento', header: 'Data',      render: r => formatDate(r.lica_data_lancamento) },
+    { key: 'conta_nome',           header: 'Conta',     render: r => <span className="text-muted-foreground">{r.conta_nome || '—'}</span> },
+    { key: 'lica_historico',       header: 'Histórico', render: r => r.lica_historico },
+    { key: 'plano_contas_nome',    header: 'Categoria', render: r => r.plano_contas_nome || r.lica_categoria || '—' },
     { key: 'lica_tipo_lancamento', header: 'Tipo',      render: r => <StatusBadge status={r.lica_tipo_lancamento} /> },
-    {
-      key: 'conta_nome', header: 'Conta',
-      render: r => <span className="text-sm text-muted-foreground">{r.conta_nome || '—'}</span>,
-    },
-    { key: 'lica_historico', header: 'Histórico', render: r => r.lica_historico },
-    { key: 'plano_contas_nome', header: 'Categoria', render: r => r.plano_contas_nome || r.lica_categoria || '—' },
     {
       key: 'lica_valor', header: 'Valor',
       render: r => (
-        <span className={r.lica_tipo_lancamento === 'entrada' ? 'text-emerald-400' : 'text-red-400'}>
+        <span className={r.lica_tipo_lancamento === 'entrada' ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium'}>
           {r.lica_tipo_lancamento === 'entrada' ? '+' : '-'}{formatCurrency(r.lica_valor)}
         </span>
       ),
     },
-    { key: 'lica_data_lancamento', header: 'Data', render: r => formatDate(r.lica_data_lancamento) },
   ]
 
   return (

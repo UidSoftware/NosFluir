@@ -44,6 +44,17 @@ const TIPOS_RECEITA = [
 ]
 const TIPOS_COM_ALUNO = new Set(['mensalidade', 'avaliacao', 'consultoria', 'personal'])
 
+// Auto-preenchimento: tipo de receita → plano de contas (IDs das fixtures)
+const TIPO_PARA_PLANO = {
+  mensalidade:  '1',  // 1.1.1 Mensalidades
+  avaliacao:    '2',  // 1.1.2 Avaliações Físicas
+  consultoria:  '3',  // 1.1.3 Consultoria Online
+  personal:     '4',  // 1.1.4 Personal
+  produto:      '5',  // 1.1.5 Venda de Produtos
+  rendimento:   '6',  // 1.2.1 Rendimento Poupança
+  outros:       '7',  // 1.2.2 Outros Recebimentos
+}
+
 const FORMAS = ['PIX', 'Dinheiro', 'Cartão', 'Boleto']
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -296,7 +307,7 @@ function ContaReceberForm({ rec, onClose }) {
 
       {/* Tipo de receita */}
       <FormField label="Tipo de Receita">
-        <Select value={watch('rec_tipo')} onValueChange={v => setValue('rec_tipo', v)} disabled={busy}>
+        <Select value={watch('rec_tipo')} onValueChange={v => { setValue('rec_tipo', v); if (TIPO_PARA_PLANO[v]) setValue('plano_contas', TIPO_PARA_PLANO[v]) }} disabled={busy}>
           <SelectTrigger><SelectValue placeholder="Selecionar tipo..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__" className="text-muted-foreground italic">Não informar</SelectItem>

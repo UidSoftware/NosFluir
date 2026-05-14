@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 14/05/2026 | Versão: 14.1
+> Última atualização: 14/05/2026 | Versão: 14.2
 
 ---
 
@@ -496,6 +496,7 @@ git pull origin main && docker compose restart nginx
 | LivroCaixa de Pedido sem `plano_contas` / historico "Pedido PED-XXXX" | Signal `processar_pedido` antigo não passava `plano_contas` | Signal corrigido (Fase 14.1): agora passa `plano_contas_id=5`; historico = "Recebimento: Pedido XXXX" |
 | `plano_contas` errado num LivroCaixa existente | Correção direta: `LivroCaixa.objects.filter(pk=X).update(plano_contas_id=Y)` | Nunca usar `.save()` — dispara signal e pode gerar lançamento duplicado |
 | `plano_contas` errado num ContasPagar pendente | Correção direta: `ContasPagar.objects.filter(pk=X).update(plano_contas_id=Y)` | Nunca usar `.save()` — dispara signal de LivroCaixa se status=pago |
+| Editou ContasPagar `pago` pela UI após deletar o LivroCaixa → novo lançamento com data de hoje | Signal não encontra LivroCaixa existente → recria com `now()` como data | Corrigir via `LivroCaixa.objects.filter(pk=X).update(lica_data_lancamento=data, lcx_competencia=comp)`; para evitar: usar `QuerySet.update()` no ContasPagar em vez da UI |
 
 ---
 
@@ -967,6 +968,23 @@ slot, agendamento, func, aluno
 - `rec_tipo` (ContasReceber) **NÃO é redundante** — tem lógica de negócio: `TIPOS_COM_ALUNO` define se campo aluno é obrigatório; validação no backend também depende desse campo
 - `plano_contas` em ContasPagar: usar `QuerySet.update()` para corrigir sem disparar signal de LivroCaixa
 - `processar_pedido` signal: sempre passar `plano_contas_id=5` pois pedidos são receita de venda
+
+### Fase 14.2 — Correções finais de dados e Relatório Livro Caixa ✅ EM PRODUÇÃO (14/05/2026)
+
+#### Correções de dados — Aluguel Abril 2026
+- [x] `LivroCaixa ID=1` ("Pagamento: Aluguel" 23/04, conta=None, plano=None) — **hard-deleted**: estava desconectado da cadeia de saldo (ID=4 iniciava em saldo_anterior=0, independente do ID=1)
+- [x] `ContasPagar ID=1` vinculado à Conta Corrente Mercado Pago pela UI → signal recriou `LivroCaixa ID=15` com data de hoje (comportamento esperado pois ID=1 foi deletado) → data corrigida via `update()` para 20/04/2026 com `lcx_competencia=2026-04-01`
+- [x] `LivroCaixa ID=15` final: conta=Conta Corrente, plano=Aluguel, data=20/04/2026, competência=abril/2026 ✅
+
+#### Relatório Livro Caixa
+- [x] Colunas reordenadas: **Data · Conta · Histórico · Categoria · Tipo · Valor**
+- [x] Ordenação padrão: decrescente por data (`ordering: '-lica_data_lancamento'`) — mais recente primeiro
+
+#### Regras importantes descobertas na Fase 14.2:
+- Deletar um LivroCaixa de uma ContasPagar `pago` e depois editar essa ContasPagar via UI → signal dispara e recria o LivroCaixa com data de **hoje** (não a data original de pagamento) → corrigir via `update()` após
+- Para evitar esse problema: usar `ContasPagar.objects.filter(pk=X).update(conta_id=Y)` em vez de editar pela UI quando a data importa
+- `LivroCaixa.lica_data_lancamento` e `lcx_competencia` devem ser corrigidos juntos ao ajustar datas históricas
+- Verificar `saldo_anterior` dos lançamentos antes de deletar: se o próximo lançamento referencia o saldo do que vai ser deletado, toda a cadeia de saldo ficará errada
 
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

@@ -18,13 +18,6 @@ const KEY      = 'contas-pagar'
 const ENDPOINT = '/contas-pagar/'
 
 const TIPOS_DESPESA = [
-  { value: 'aluguel',   label: 'Aluguel' },
-  { value: 'prolabore', label: 'Pró-labore' },
-  { value: 'material',  label: 'Material/Equipamento' },
-  { value: 'marketing', label: 'Marketing' },
-  { value: 'servico',   label: 'Serviço Terceiro' },
-  { value: 'taxa',      label: 'Taxa Bancária' },
-  { value: 'outros',    label: 'Outros' },
 ]
 
 const FORMAS = ['PIX', 'Dinheiro', 'Cartão', 'Boleto', 'Transferência']
@@ -159,7 +152,6 @@ function ContaPagarForm({ pag, onClose }) {
       serv:                pag.serv        ? String(pag.serv)        : '__none__',
       plano_contas:        pag.plano_contas ? String(pag.plano_contas): '__none__',
       conta:               pag.conta       ? String(pag.conta)       : '__none__',
-      cpa_tipo:            pag.cpa_tipo    || '__none__',
       cpa_nome_credor:     pag.cpa_nome_credor || '',
       pag_descricao:       pag.pag_descricao,
       pag_valor_unitario:  pag.pag_valor_unitario || '',
@@ -171,7 +163,7 @@ function ContaPagarForm({ pag, onClose }) {
       pag_forma_pagamento: pag.pag_forma_pagamento || '__none__',
       pag_observacoes:     pag.pag_observacoes || '',
     } : {
-      forn: '__none__', serv: '__none__', plano_contas: '__none__',
+      forn: '__none__', plano_contas: '__none__',
       conta: '__none__', cpa_tipo: '__none__',
       pag_quantidade: 1, pag_status: 'pendente',
       pag_data_emissao: new Date().toISOString().split('T')[0],
@@ -210,7 +202,6 @@ function ContaPagarForm({ pag, onClose }) {
     const payload = {
       forn:                fornVal,
       cpa_nome_credor:     fornVal ? null : data.cpa_nome_credor,
-      cpa_tipo:            data.cpa_tipo !== '__none__' ? data.cpa_tipo : null,
       serv:                data.serv !== '__none__' ? parseInt(data.serv) : null,
       plano_contas:        data.plano_contas !== '__none__' ? parseInt(data.plano_contas) : null,
       conta:               data.conta !== '__none__' ? parseInt(data.conta) : null,
@@ -236,17 +227,6 @@ function ContaPagarForm({ pag, onClose }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5 max-h-[70vh] overflow-y-auto">
-
-      {/* Tipo */}
-      <FormField label="Tipo de Despesa">
-        <Select value={watch('cpa_tipo')} onValueChange={v => setValue('cpa_tipo', v)} disabled={busy}>
-          <SelectTrigger><SelectValue placeholder="Selecionar tipo..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Não informar</SelectItem>
-            {TIPOS_DESPESA.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </FormField>
 
       {/* Fornecedor ou nome credor */}
       <FormField label="Fornecedor">
@@ -443,10 +423,8 @@ function LinhaPag({ r, onEditar, onExcluir, onPagar }) {
         <span className={`w-2 h-2 rounded-full shrink-0 ${status.dot}`} />
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <span className="font-medium truncate">{nome}</span>
-          {r.cpa_tipo && (
-            <Badge variant="outline" className="text-[10px] shrink-0">
-              {TIPOS_DESPESA.find(t => t.value === r.cpa_tipo)?.label ?? r.cpa_tipo}
-            </Badge>
+          {r.plano_contas_nome && (
+            <Badge variant="outline" className="text-[10px] shrink-0">{r.plano_contas_nome}</Badge>
           )}
         </div>
         <span className="text-muted-foreground hidden lg:block truncate max-w-[180px]">{r.pag_descricao}</span>
@@ -465,7 +443,6 @@ function LinhaPag({ r, onEditar, onExcluir, onPagar }) {
 export default function ContasPagarPage() {
   const [periodo,      setPeriodo]     = useState('6')
   const [statusFiltro, setStatusFiltro]= useState('all')
-  const [tipoFiltro,   setTipoFiltro]  = useState('all')
   const [modalForm,    setModalForm]   = useState(null)
   const [modalPagar,   setModalPagar]  = useState(null)
   const [deleteId,     setDeleteId]    = useState(null)
@@ -474,13 +451,12 @@ export default function ContasPagarPage() {
   const { gte, lte } = calcPeriodo(periodo)
 
   const { data: registros = [], isLoading, refetch } = useQuery({
-    queryKey: [KEY, periodo, statusFiltro, tipoFiltro],
+    queryKey: [KEY, periodo, statusFiltro],
     queryFn: () => fetchAll(ENDPOINT, {
       pag_data_vencimento__gte: gte,
       pag_data_vencimento__lte: lte,
       ordering: 'pag_data_vencimento',
       ...(statusFiltro !== 'all' ? { pag_status: statusFiltro } : {}),
-      ...(tipoFiltro   !== 'all' ? { cpa_tipo:   tipoFiltro   } : {}),
     }),
   })
 
@@ -524,13 +500,6 @@ export default function ContasPagarPage() {
                 <SelectItem value="vencido">Vencida</SelectItem>
                 <SelectItem value="pago">Pago</SelectItem>
                 <SelectItem value="cancelado">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={tipoFiltro} onValueChange={setTipoFiltro}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="Tipo" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
-                {TIPOS_DESPESA.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

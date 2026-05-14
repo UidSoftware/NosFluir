@@ -599,7 +599,11 @@ export default function ContasReceberPage() {
       if (!grupos[key]) grupos[key] = []
       grupos[key].push(r)
     })
-    Object.values(grupos).forEach(arr => arr.sort((a, b) => ordemStatus(a) - ordemStatus(b)))
+    Object.values(grupos).forEach(arr => arr.sort((a, b) => {
+      const diff = ordemStatus(a) - ordemStatus(b)
+      if (diff !== 0) return diff
+      return (a.rec_data_vencimento ?? '').localeCompare(b.rec_data_vencimento ?? '')
+    }))
     return Object.entries(grupos).sort(([a], [b]) => a.localeCompare(b))
   }, [registros])
 

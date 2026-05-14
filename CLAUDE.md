@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 14/05/2026 | Versão: 14.0
+> Última atualização: 14/05/2026 | Versão: 14.1
 
 ---
 
@@ -493,6 +493,9 @@ git pull origin main && docker compose restart nginx
 | BottomBar "Relatórios" abre o Dashboard no mobile | Path `/relatorios` não é uma rota registrada no React Router — cai no fallback do dashboard | Apontar para uma sub-rota válida ex: `/relatorios/frequencia`; `startsWith` ainda detecta ativo corretamente |
 | `Badge` não importa de `@/components/ui/badge` | Esse arquivo não existe no projeto | Importar de `@/components/ui/primitives`: `import { Badge } from '@/components/ui/primitives'` |
 | LivroCaixa com `conta=None` e `plano_contas=None` gerado por signal | Lançamento criado pré-Fase 10 quando os campos ainda não existiam no signal | Hard-delete do LivroCaixa + `ContasPagar.objects.update()` (sem disparar signal) + recriar LivroCaixa com campos corretos |
+| LivroCaixa de Pedido sem `plano_contas` / historico "Pedido PED-XXXX" | Signal `processar_pedido` antigo não passava `plano_contas` | Signal corrigido (Fase 14.1): agora passa `plano_contas_id=5`; historico = "Recebimento: Pedido XXXX" |
+| `plano_contas` errado num LivroCaixa existente | Correção direta: `LivroCaixa.objects.filter(pk=X).update(plano_contas_id=Y)` | Nunca usar `.save()` — dispara signal e pode gerar lançamento duplicado |
+| `plano_contas` errado num ContasPagar pendente | Correção direta: `ContasPagar.objects.filter(pk=X).update(plano_contas_id=Y)` | Nunca usar `.save()` — dispara signal de LivroCaixa se status=pago |
 
 ---
 
@@ -932,6 +935,38 @@ slot, agendamento, func, aluno
 - [ ] `ContasPagar ID=1` ("Aluguel", R$ 600, pago, venc 25/04/2026) — idem
 - **Ação:** confirmar com clientes qual conta foi usada → hard-delete LivroCaixa ID=1 + `update()` no ContasPagar + recriar LivroCaixa com campos corretos
 - **Ver:** `Instrucoes_Claude_Code_Fase14.md` → seção "Em Aberto" para passos detalhados
+
+### Fase 14.1 — Correções de Dados e UX Financeiro ✅ EM PRODUÇÃO (14/05/2026)
+
+#### Correções de dados históricos (via Django shell, `QuerySet.update()`)
+- [x] `LivroCaixa ID=4` ("Deposito Poupanca Mercado Pago") — `plano_contas` setado para ID=6 (Rendimento Poupança)
+- [x] `LivroCaixa ID=5` ("Confrinho") — `plano_contas` corrigido de ID=15 (despesa!) para ID=7 (Outros Recebimentos); saldo inicial pré-sistema
+- [x] `LivroCaixa ID=13` ("Pedido PED-0004") — `plano_contas` setado para ID=5 (Venda de Produtos); historico padronizado para "Recebimento: Pedido PED-0004"
+- [x] `ContasPagar ID=3` ("Parcela final das meias") — `plano_contas` corrigido de ID=12 (Serviços Terceiros) para ID=10 (Material/Equipamento); `cpa_tipo='material'` estava inconsistente com o plano
+
+#### Fix signal `processar_pedido` (`financeiro/signals.py`)
+- [x] LivroCaixa criado com `plano_contas_id=5` (Venda de Produtos) — antes ficava `None` → "Sem Classificação" no DRE
+- [x] ContasReceber (pagamento futuro) criado com `plano_contas_id=5` — quando pago, LivroCaixa herda o plano corretamente
+- [x] Histórico à vista padronizado: `f'Recebimento: Pedido {ped_numero}'` (era `f'Pedido {ped_numero}'`)
+
+#### UX — ContasReceberPage
+- [x] **Ordenação por status** dentro de cada grupo mensal: Vencida → Pendente → Recebida → Futuro → Cancelada; sort secundário por data crescente dentro de cada status
+- [x] **Plano de Contas filtra só receitas** (`plc_tipo.startsWith('receita')`)
+- [x] **Auto-preenche Plano de Contas** ao selecionar Tipo de Receita (mapeamento `TIPO_PARA_PLANO`); usuário pode sobrescrever manualmente
+
+#### UX — ContasPagarPage
+- [x] **Campo Serviço removido** do formulário — `ServicoProduto` é o catálogo de vendas do studio, sem relação com despesas a pagar
+- [x] **Campo Tipo de Despesa (`cpa_tipo`) removido** do formulário e dos filtros — redundante com `plano_contas`; badge na lista agora mostra `plano_contas_nome`
+- [x] **Plano de Contas filtra só despesas** (`plc_tipo.startsWith('despesa')`)
+
+#### UX — Relatório Contas a Pagar
+- [x] Coluna **Conta** adicionada na tabela (`conta_nome` do serializer)
+
+### Regras importantes descobertas na Fase 14.1:
+- `cpa_tipo` (ContasPagar) era redundante com `plano_contas` → removido da UI; campo ainda existe no model/DB mas não é mais preenchido via UI
+- `rec_tipo` (ContasReceber) **NÃO é redundante** — tem lógica de negócio: `TIPOS_COM_ALUNO` define se campo aluno é obrigatório; validação no backend também depende desse campo
+- `plano_contas` em ContasPagar: usar `QuerySet.update()` para corrigir sem disparar signal de LivroCaixa
+- `processar_pedido` signal: sempre passar `plano_contas_id=5` pois pedidos são receita de venda
 
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

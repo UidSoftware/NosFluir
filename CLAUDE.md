@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 13/05/2026 | Versão: 13.1
+> Última atualização: 14/05/2026 | Versão: 14.0
 
 ---
 
@@ -490,6 +490,9 @@ git pull origin main && docker compose restart nginx
 | Signal dispara ao fazer `save()` num ContasPagar já pago | Signal reage a qualquer `save()`, não só mudança de status | Após corrigir, deletar o lançamento fantasma gerado; ou usar `update()` no QuerySet para evitar o signal |
 | POST `/api/turma-alunos/` retorna 400 ao re-adicionar aluno removido | `unique_together = [['tur','alu']]` bloqueia mesmo com soft-delete (registro ainda existe no banco) | `TurmaAlunosViewSet.create()` detecta registro soft-deleted e restaura; serializer com `validators=[]` + validação manual excluindo deleted |
 | Gráfico PSE mostra fichas diferentes na mesma linha de ciclo | Eixo X era por data — fichas distintas do mesmo ciclo apareciam como pontos consecutivos sem sentido comparativo | Eixo X agora usa `aul_posicao_ciclo` (posição da ficha no programa); tooltip mostra nome da ficha + data |
+| BottomBar "Relatórios" abre o Dashboard no mobile | Path `/relatorios` não é uma rota registrada no React Router — cai no fallback do dashboard | Apontar para uma sub-rota válida ex: `/relatorios/frequencia`; `startsWith` ainda detecta ativo corretamente |
+| `Badge` não importa de `@/components/ui/badge` | Esse arquivo não existe no projeto | Importar de `@/components/ui/primitives`: `import { Badge } from '@/components/ui/primitives'` |
+| LivroCaixa com `conta=None` e `plano_contas=None` gerado por signal | Lançamento criado pré-Fase 10 quando os campos ainda não existiam no signal | Hard-delete do LivroCaixa + `ContasPagar.objects.update()` (sem disparar signal) + recriar LivroCaixa com campos corretos |
 
 ---
 
@@ -914,12 +917,28 @@ slot, agendamento, func, aluno
 - [x] Fallback WhatsApp se API falhar
 - [x] CSS: `.cal__grid`, `.cal__horario-btn`, `.cal__horario-tag` para cada modalidade
 
+### Fase 14 — Melhorias UX, Dashboard e Correções ✅ COMPLETO E EM PRODUÇÃO (14/05/2026)
+
+- [x] **Instrucoes_Claude_Code_Fase13.md** — documentação retroativa criada
+- [x] **Fix layout mobile/tablet** — `ContasReceberPage` e `ContasPagarPage`: layout 2 linhas no mobile (nome + badge status na linha 1; data + valor + ações na linha 2); descrição oculta até `lg` no tablet
+- [x] **Dashboard redesign** — 2 seções separadas por perfil:
+  - **Financeiro**: Saldo Total, A Pagar, A Receber, Resultado do Mês + gráfico barras 3 meses + listas pendentes + alertas estoque
+  - **Técnico/Operacional**: Total Alunos, Turmas, Aulas Hoje, Créditos + lista aulas do dia + experimentais pendentes
+  - Saudação personalizada (Bom dia/Boa tarde/Boa noite + primeiro nome)
+- [x] **Fix BottomBar mobile** — botão Relatórios apontava para `/relatorios` (rota inexistente → fallback dashboard); corrigido para `/relatorios/frequencia`
+
+#### Em aberto — LivroCaixa ID=1 / ContasPagar ID=1 sem conta/plano_contas
+- [ ] `LivroCaixa ID=1` ("Pagamento: Aluguel", R$ 600, 23/04/2026) — `conta=None`, `plano_contas=None` (criado pré-Fase 10)
+- [ ] `ContasPagar ID=1` ("Aluguel", R$ 600, pago, venc 25/04/2026) — idem
+- **Ação:** confirmar com clientes qual conta foi usada → hard-delete LivroCaixa ID=1 + `update()` no ContasPagar + recriar LivroCaixa com campos corretos
+- **Ver:** `Instrucoes_Claude_Code_Fase14.md` → seção "Em Aberto" para passos detalhados
+
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
 - [ ] Crédito expirado — sem job automático para atualizar status
 - [ ] Agendamentos do site exigem Aluno pré-existente — design a revisar com clientes
-- [ ] Dashboard: alerta de estoque baixo (consome `/api/produtos/alertas-estoque/`)
 - [ ] Refatoração de ciclos: lógica mais simples sem depender de ProgramaTurma
+- [ ] LivroCaixa ID=1 / ContasPagar ID=1 — corrigir conta/plano_contas (aguardando confirmação das clientes)
 
 ---
 

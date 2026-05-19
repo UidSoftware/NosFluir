@@ -5,18 +5,27 @@ import { Card, CardContent } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { Input, FormField } from '@/components/ui/primitives'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDate } from '@/lib/utils'
 import api from '@/services/api'
+import { fetchAll } from '@/hooks/useApi'
 
 export default function RelPressaoPage() {
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim]       = useState('')
+  const [turmaId, setTurmaId]       = useState('')
   const [page, setPage]             = useState(1)
 
+  const { data: turmas } = useQuery({
+    queryKey: ['turmas-select-pressao'],
+    queryFn: () => fetchAll('/turmas/'),
+  })
+
   const { data, isLoading } = useQuery({
-    queryKey: ['rel-pressao', dataInicio, dataFim, page],
+    queryKey: ['rel-pressao', turmaId, dataInicio, dataFim, page],
     queryFn: () => api.get('/ministrar-aula/', {
       params: {
+        tur: turmaId || undefined,
         data_inicio: dataInicio || undefined,
         data_fim: dataFim || undefined,
         page,
@@ -50,6 +59,15 @@ export default function RelPressaoPage() {
       <Card>
         <CardContent className="p-5 space-y-4">
           <div className="flex flex-wrap gap-3">
+            <FormField label="Turma" className="min-w-[180px]">
+              <Select value={turmaId || '__none__'} onValueChange={v => { setTurmaId(v === '__none__' ? '' : v); setPage(1) }}>
+                <SelectTrigger><SelectValue placeholder="Todas as turmas" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Todas as turmas</SelectItem>
+                  {turmas?.map(t => <SelectItem key={t.tur_id} value={String(t.tur_id)}>{t.tur_nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </FormField>
             <FormField label="Data Início" className="min-w-[140px]">
               <Input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setPage(1) }} />
             </FormField>

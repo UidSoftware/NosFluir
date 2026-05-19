@@ -118,16 +118,33 @@ class AulasViewSet(AuditMixin, ModelViewSet):
         super().perform_create(serializer)
         aula = serializer.instance
         if aula.fitr_id:
+            # Quantas aulas anteriores desta turma usaram esta mesma ficha
+            anteriores = Aulas.objects.filter(
+                tur=aula.tur,
+                fitr=aula.fitr,
+                deleted_at__isnull=True,
+            ).exclude(aul_id=aula.aul_id).count()
+
             programa = ProgramaTurma.objects.filter(turma=aula.tur, fitr=aula.fitr).first()
             if programa:
-                ciclos_anteriores = Aulas.objects.filter(
-                    tur=aula.tur,
-                    aul_posicao_ciclo=programa.prog_ordem,
-                    deleted_at__isnull=True,
-                ).exclude(aul_id=aula.aul_id).count()
                 aula.aul_posicao_ciclo = programa.prog_ordem
-                aula.aul_numero_ciclo = ciclos_anteriores + 1
-                aula.save(update_fields=['aul_posicao_ciclo', 'aul_numero_ciclo'])
+                aula.aul_numero_ciclo  = anteriores + 1
+            else:
+                # Sem ProgramaTurma: posicao = sequencia de uso, ciclo = 1
+                aula.aul_posicao_ciclo = anteriores + 1
+                aula.aul_numero_ciclo  = 1
+
+            aula.save(update_fields=['aul_posicao_ciclo', 'aul_numero_ciclo'])
+
+
+class MinistrarAulaFilter(django_filters.FilterSet):
+    data_inicio = django_filters.DateFilter(field_name='miau_data', lookup_expr='gte')
+    data_fim    = django_filters.DateFilter(field_name='miau_data', lookup_expr='lte')
+
+    class Meta:
+        model = MinistrarAula
+        fields = ['aula', 'tur', 'alu', 'func', 'miau_tipo_presenca', 'miau_data',
+                  'data_inicio', 'data_fim']
 
 
 class MinistrarAulaViewSet(AuditMixin, ModelViewSet):
@@ -135,7 +152,7 @@ class MinistrarAulaViewSet(AuditMixin, ModelViewSet):
     queryset = MinistrarAula.objects.filter(deleted_at__isnull=True).order_by('-aula__aul_data')
     serializer_class = MinistrarAulaSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['aula', 'tur', 'alu', 'func', 'miau_tipo_presenca', 'miau_data']
+    filterset_class = MinistrarAulaFilter
     search_fields = ['alu__alu_nome', 'tur__tur_nome']
     ordering_fields = ['miau_data', 'aula__aul_data']
 
@@ -238,6 +255,7 @@ def evolucao_pse(request):
 
     qs = MinistrarAula.objects.filter(
         aula__tur=tur_id,
+        aula__aul_posicao_ciclo__isnull=False,   # ignora registros antigos sem posição de ciclo
         miau_tipo_presenca='presente',
         miau_pse__isnull=False,
         deleted_at__isnull=True,

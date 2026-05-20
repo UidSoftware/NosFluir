@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 14/05/2026 | Versão: 14.2
+> Última atualização: 19/05/2026 | Versão: 15.0
 
 ---
 
@@ -986,11 +986,37 @@ slot, agendamento, func, aluno
 - `LivroCaixa.lica_data_lancamento` e `lcx_competencia` devem ser corrigidos juntos ao ajustar datas históricas
 - Verificar `saldo_anterior` dos lançamentos antes de deletar: se o próximo lançamento referencia o saldo do que vai ser deletado, toda a cadeia de saldo ficará errada
 
+### Fase 15 — Correção Ciclo/PSE e Simplificação MinistrarAula ✅ EM PRODUÇÃO (19/05/2026)
+
+#### Diagnóstico (dados reais do banco de produção)
+- `RegistroExercicioAluno`: 430 registros — **0 com séries/reps modificados**, 8% com carga, 10% com obs
+- `Aulas`: 31 registros — **0 com `aul_posicao_ciclo` preenchido** (bug confirmado)
+- `MinistrarAula`: 111 registros — 62% com PSE, 61% com PA (campos realmente usados)
+
+#### Bug do ciclo (corrigido)
+- `AulasViewSet.perform_create` só preenchia `aul_posicao_ciclo` se a ficha estivesse no `ProgramaTurma` **e** o campo já estivesse preenchido — dupla condição impossível → campo sempre nulo → gráfico PSE sempre vazio
+- **Correção:** ciclo calculado diretamente por `count(aulas anteriores desta turma com esta ficha) + 1`, sem depender de `ProgramaTurma`
+
+#### O que foi feito
+- [x] **`AulasViewSet.perform_create` corrigido** — nova lógica de ciclo sem dependência de `ProgramaTurma`
+- [x] **`evolucao_pse` endpoint** — filtro `aul_posicao_ciclo__isnull=False` para não misturar dados antigos
+- [x] **Migration `0028_backfill_ciclo_posicao`** — `RunPython` idempotente, preencheu 29/29 aulas existentes
+- [x] **`MinistrarAulaFilter`** — filtros `data_inicio` (gte) e `data_fim` (lte) sobre `miau_data`
+- [x] **`MinistrarAulaPage` simplificada** — removidos formulários de exercício por aluno (159 linhas); ficha continua visível para consulta; PA/FC/PSE intactos
+- [x] **`RelPressaoPage`** — filtro de turma adicionado (Select com `fetchAll('/turmas/')`)
+- [x] **QA validado pelo Sentinel** na VPS — 5/5 checks passaram; dado real confirmado: `{ ciclo: 1, posicao: 1, fitr_nome: "Aula 1.4- Fullbody Força", pse_medio: 13.3 }`
+
+#### Regras importantes desta fase
+- `aul_posicao_ciclo` agora sempre preenchido quando `fitr_id` está presente — sem dependência de `ProgramaTurma`
+- `ProgramaTurma` ainda funciona como programa opcional: se existe, usa `prog_ordem` como posição; se não existe, usa sequência de uso
+- `RegistroExercicioAluno` continua no banco mas não é mais alimentado via UI — dados históricos preservados
+- Gráfico `GrafEvolucaoPsePage` deve funcionar para turmas com aulas registradas a partir de hoje (dados antigos com `aul_posicao_ciclo=None` ignorados pelo filtro; backfill corrigiu os existentes)
+- Pipeline usado: **Planner → Forge → Loom → Sentinel** (agents da Uid Office rodando na VPS)
+
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
 - [ ] Crédito expirado — sem job automático para atualizar status
 - [ ] Agendamentos do site exigem Aluno pré-existente — design a revisar com clientes
-- [ ] Refatoração de ciclos: lógica mais simples sem depender de ProgramaTurma
 - [ ] LivroCaixa ID=1 / ContasPagar ID=1 — corrigir conta/plano_contas (aguardando confirmação das clientes)
 
 ---

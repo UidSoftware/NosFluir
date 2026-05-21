@@ -60,8 +60,8 @@ export default function GrafEvolucaoPsePage() {
       const reg = (registros || []).find(r => r.posicao === pos && (r.ciclo ?? 1) === ciclo)
       ponto[`Ciclo ${ciclo}`] = reg?.pse_medio ?? null
       if (reg) {
-        ponto[`_total_${ciclo}`] = reg.total
-        ponto[`_data_${ciclo}`]  = reg.data
+        ponto[`_total_Ciclo ${ciclo}`] = reg.total
+        ponto[`_data_Ciclo ${ciclo}`]  = reg.data
       }
     })
     return ponto

@@ -13,12 +13,6 @@ import api from '@/services/api'
 
 const COLORS = ['#01E2CD', '#5D5CE0', '#f59e0b', '#ef4444', '#10b981', '#f97316', '#8b5cf6']
 
-const fmtData = (iso) => {
-  if (!iso) return '—'
-  const [y, m, d] = iso.split('-')
-  return `${d}/${m}`
-}
-
 const MODALIDADE_OPTS = [
   { value: null,        label: 'Todos' },
   { value: 'funcional', label: 'Funcional' },
@@ -43,26 +37,17 @@ export default function GrafEvolucaoPsePage() {
     enabled: !!turId,
   })
 
-  // Eixo X = posição da ficha no ciclo (1, 2, 3...), linhas por ciclo
-  // Isso permite comparar a mesma ficha entre ciclos → ver condicionamento
-  const ciclos = [...new Set((registros || []).map(r => r.ciclo ?? 1))].sort((a, b) => a - b)
+  // Eixo X = ciclo; linhas = fichas
+  // Permite ver: "a Fullbody Força ficou mais fácil no Ciclo 2?"
+  const ciclos  = [...new Set((registros || []).map(r => r.ciclo ?? 1))].sort((a, b) => a - b)
+  const fichas  = [...new Set((registros || []).map(r => r.fitr_nome).filter(Boolean))].sort()
 
-  const posicoes = [...new Set((registros || []).map(r => r.posicao).filter(v => v != null))].sort((a, b) => a - b)
-
-  // Usa posicao como chave; fitr_nome como label do eixo X
-  const chartData = posicoes.map(pos => {
-    const ref = (registros || []).find(r => r.posicao === pos)
-    const nome = ref?.fitr_nome ?? `Ficha ${pos}`
-    // Extrai só o título da ficha (remove prefixo "Aula N.N- ")
-    const label = nome.replace(/^Aula\s+[\d.]+\s*[-–]\s*/i, '').trim() || nome
-    const ponto = { label, posicao: pos }
-    ciclos.forEach(ciclo => {
-      const reg = (registros || []).find(r => r.posicao === pos && (r.ciclo ?? 1) === ciclo)
-      ponto[`Ciclo ${ciclo}`] = reg?.pse_medio ?? null
-      if (reg) {
-        ponto[`_total_Ciclo ${ciclo}`] = reg.total
-        ponto[`_data_Ciclo ${ciclo}`]  = reg.data
-      }
+  const chartData = ciclos.map(ciclo => {
+    const ponto = { label: `Ciclo ${ciclo}` }
+    fichas.forEach(ficha => {
+      const reg = (registros || []).find(r => (r.ciclo ?? 1) === ciclo && r.fitr_nome === ficha)
+      ponto[ficha] = reg?.pse_medio ?? null
+      if (reg) ponto[`_total_${ficha}`] = reg.total
     })
     return ponto
   })
@@ -73,7 +58,7 @@ export default function GrafEvolucaoPsePage() {
     <div className="space-y-5">
       <PageHeader
         title="Evolução de PSE"
-        description="Percepção Subjetiva de Esforço (Borg 6–20) por aula"
+        description="Percepção Subjetiva de Esforço (Borg 6–20) por ficha de treino"
       />
 
       <div className="flex flex-wrap items-end gap-4">
@@ -109,7 +94,7 @@ export default function GrafEvolucaoPsePage() {
       {!turId ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground text-sm">
-            Selecione uma turma para visualizar a evolução de PSE por aula.
+            Selecione uma turma para visualizar a evolução de PSE por ficha.
           </CardContent>
         </Card>
       ) : isLoading ? (
@@ -124,7 +109,7 @@ export default function GrafEvolucaoPsePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">
-              {turNome} — PSE médio por aula
+              {turNome} — PSE médio por ficha ao longo dos ciclos
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-5">
@@ -141,29 +126,27 @@ export default function GrafEvolucaoPsePage() {
                   formatter={(val, name, props) => {
                     if (val == null) return ['—', name]
                     const total = props.payload[`_total_${name}`]
-                    const data  = props.payload[`_data_${name}`]
-                    const dataFmt = data ? ` · ${fmtData(data)}` : ''
-                    return [`${val.toFixed(1)} (${total} alunos${dataFmt})`, name]
+                    return [`${val.toFixed(1)} (${total} aluno${total !== 1 ? 's' : ''})`, name]
                   }}
-                  labelFormatter={l => `Ficha: ${l}`}
+                  labelFormatter={l => l}
                   contentStyle={{ background: '#1a1833', border: '1px solid #2d2b55', fontSize: 12 }}
                 />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                {ciclos.map((ciclo, i) => (
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                {fichas.map((ficha, i) => (
                   <Line
-                    key={ciclo}
+                    key={ficha}
                     type="monotone"
-                    dataKey={`Ciclo ${ciclo}`}
+                    dataKey={ficha}
                     stroke={COLORS[i % COLORS.length]}
                     strokeWidth={2}
                     dot={{ r: 4 }}
-                    connectNulls
+                    connectNulls={false}
                   />
                 ))}
               </LineChart>
             </ResponsiveContainer>
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              Escala de Borg: 6 = nenhum esforço · 20 = máximo. Queda ao longo das aulas indica condicionamento.
+              Escala de Borg: 6 = nenhum esforço · 20 = máximo. Queda ao longo dos ciclos indica condicionamento.
             </p>
           </CardContent>
         </Card>

@@ -265,25 +265,20 @@ def evolucao_pse(request):
     if modalidade:
         qs = qs.filter(aula__aul_modalidade=modalidade)
 
+    # Agrega por (ciclo, ficha) — eixo X = ciclo, linhas = fichas
     dados = (
         qs
         .values(
-            'aula__aul_id',
             'aula__aul_numero_ciclo',
-            'aula__aul_posicao_ciclo',
-            'aula__aul_data',
             'aula__fitr__fitr_nome',
         )
         .annotate(pse_medio=Avg('miau_pse'), total=Count('miau_id'))
-        .order_by('aula__aul_posicao_ciclo', 'aula__aul_id')
+        .order_by('aula__aul_numero_ciclo', 'aula__fitr__fitr_nome')
     )
 
     result = [
         {
-            'aula_id':   d['aula__aul_id'],
             'ciclo':     d['aula__aul_numero_ciclo'],
-            'posicao':   d['aula__aul_posicao_ciclo'],
-            'data':      d['aula__aul_data'].isoformat() if d['aula__aul_data'] else None,
             'fitr_nome': d['aula__fitr__fitr_nome'],
             'pse_medio': round(d['pse_medio'], 1) if d['pse_medio'] else None,
             'total':     d['total'],

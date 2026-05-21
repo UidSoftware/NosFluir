@@ -29,6 +29,11 @@ export default function GrafEvolucaoPsePage() {
     staleTime: 5 * 60 * 1000,
   })
 
+  // Filtra turmas pela modalidade selecionada
+  const turmasFiltradas = (turmas || []).filter(t =>
+    !modalidade || t.tur_modalidade === modalidade
+  )
+
   const { data: registros, isLoading } = useQuery({
     queryKey: ['evolucao-pse', turId, modalidade],
     queryFn: () => api.get('/relatorios/evolucao-pse/', {
@@ -62,33 +67,35 @@ export default function GrafEvolucaoPsePage() {
       />
 
       <div className="flex flex-wrap items-end gap-4">
+        <FormField label="Modalidade">
+          <div className="flex gap-1">
+            {MODALIDADE_OPTS.map(opt => (
+              <button
+                key={String(opt.value)}
+                onClick={() => { setModalidade(opt.value); setTurId('') }}
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                  modalidade === opt.value
+                    ? opt.value === 'funcional' ? 'bg-fluir-cyan/20 text-fluir-cyan border border-fluir-cyan/40'
+                      : opt.value === 'pilates' ? 'bg-fluir-purple/20 text-fluir-purple border border-fluir-purple/40'
+                      : 'bg-muted text-foreground border border-border'
+                    : 'text-muted-foreground border border-border/50 hover:border-border'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </FormField>
+
         <FormField label="Turma" className="max-w-xs">
           <Select value={turId || '__none__'} onValueChange={v => setTurId(v === '__none__' ? '' : v)}>
             <SelectTrigger><SelectValue placeholder="Selecionar turma..." /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar turma...</SelectItem>
-              {turmas?.map(t => <SelectItem key={t.tur_id} value={String(t.tur_id)}>{t.tur_nome}</SelectItem>)}
+              {turmasFiltradas.map(t => <SelectItem key={t.tur_id} value={String(t.tur_id)}>{t.tur_nome}</SelectItem>)}
             </SelectContent>
           </Select>
         </FormField>
-
-        <div className="flex gap-1 pb-0.5">
-          {MODALIDADE_OPTS.map(opt => (
-            <button
-              key={String(opt.value)}
-              onClick={() => setModalidade(opt.value)}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                modalidade === opt.value
-                  ? opt.value === 'funcional' ? 'bg-fluir-cyan/20 text-fluir-cyan border border-fluir-cyan/40'
-                    : opt.value === 'pilates' ? 'bg-fluir-purple/20 text-fluir-purple border border-fluir-purple/40'
-                    : 'bg-muted text-foreground border border-border'
-                  : 'text-muted-foreground border border-border/50 hover:border-border'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {!turId ? (

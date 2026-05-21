@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 19/05/2026 | Versão: 15.0
+> Última atualização: 20/05/2026 | Versão: 15.1
 
 ---
 
@@ -1012,6 +1012,30 @@ slot, agendamento, func, aluno
 - `RegistroExercicioAluno` continua no banco mas não é mais alimentado via UI — dados históricos preservados
 - Gráfico `GrafEvolucaoPsePage` deve funcionar para turmas com aulas registradas a partir de hoje (dados antigos com `aul_posicao_ciclo=None` ignorados pelo filtro; backfill corrigiu os existentes)
 - Pipeline usado: **Planner → Forge → Loom → Sentinel** (agents da Uid Office rodando na VPS)
+
+### Fase 15.1 — Redesign Gráfico PSE ✅ EM PRODUÇÃO (20/05/2026)
+
+#### Problema identificado
+O gráfico conectava fichas **diferentes** com uma linha (ex: "Fullbody Força" → "Quadriceps + Costas"), como se fossem a mesma coisa em momentos distintos. Semanticamente errado.
+
+#### Redesign
+- **Antes:** eixo X = posição no programa (1, 2, 3...), linhas = ciclos — conectava fichas diferentes na mesma linha
+- **Depois:** eixo X = ciclo (Ciclo 1, Ciclo 2...), linhas = fichas — cada ficha tem sua própria linha mostrando se ficou mais fácil ao longo dos ciclos
+- Pergunta respondida: *"A Fullbody Força ficou mais fácil no Ciclo 2 em relação ao Ciclo 1?"*
+- Com apenas 1 ciclo: cada ficha aparece como ponto isolado — sem linha conectando fichas diferentes
+
+#### Backend (`evolucao_pse` endpoint)
+- Agrega por `(aul_numero_ciclo, fitr_nome)` em vez de por aula → retorna `{ciclo, fitr_nome, pse_medio, total}`
+- Campo `posicao`, `aula_id` e `data` removidos da resposta (não fazem sentido no novo design)
+
+#### Frontend (`GrafEvolucaoPsePage`)
+- **Modalidade primeiro** — toggle Funcional/Pilates/Todos antes do select de turma
+- Trocar modalidade limpa a turma selecionada e filtra a lista de turmas por `tur_modalidade`
+- `turmasFiltradas` = turmas onde `tur_modalidade === modalidade` (ou todas se Todos)
+- Tooltip corrigido: `_total_${ficha}` (não mais `_total_${ciclo}` que não batia com o `name` da linha)
+
+#### Troubleshooting desta fase
+- Após redesign do backend, frontend antigo (sem rebuild) mostrava gráfico vazio — `posicao` sumiu da resposta e o antigo `chartData` ficava vazio. **Solução: sempre rodar `./deploy.sh prod` completo quando mudar backend E frontend simultaneamente — rebuild parcial só do backend deixa o nginx com JS antigo**
 
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

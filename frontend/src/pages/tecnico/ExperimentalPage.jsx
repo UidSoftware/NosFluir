@@ -617,16 +617,16 @@ export default function ExperimentalPage() {
 
       <Card>
         <CardContent className="pt-5 space-y-4">
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-3">
             <Select defaultValue="all" onValueChange={v => setFilters(f => ({ ...f, age_status: v !== 'all' ? v : undefined }))}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full md:w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os status</SelectItem>
                 {Object.entries(STATUS_CONFIG).map(([k,v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select defaultValue="all" onValueChange={v => setFilters(f => ({ ...f, age_modalidade: v !== 'all' ? v : undefined }))}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full md:w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas modalidades</SelectItem>
                 <SelectItem value="pilates">Mat Pilates</SelectItem>
@@ -634,11 +634,52 @@ export default function ExperimentalPage() {
                 <SelectItem value="ambos">Ambos</SelectItem>
               </SelectContent>
             </Select>
-            <Input type="date" className="w-44"
+            <Input type="date" className="w-full md:w-44"
               onChange={e => setFilters(f => ({ ...f, age_data_agendada: e.target.value || undefined }))} />
           </div>
-          <DataTable columns={COLS} data={data.map(r => ({ ...r, id: r.age_id }))} isLoading={isLoading}
-            emptyMessage="Nenhum agendamento experimental. Use o botão acima para cadastrar." />
+
+          {/* Mobile: cards */}
+          <div className="block md:hidden">
+            {isLoading ? (
+              <div className="flex justify-center py-10"><Spinner /></div>
+            ) : !data.length ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum agendamento experimental. Use o botão acima para cadastrar.</p>
+            ) : (
+              <div className="space-y-2">
+                {data.map(r => (
+                  <div key={r.age_id} className="rounded-lg border border-border bg-fluir-dark-2 p-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <button
+                          className="font-medium text-sm text-left hover:text-fluir-cyan transition-colors"
+                          onClick={() => setSelected(prev => prev?.age_id === r.age_id ? null : r)}
+                        >
+                          {r.age_nome}
+                        </button>
+                        <p className="text-xs text-muted-foreground">{r.age_telefone}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${MOD_CLS[r.age_modalidade] || 'bg-gray-500/15 text-gray-400 border-gray-500/30'}`}>
+                          {MOD_LABELS[r.age_modalidade] || r.age_modalidade}
+                        </span>
+                        <StatusBadge status={r.age_status} />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground tabular-nums">
+                      {formatDate(r.age_data_agendada)}{r.age_hora_agendada ? ` às ${r.age_hora_agendada.slice(0,5)}` : ''}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: tabela */}
+          <div className="hidden md:block">
+            <DataTable columns={COLS} data={data.map(r => ({ ...r, id: r.age_id }))} isLoading={isLoading}
+              emptyMessage="Nenhum agendamento experimental. Use o botão acima para cadastrar." />
+          </div>
+
           <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
         </CardContent>
       </Card>

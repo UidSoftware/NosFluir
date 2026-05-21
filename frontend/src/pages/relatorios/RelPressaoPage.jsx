@@ -48,8 +48,8 @@ export default function RelPressaoPage() {
     { key: 'miau_data',       header: 'Data',        render: r => formatDate(r.miau_data) },
     { key: 'miau_pa_inicio',  header: 'P.A. Início', render: r => formatPA(r.miau_pas_inicio, r.miau_pad_inicio) },
     { key: 'miau_pa_final',   header: 'P.A. Final',  render: r => formatPA(r.miau_pas_final, r.miau_pad_final) },
-    { key: 'miau_fc_inicio',  header: 'FC Início',   render: r => r.miau_fc_inicio != null ? `${r.miau_fc_inicio} bpm` : '—' },
-    { key: 'miau_fc_final',   header: 'FC Final',    render: r => r.miau_fc_final != null ? `${r.miau_fc_final} bpm` : '—' },
+    { key: 'miau_fc_inicio',  header: 'FC Início',   headerClassName: 'hidden sm:table-cell', cellClassName: 'hidden sm:table-cell', render: r => r.miau_fc_inicio != null ? `${r.miau_fc_inicio} bpm` : '—' },
+    { key: 'miau_fc_final',   header: 'FC Final',    headerClassName: 'hidden sm:table-cell', cellClassName: 'hidden sm:table-cell', render: r => r.miau_fc_final != null ? `${r.miau_fc_final} bpm` : '—' },
     { key: 'miau_pse',        header: 'PSE (Borg)',  render: r => r.miau_pse != null ? `${r.miau_pse}/20` : '—' },
   ]
 
@@ -58,7 +58,7 @@ export default function RelPressaoPage() {
       <PageHeader title="Relatório de Pressão Arterial" description="Histórico de medições de P.A., FC e PSE por aluno" />
       <Card>
         <CardContent className="p-5 space-y-4">
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-3 items-end">
             <FormField label="Turma" className="min-w-[180px]">
               <Select value={turmaId || '__none__'} onValueChange={v => { setTurmaId(v === '__none__' ? '' : v); setPage(1) }}>
                 <SelectTrigger><SelectValue placeholder="Todas as turmas" /></SelectTrigger>

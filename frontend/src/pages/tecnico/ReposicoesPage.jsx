@@ -11,7 +11,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { Input, FormField, Badge } from '@/components/ui/primitives'
+import { Input, FormField, Badge, Spinner } from '@/components/ui/primitives'
 import { formatDate } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import { cn } from '@/lib/utils'
@@ -161,12 +161,54 @@ function FaltasSemJustificativa() {
 
   return (
     <>
-      <DataTable
-        columns={columns}
-        data={faltas}
-        isLoading={isLoading}
-        emptyMessage="Nenhuma falta sem justificativa registrada."
-      />
+      {/* Mobile: cards faltas */}
+      <div className="block md:hidden">
+        {isLoading ? (
+          <div className="flex justify-center py-10"><Spinner /></div>
+        ) : !faltas.length ? (
+          <p className="text-sm text-muted-foreground text-center py-8">Nenhuma falta sem justificativa registrada.</p>
+        ) : (
+          <div className="space-y-2">
+            {faltas.map(r => (
+              <div key={r.miau_id} className="rounded-lg border border-border bg-fluir-dark-2 p-3 space-y-1.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-sm">{r.alu_nome}</p>
+                    <p className="text-xs text-muted-foreground">{r.tur_nome}</p>
+                  </div>
+                  {r.aul_modalidade && (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+                      r.aul_modalidade === 'pilates'
+                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                        : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                    }`}>
+                      {r.aul_modalidade === 'pilates' ? 'Pilates' : 'Funcional'}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{formatDate(r.aul_data)}</span>
+                  <Button size="sm" variant="outline" onClick={() => setFaltaSel(r)}>
+                    <ClipboardCheck className="w-3.5 h-3.5 mr-1" />
+                    Justificar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop: tabela faltas */}
+      <div className="hidden md:block">
+        <DataTable
+          columns={columns}
+          data={faltas}
+          isLoading={isLoading}
+          emptyMessage="Nenhuma falta sem justificativa registrada."
+        />
+      </div>
+
       <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
 
       {faltaSel && (
@@ -266,7 +308,43 @@ export default function ReposicoesPage() {
             <FaltasSemJustificativa />
           ) : (
             <>
-              <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum crédito de reposição encontrado." />
+              {/* Mobile: cards créditos */}
+              <div className="block md:hidden">
+                {isLoading ? (
+                  <div className="flex justify-center py-10"><Spinner /></div>
+                ) : !data.length ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Nenhum crédito de reposição encontrado.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {data.map(r => (
+                      <div key={r.cred_id} className="rounded-lg border border-border bg-fluir-dark-2 p-3 space-y-1.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-medium text-sm">{r.alu_nome || '—'}</p>
+                          <StatusBadge status={r.cred_status} />
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span>Gerado: {formatDate(r.cred_data_geracao)}</span>
+                          <span className={cn(
+                            'flex items-center gap-1',
+                            expirandoBreve(r.cred_data_expiracao) && r.cred_status === 'disponivel' ? 'text-amber-400' : ''
+                          )}>
+                            {expirandoBreve(r.cred_data_expiracao) && r.cred_status === 'disponivel' && (
+                              <AlertTriangle className="w-3 h-3 shrink-0" />
+                            )}
+                            Expira: {formatDate(r.cred_data_expiracao)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop: tabela créditos */}
+              <div className="hidden md:block">
+                <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum crédito de reposição encontrado." />
+              </div>
+
               <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
             </>
           )}

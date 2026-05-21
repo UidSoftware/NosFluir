@@ -28,7 +28,7 @@ export default function RelContasReceberPage() {
 
   const columns = [
     { key: 'rec_descricao',       header: 'Descrição',  render: r => r.rec_descricao },
-    { key: 'alu_nome',             header: 'Aluno',       render: r => r.alu_nome || '—' },
+    { key: 'alu_nome',             header: 'Aluno',       headerClassName: 'hidden sm:table-cell', cellClassName: 'hidden sm:table-cell', render: r => r.alu_nome || '—' },
     { key: 'rec_valor_total',     header: 'Total',       render: r => formatCurrency(r.rec_valor_total) },
     { key: 'rec_data_vencimento', header: 'Vencimento',  render: r => formatDate(r.rec_data_vencimento) },
     { key: 'rec_status',          header: 'Status',      render: r => <StatusBadge status={r.rec_status} /> },
@@ -39,7 +39,7 @@ export default function RelContasReceberPage() {
       <PageHeader title="Relatório — Contas a Receber" />
       <Card>
         <CardContent className="p-5 space-y-4">
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-3 items-end">
             <FormField label="Data Início" className="min-w-[140px]">
               <Input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setPage(1) }} />
             </FormField>

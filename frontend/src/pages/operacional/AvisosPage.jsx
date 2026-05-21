@@ -186,7 +186,7 @@ export default function AvisosPage() {
         <div className="flex items-center justify-end">
           <Button
             variant="ghost" size="icon-sm"
-            onClick={() => setDeleteId(r.id)}
+            onClick={() => setDeleteId(r.avi_id)}
             className="text-red-400 hover:text-red-300"
             title="Excluir aviso"
           >
@@ -212,10 +212,10 @@ export default function AvisosPage() {
       <Card>
         <CardContent className="pt-5 space-y-4">
           {/* Filtros */}
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-3">
             <Input
               type="date"
-              className="w-44"
+              className="w-full md:w-44"
               placeholder="Data da aula"
               onChange={e => setFilters(f => ({ ...f, avi_data_aula: e.target.value || undefined }))}
             />
@@ -223,7 +223,7 @@ export default function AvisosPage() {
               onValueChange={v => setFilters(f => ({ ...f, avi_tipo: v !== 'all' ? v : undefined }))}
               defaultValue="all"
             >
-              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full md:w-48"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os tipos</SelectItem>
                 <SelectItem value="justificada">Justificada</SelectItem>
@@ -237,7 +237,7 @@ export default function AvisosPage() {
               }))}
               defaultValue="all"
             >
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full md:w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="true">Gerou crédito</SelectItem>
@@ -246,7 +246,57 @@ export default function AvisosPage() {
             </Select>
           </div>
 
-          <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum aviso registrado." />
+          {/* Mobile: cards */}
+          <div className="block md:hidden">
+            {isLoading ? (
+              <div className="flex justify-center py-10"><Spinner /></div>
+            ) : !data.length ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum aviso registrado.</p>
+            ) : (
+              <div className="space-y-2">
+                {data.map(r => (
+                  <div key={r.avi_id} className="rounded-lg border border-border bg-fluir-dark-2 p-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <p className="font-medium text-sm">{r.alu_nome || '—'}</p>
+                        <p className="text-xs text-muted-foreground">{r.tur_nome || '—'}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+                          r.avi_tipo === 'atestado'
+                            ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                            : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                        }`}>
+                          {TIPO_LABELS[r.avi_tipo] || r.avi_tipo}
+                        </span>
+                        <Button
+                          variant="ghost" size="icon-sm"
+                          onClick={() => setDeleteId(r.avi_id)}
+                          className="text-red-400 hover:text-red-300"
+                          title="Excluir aviso"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>Aula: {formatDate(r.avi_data_aula)}</span>
+                      {r.avi_gera_credito
+                        ? <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 size={12} />Gerou crédito</span>
+                        : <span className="flex items-center gap-1 text-red-400"><XCircle size={12} />Não gerou</span>
+                      }
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: tabela */}
+          <div className="hidden md:block">
+            <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum aviso registrado." />
+          </div>
+
           <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
         </CardContent>
       </Card>

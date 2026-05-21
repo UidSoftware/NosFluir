@@ -57,9 +57,9 @@ export default function RelLivroCaixaPage() {
 
   const columns = [
     { key: 'lica_data_lancamento', header: 'Data',      render: r => formatDate(r.lica_data_lancamento) },
-    { key: 'conta_nome',           header: 'Conta',     render: r => <span className="text-muted-foreground">{r.conta_nome || '—'}</span> },
+    { key: 'conta_nome',           header: 'Conta',     headerClassName: 'hidden md:table-cell', cellClassName: 'hidden md:table-cell', render: r => <span className="text-muted-foreground">{r.conta_nome || '—'}</span> },
     { key: 'lica_historico',       header: 'Histórico', render: r => r.lica_historico },
-    { key: 'plano_contas_nome',    header: 'Categoria', render: r => r.plano_contas_nome || r.lica_categoria || '—' },
+    { key: 'plano_contas_nome',    header: 'Categoria', headerClassName: 'hidden md:table-cell', cellClassName: 'hidden md:table-cell', render: r => r.plano_contas_nome || r.lica_categoria || '—' },
     { key: 'lica_tipo_lancamento', header: 'Tipo',      render: r => <StatusBadge status={r.lica_tipo_lancamento} /> },
     {
       key: 'lica_valor', header: 'Valor',
@@ -76,7 +76,7 @@ export default function RelLivroCaixaPage() {
       <PageHeader title="Relatório — Livro Caixa" />
       <Card>
         <CardContent className="p-5 space-y-4">
-          <div className="flex flex-wrap gap-3 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-3 items-end">
             <FormField label="Data Início" className="min-w-[140px]">
               <Input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); resetPage() }} />
             </FormField>

@@ -10,7 +10,7 @@ import { DataTable } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Input, FormField } from '@/components/ui/primitives'
+import { Input, FormField, Spinner } from '@/components/ui/primitives'
 import { BooleanBadge } from '@/components/shared/StatusBadge'
 
 const ENDPOINT = '/usuarios/'
@@ -143,7 +143,44 @@ export default function UsuariosPage() {
       <Card>
         <CardContent className="p-5 space-y-4">
           <SearchFilter placeholder="Buscar por nome ou e-mail..." onSearch={q => setFilters(q ? { search: q } : {})} />
-          <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum usuário cadastrado." />
+
+          {/* Mobile: cards */}
+          <div className="block md:hidden">
+            {isLoading ? <Spinner /> : !data.length ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum usuário cadastrado.</p>
+            ) : (
+              <div className="space-y-2">
+                {data.map(r => (
+                  <div key={r.id} className="rounded-lg border border-border bg-fluir-dark-2 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-sm">{[r.first_name, r.last_name].filter(Boolean).join(' ') || r.email}</p>
+                        <p className="text-xs text-muted-foreground">{r.email}</p>
+                      </div>
+                      <BooleanBadge value={r.is_active} />
+                    </div>
+                    {(r.groups || []).length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">{r.groups.join(', ')}</p>
+                    )}
+                    <div className="flex items-center justify-end gap-1 mt-2">
+                      <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: tabela */}
+          <div className="hidden md:block">
+            <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum usuário cadastrado." />
+          </div>
+
           <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
         </CardContent>
       </Card>

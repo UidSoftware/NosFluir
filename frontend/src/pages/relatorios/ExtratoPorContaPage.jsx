@@ -42,7 +42,7 @@ export default function ExtratoPorContaPage() {
       <PageHeader title="Extrato por Conta" />
 
       <Card>
-        <CardContent className="p-4 flex flex-wrap gap-3 items-end">
+        <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-3 items-end">
           <div className="w-56">
             <p className="text-xs text-muted-foreground mb-1">Conta</p>
             <Select value={contaId} onValueChange={setContaId}>
@@ -102,7 +102,7 @@ export default function ExtratoPorContaPage() {
                       <th className="text-left p-2">Histórico</th>
                       <th className="text-left p-2 hidden md:table-cell">Categoria</th>
                       <th className="text-right p-2">Valor</th>
-                      <th className="text-right p-2">Saldo</th>
+                      <th className="text-right p-2 hidden sm:table-cell">Saldo</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -114,7 +114,7 @@ export default function ExtratoPorContaPage() {
                         <td className={cn('p-2 text-right font-medium', l.tipo === 'entrada' ? 'text-emerald-400' : 'text-red-400')}>
                           {l.tipo === 'entrada' ? '+' : '-'}{formatCurrency(l.valor)}
                         </td>
-                        <td className={cn('p-2 text-right', l.saldo >= 0 ? 'text-foreground' : 'text-red-400')}>
+                        <td className={cn('p-2 text-right hidden sm:table-cell', l.saldo >= 0 ? 'text-foreground' : 'text-red-400')}>
                           {formatCurrency(l.saldo)}
                         </td>
                       </tr>

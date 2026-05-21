@@ -33,7 +33,7 @@ export default function RelFrequenciaPage() {
 
   const columns = [
     { key: 'alu_nome',           header: 'Aluno',    render: r => r.alu_nome || r.alu },
-    { key: 'tur_nome',           header: 'Turma',    render: r => r.tur_nome || '—' },
+    { key: 'tur_nome',           header: 'Turma',    headerClassName: 'hidden md:table-cell', cellClassName: 'hidden md:table-cell', render: r => r.tur_nome || '—' },
     { key: 'miau_data',          header: 'Data',     render: r => formatDate(r.miau_data) },
     { key: 'miau_tipo_presenca', header: 'Presença', render: r => <StatusBadge status={r.miau_tipo_presenca} /> },
     { key: 'miau_pa',            header: 'P.A. Início', render: r => r.miau_pas_inicio != null ? `${r.miau_pas_inicio}/${r.miau_pad_inicio ?? '?'}` : '—' },
@@ -45,7 +45,7 @@ export default function RelFrequenciaPage() {
 
       <Card>
         <CardContent className="p-5 space-y-4">
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-3 items-end">
             <FormField label="Data Início" className="min-w-[140px]">
               <Input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setPage(1) }} />
             </FormField>

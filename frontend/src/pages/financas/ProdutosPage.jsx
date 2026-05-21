@@ -11,7 +11,7 @@ import { DataTable } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Input, FormField } from '@/components/ui/primitives'
+import { Input, FormField, Spinner } from '@/components/ui/primitives'
 import { BooleanBadge } from '@/components/shared/StatusBadge'
 import { formatCurrency } from '@/lib/utils'
 
@@ -143,7 +143,48 @@ export default function ProdutosPage() {
       <Card>
         <CardContent className="p-5 space-y-4">
           <SearchFilter placeholder="Buscar produto..." onSearch={q => setFilters(q ? { search: q } : {})} />
-          <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum produto cadastrado." />
+
+          {/* Mobile: cards */}
+          <div className="block md:hidden">
+            {isLoading ? (
+              <div className="flex justify-center py-10"><Spinner /></div>
+            ) : !data.length ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum produto cadastrado.</p>
+            ) : (
+              <div className="space-y-2">
+                {data.map(r => (
+                  <div key={r.prod_id} className="rounded-lg border border-border bg-fluir-dark-2 p-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-sm">{r.prod_nome}</p>
+                      {r.prod_estoque_atual <= r.prod_estoque_minimo ? (
+                        <span className="flex items-center gap-1 text-xs text-yellow-400 font-medium shrink-0">
+                          <AlertTriangle className="w-3 h-3" />Estoque baixo
+                        </span>
+                      ) : (
+                        <BooleanBadge value={r.prod_ativo} />
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-fluir-cyan">{formatCurrency(r.prod_valor_venda)}</span>
+                        <span className="text-xs text-muted-foreground">Estoque: <EstoqueBadge atual={r.prod_estoque_atual} minimo={r.prod_estoque_minimo} /></span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.prod_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: tabela */}
+          <div className="hidden md:block">
+            <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum produto cadastrado." />
+          </div>
+
           <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
         </CardContent>
       </Card>

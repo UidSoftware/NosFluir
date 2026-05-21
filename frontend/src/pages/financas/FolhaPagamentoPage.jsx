@@ -12,7 +12,7 @@ import { DataTable } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Input, FormField } from '@/components/ui/primitives'
+import { Input, FormField, Spinner } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
@@ -187,7 +187,42 @@ export default function FolhaPagamentoPage() {
       <Card>
         <CardContent className="p-5 space-y-4">
           <SearchFilter placeholder="Buscar por funcionário..." onSearch={q => setFilters(q ? { search: q } : {})} />
-          <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum registro de folha." />
+
+          {/* Mobile: cards */}
+          <div className="block md:hidden">
+            {isLoading ? (
+              <div className="flex justify-center py-10"><Spinner /></div>
+            ) : !data.length ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum registro de folha.</p>
+            ) : (
+              <div className="space-y-2">
+                {data.map(r => (
+                  <div key={r.fopa_id} className="rounded-lg border border-border bg-fluir-dark-2 p-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-sm">{r.func_nome || '—'}</p>
+                      <StatusBadge status={r.fopa_status} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {MESES[(r.fopa_mes_referencia || 1) - 1]}/{r.fopa_ano_referencia}
+                    </p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-sm text-fluir-cyan font-semibold">{formatCurrency(r.fopa_valor_liquido)}</span>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.fopa_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: tabela */}
+          <div className="hidden md:block">
+            <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum registro de folha." />
+          </div>
+
           <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
         </CardContent>
       </Card>

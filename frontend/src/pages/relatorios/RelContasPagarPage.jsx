@@ -28,10 +28,10 @@ export default function RelContasPagarPage() {
 
   const columns = [
     { key: 'pag_descricao',      header: 'Descrição',  render: r => r.pag_descricao },
-    { key: 'conta_nome',         header: 'Conta',       render: r => r.conta_nome ?? <span className="text-muted-foreground">—</span> },
+    { key: 'conta_nome',         header: 'Conta',       headerClassName: 'hidden md:table-cell', cellClassName: 'hidden md:table-cell', render: r => r.conta_nome ?? <span className="text-muted-foreground">—</span> },
     { key: 'pag_valor_total',    header: 'Valor',       render: r => formatCurrency(r.pag_valor_total) },
     { key: 'pag_data_vencimento',header: 'Vencimento',  render: r => formatDate(r.pag_data_vencimento) },
-    { key: 'pag_data_pagamento', header: 'Pagamento',   render: r => formatDate(r.pag_data_pagamento) },
+    { key: 'pag_data_pagamento', header: 'Pagamento',   headerClassName: 'hidden md:table-cell', cellClassName: 'hidden md:table-cell', render: r => formatDate(r.pag_data_pagamento) },
     { key: 'pag_status',         header: 'Status',      render: r => <StatusBadge status={r.pag_status} /> },
   ]
 
@@ -40,7 +40,7 @@ export default function RelContasPagarPage() {
       <PageHeader title="Relatório — Contas a Pagar" />
       <Card>
         <CardContent className="p-5 space-y-4">
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-3 items-end">
             <FormField label="Data Início" className="min-w-[140px]">
               <Input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setPage(1) }} />
             </FormField>

@@ -11,7 +11,7 @@ import { DataTable } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Input, FormField } from '@/components/ui/primitives'
+import { Input, FormField, Spinner } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCPF, onlyNumbers } from '@/lib/utils'
 import api from '@/services/api'
@@ -190,7 +190,42 @@ export default function FuncionariosPage() {
       <Card>
         <CardContent className="p-5 space-y-4">
           <SearchFilter placeholder="Buscar por nome ou CPF..." onSearch={q => setFilters(q ? { search: q } : {})} />
-          <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum funcionário cadastrado." />
+
+          {/* Mobile: cards */}
+          <div className="block md:hidden">
+            {isLoading ? (
+              <div className="flex justify-center py-10"><Spinner /></div>
+            ) : !data.length ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum funcionário cadastrado.</p>
+            ) : (
+              <div className="space-y-2">
+                {data.map(r => (
+                  <div key={r.func_id} className="rounded-lg border border-border bg-fluir-dark-2 p-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-sm">{r.func_nome}</p>
+                        {r.func_formacao && <p className="text-xs text-muted-foreground">{r.func_formacao}</p>}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button variant="ghost" size="icon-sm" onClick={() => openDetail(r)}><Eye className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(r)}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.func_id)} className="text-red-400 hover:text-red-300">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    {r.func_telefone && <p className="text-xs text-muted-foreground">{r.func_telefone}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: tabela */}
+          <div className="hidden md:block">
+            <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhum funcionário cadastrado." />
+          </div>
+
           <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
         </CardContent>
       </Card>

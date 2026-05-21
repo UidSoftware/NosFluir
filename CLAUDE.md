@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 20/05/2026 | Versão: 15.1
+> Última atualização: 21/05/2026 | Versão: 15.2
 
 ---
 
@@ -496,6 +496,8 @@ git pull origin main && docker compose restart nginx
 | LivroCaixa de Pedido sem `plano_contas` / historico "Pedido PED-XXXX" | Signal `processar_pedido` antigo não passava `plano_contas` | Signal corrigido (Fase 14.1): agora passa `plano_contas_id=5`; historico = "Recebimento: Pedido XXXX" |
 | `plano_contas` errado num LivroCaixa existente | Correção direta: `LivroCaixa.objects.filter(pk=X).update(plano_contas_id=Y)` | Nunca usar `.save()` — dispara signal e pode gerar lançamento duplicado |
 | `plano_contas` errado num ContasPagar pendente | Correção direta: `ContasPagar.objects.filter(pk=X).update(plano_contas_id=Y)` | Nunca usar `.save()` — dispara signal de LivroCaixa se status=pago |
+| Filtros de página não funcionam | `useList(KEY, ENDPOINT, filters)` passa objeto como `options`, não filtros | Usar `setFilters` do hook + `useEffect` para sincronizar |
+| PWA serve bundle antigo mesmo após "Clear site data" | Hash do filename não mudou — SW considera cache válido | Tocar em `src/main.jsx` para forçar novo hash; verificar com `ls dist/assets/*.js` antes e depois |
 | Editou ContasPagar `pago` pela UI após deletar o LivroCaixa → novo lançamento com data de hoje | Signal não encontra LivroCaixa existente → recria com `now()` como data | Corrigir via `LivroCaixa.objects.filter(pk=X).update(lica_data_lancamento=data, lcx_competencia=comp)`; para evitar: usar `QuerySet.update()` no ContasPagar em vez da UI |
 
 ---
@@ -1036,6 +1038,41 @@ O gráfico conectava fichas **diferentes** com uma linha (ex: "Fullbody Força" 
 
 #### Troubleshooting desta fase
 - Após redesign do backend, frontend antigo (sem rebuild) mostrava gráfico vazio — `posicao` sumiu da resposta e o antigo `chartData` ficava vazio. **Solução: sempre rodar `./deploy.sh prod` completo quando mudar backend E frontend simultaneamente — rebuild parcial só do backend deixa o nginx com JS antigo**
+
+### Fase 15.2 — Mobile-First em todas as pages ✅ EM PRODUÇÃO (21/05/2026)
+
+#### AulasPage — bug de filtros + mobile
+- Bug raiz: `useList(KEY, ENDPOINT, filtersObj)` passa objeto como `options` (3º arg), não como filtros → filtros completamente ignorados
+- **Correção padrão:** usar `setFilters` retornado pelo hook + `useEffect` para sincronizar estados locais
+- Layout mobile: cards (`block md:hidden`) + tabela desktop (`hidden md:block`)
+- Ficha da aula agora visível em todos os tamanhos (era `hidden md:table-cell` sem card alternativo)
+
+#### 13 pages CRUD — cards mobile adicionados
+Padrão: `block md:hidden` com lista de cards + `hidden md:block` com DataTable original intacta:
+- **Configuração:** Acessórios, Aparelhos, Profissões, Usuários
+- **Finanças:** Folha de Pagamento, Fornecedores, Planos, Produtos, Serviços
+- **Operacional:** Funcionários, Avisos de Falta
+- **Técnico:** Experimental (substituiu `hidden md:table-cell` por cards reais), Reposições (créditos + faltas)
+
+#### 6 pages de Relatório — colunas ocultas no mobile
+Relatórios são dados tabulares — abordagem: `hidden sm/md:table-cell` nas colunas menos críticas:
+- RelPressão: esconde FC Início/Final | RelFrequência: esconde Turma
+- RelContasPagar: esconde Conta e Data Pagamento | RelContasReceber: esconde Aluno
+- RelLivroCaixaPage: esconde Conta e Categoria | ExtratoPorConta: esconde Saldo
+
+#### Filtros — padrão unificado
+Todos os filtros agora usam `grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-3 items-end`
+
+#### Bug PWA — hash de bundle não mudou após deploy
+- Vite gerou o mesmo hash de filename (`index-BbG0f2uA.js`) mesmo com conteúdo diferente → service worker não detectou atualização → todos os devices serviam bundle antigo
+- **Sintoma:** "Clear site data" não resolve — o arquivo em cache tem mesmo nome, SW considera válido
+- **Solução:** tocar em `src/main.jsx` (ou qualquer arquivo do entry point) para forçar hash diferente → novo filename → SW detecta update e invalida cache automaticamente
+- **Regra:** após mobile-first em muitas pages, verificar se o hash do bundle mudou com `ls /var/www/studio-fluir/frontend/dist/assets/*.js`
+
+#### Regras importantes desta fase
+- `useList` 3º arg é `options` (passa para `useQuery`) — NUNCA passar filtros diretamente; usar `setFilters` do hook
+- Card mobile padrão: `key={r.PK_nomeado}` — nunca `r.id` genérico
+- Deploy com `./deploy.sh prod` sempre que mudar páginas frontend — rebuild parcial não gera novo hash de bundle
 
 ### Pendências técnicas restantes:
 - [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend

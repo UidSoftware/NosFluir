@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CalendarDays, Pencil, Trash2, Users, CheckCircle, XCircle, Eye, GitCompareArrows } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useList, useCreate, useUpdate, useDelete } from '@/hooks/useApi'
@@ -15,6 +15,7 @@ import { Input, FormField, Badge, Spinner } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/useToast'
 import { cn } from '@/lib/utils'
+import { fetchAll } from '@/hooks/useApi'
 import api from '@/services/api'
 
 const ENDPOINT = '/aulas/'
@@ -27,7 +28,7 @@ const MODALIDADES = [
 
 const MODALIDADE_VARIANT = { pilates: 'cyan', funcional: 'success' }
 
-const PRESENCA_LABEL = { presente: 'Presente', falta: 'Falta', reposicao: 'Reposição' }
+const PRESENCA_LABEL   = { presente: 'Presente', falta: 'Falta', reposicao: 'Reposição' }
 const PRESENCA_VARIANT = { presente: 'success', falta: 'destructive', reposicao: 'secondary' }
 
 function ComparativoCiclo({ aula, registrosAtuais }) {
@@ -55,7 +56,7 @@ function ComparativoCiclo({ aula, registrosAtuais }) {
 
   if (!temCicloAnterior) return null
 
-  const mapaAnt   = Object.fromEntries((registrosAnt  || []).map(r => [r.alu, r]))
+  const mapaAnt   = Object.fromEntries((registrosAnt   || []).map(r => [r.alu, r]))
   const mapaAtual = Object.fromEntries((registrosAtuais || []).map(r => [r.alu, r]))
   const todosIds  = [...new Set([...Object.keys(mapaAnt), ...Object.keys(mapaAtual)])]
 
@@ -294,6 +295,61 @@ function AulaForm({ aula, turmas, funcionarios, onClose }) {
   )
 }
 
+// ── Card mobile de aula ───────────────────────────────────────────────────────
+function AulaCard({ r, onDetalhe, onEdit, onDelete }) {
+  return (
+    <div className="rounded-lg border border-border bg-fluir-dark-2 p-3 space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-medium text-sm">
+            {new Date(r.aul_data + 'T00:00:00').toLocaleDateString('pt-BR')}
+          </p>
+          {r.aul_hora_inicio && (
+            <p className="text-xs text-muted-foreground">
+              {r.aul_hora_inicio}{r.aul_hora_final ? ` – ${r.aul_hora_final}` : ''}
+            </p>
+          )}
+        </div>
+        <Badge variant={MODALIDADE_VARIANT[r.aul_modalidade] || 'default'}>
+          {MODALIDADES.find(m => m.value === r.aul_modalidade)?.label || r.aul_modalidade}
+        </Badge>
+      </div>
+
+      <p className="text-sm font-medium">{r.tur_nome}</p>
+
+      {r.fitr_nome
+        ? <p className="text-xs text-muted-foreground">{r.fitr_nome}</p>
+        : <p className="text-xs text-muted-foreground italic">Sem ficha</p>
+      }
+
+      <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center gap-3 text-xs">
+          <span className="flex items-center gap-1 text-green-400" title="Presentes">
+            <CheckCircle className="w-3.5 h-3.5" />{r.total_presentes}
+          </span>
+          <span className="flex items-center gap-1 text-red-400" title="Faltas">
+            <XCircle className="w-3.5 h-3.5" />{r.total_faltas}
+          </span>
+          <span className="flex items-center gap-1 text-muted-foreground" title="Total">
+            <Users className="w-3.5 h-3.5" />{r.total_registros}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon-sm" title="Ver alunos" onClick={() => onDetalhe(r)}>
+            <Eye className="w-3.5 h-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" title="Editar" onClick={() => onEdit(r)}>
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" title="Excluir" onClick={() => onDelete(r.aul_id)} className="text-red-400 hover:text-red-300">
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function AulasPage() {
   const [modalOpen, setModalOpen]   = useState(false)
@@ -305,23 +361,27 @@ export default function AulasPage() {
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim]       = useState('')
 
-  const filters = {
-    ...(filtroMod !== 'all'  ? { aul_modalidade: filtroMod }   : {}),
-    ...(filtroTur !== 'all'  ? { tur: filtroTur }               : {}),
-    ...(dataInicio           ? { aul_data_after: dataInicio }   : {}),
-    ...(dataFim              ? { aul_data_before: dataFim }     : {}),
-  }
-
-  const { data, isLoading, page, setPage, totalPages, count } = useList(KEY, ENDPOINT, filters)
-  const { data: turmas }       = useList('turmas',       '/turmas/',       {}, { pageSize: 200 })
-  const { data: funcionarios } = useList('funcionarios', '/funcionarios/', {}, { pageSize: 200 })
+  const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
+  const { data: turmas }       = useQuery({ queryKey: ['turmas-select-aulas'],       queryFn: () => fetchAll('/turmas/'),       staleTime: 5 * 60 * 1000 })
+  const { data: funcionarios } = useQuery({ queryKey: ['funcionarios-select-aulas'], queryFn: () => fetchAll('/funcionarios/'), staleTime: 5 * 60 * 1000 })
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Aula excluída.' })
 
+  // Sincroniza filtros locais → useList
+  useEffect(() => {
+    const f = {}
+    if (filtroMod !== 'all') f.aul_modalidade = filtroMod
+    if (filtroTur !== 'all') f.tur = filtroTur
+    if (dataInicio)          f.aul_data_after  = dataInicio
+    if (dataFim)             f.aul_data_before = dataFim
+    setFilters(f)
+  }, [filtroMod, filtroTur, dataInicio, dataFim])
+
   const limparFiltros = () => {
-    setFiltroMod('all'); setFiltroTur('all'); setDataInicio(''); setDataFim(''); setPage(1)
+    setFiltroMod('all'); setFiltroTur('all'); setDataInicio(''); setDataFim('')
   }
   const temFiltro = filtroMod !== 'all' || filtroTur !== 'all' || dataInicio || dataFim
 
+  // Colunas para desktop (md+)
   const columns = [
     {
       key: 'aul_data', header: 'Data',
@@ -350,16 +410,14 @@ export default function AulasPage() {
     },
     {
       key: 'fitr_nome', header: 'Ficha',
-      headerClassName: 'hidden md:table-cell',
-      cellClassName: 'hidden md:table-cell',
       render: r => r.fitr_nome
         ? <span className="text-sm">{r.fitr_nome}</span>
         : <span className="text-xs text-muted-foreground italic">Sem ficha</span>,
     },
     {
       key: 'func_nome', header: 'Professor',
-      headerClassName: 'hidden sm:table-cell',
-      cellClassName: 'hidden sm:table-cell',
+      headerClassName: 'hidden lg:table-cell',
+      cellClassName: 'hidden lg:table-cell',
       render: r => <span className="text-sm text-muted-foreground">{r.func_nome || '—'}</span>,
     },
     {
@@ -405,56 +463,79 @@ export default function AulasPage() {
       />
 
       <Card>
-        <CardContent className="p-5 space-y-4">
-          {/* Filtros */}
-          <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-3 sm:items-end">
-            <Select value={filtroMod} onValueChange={v => { setFiltroMod(v); setPage(1) }}>
-              <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Modalidade" /></SelectTrigger>
+        <CardContent className="p-4 space-y-4">
+          {/* Filtros — mobile: stack vertical; md: linha */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-3 md:items-end">
+            <Select value={filtroMod} onValueChange={v => setFiltroMod(v)}>
+              <SelectTrigger className="w-full md:w-40"><SelectValue placeholder="Modalidade" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas modalidades</SelectItem>
                 {MODALIDADES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
               </SelectContent>
             </Select>
 
-            <Select value={filtroTur} onValueChange={v => { setFiltroTur(v); setPage(1) }}>
-              <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Turma" /></SelectTrigger>
+            <Select value={filtroTur} onValueChange={v => setFiltroTur(v)}>
+              <SelectTrigger className="w-full md:w-44"><SelectValue placeholder="Turma" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as turmas</SelectItem>
                 {turmas?.map(t => <SelectItem key={t.tur_id} value={String(t.tur_id)}>{t.tur_nome}</SelectItem>)}
               </SelectContent>
             </Select>
 
-            <div className="grid grid-cols-2 sm:flex sm:flex-row sm:items-center gap-2">
-              <Input
-                type="date"
-                className="w-full sm:w-36"
-                value={dataInicio}
-                onChange={e => { setDataInicio(e.target.value); setPage(1) }}
-                title="Data início"
-              />
-              <Input
-                type="date"
-                className="w-full sm:w-36"
-                value={dataFim}
-                onChange={e => { setDataFim(e.target.value); setPage(1) }}
-                title="Data fim"
-              />
-            </div>
+            <Input
+              type="date"
+              className="w-full md:w-36"
+              value={dataInicio}
+              onChange={e => setDataInicio(e.target.value)}
+              title="Data início"
+            />
+            <Input
+              type="date"
+              className="w-full md:w-36"
+              value={dataFim}
+              onChange={e => setDataFim(e.target.value)}
+              title="Data fim"
+            />
 
             {temFiltro && (
-              <Button variant="ghost" size="sm" onClick={limparFiltros} className="text-muted-foreground w-full sm:w-auto">
+              <Button variant="ghost" size="sm" onClick={limparFiltros} className="text-muted-foreground w-full sm:col-span-2 md:w-auto">
                 Limpar filtros
               </Button>
             )}
           </div>
 
-          <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhuma aula registrada." />
+          {/* Mobile: cards */}
+          <div className="block md:hidden">
+            {isLoading ? (
+              <div className="flex justify-center py-10"><Spinner /></div>
+            ) : !data.length ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhuma aula registrada.</p>
+            ) : (
+              <div className="space-y-2">
+                {data.map(r => (
+                  <AulaCard
+                    key={r.aul_id}
+                    r={r}
+                    onDetalhe={setDetalhe}
+                    onEdit={r => { setSelected(r); setModalOpen(true) }}
+                    onDelete={setDeleteId}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: tabela */}
+          <div className="hidden md:block">
+            <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="Nenhuma aula registrada." />
+          </div>
+
           <Pagination page={page} totalPages={totalPages} count={count} onPageChange={setPage} />
         </CardContent>
       </Card>
 
       {/* Modal edição/criação */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <Dialog open={modalOpen} onOpenChange={open => { setModalOpen(open); if (!open) setSelected(null) }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -466,7 +547,7 @@ export default function AulasPage() {
             aula={selected}
             turmas={turmas}
             funcionarios={funcionarios}
-            onClose={() => setModalOpen(false)}
+            onClose={() => { setModalOpen(false); setSelected(null) }}
           />
         </DialogContent>
       </Dialog>

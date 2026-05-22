@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 21/05/2026 | Versão: 15.2
+> Última atualização: 22/05/2026 | Versão: 16.0
 
 ---
 
@@ -181,7 +181,7 @@ created_at = models.DateTimeField(...)
 | Acessorio | acessorio | catálogo de acessórios (bola suíça, mini band, etc.) — sem modalidade |
 | Exercicio | exercicios | `exe_modalidade` + FK `exe_aparelho` + FK `exe_acessorio` + `exe_variacao` |
 | FichaTreino | ficha_treino | `fitr_nome` + `fitr_modalidade` (nullable) |
-| FichaTreinoExercicios | ficha_treino_exercicios | N:N com ordem+séries+reps+`ftex_secao`+`exe2` (combinado opcional) |
+| FichaTreinoExercicios | ficha_treino_exercicios | N:N com ordem+séries+reps+`ftex_secao`+`exe2` (combinado opcional)+`ftex_apelido` CharField(100, nullable) |
 | Aulas | aulas | 1 linha por aula coletiva; unique: tur+aul_data+aul_modalidade; `aul_nome` auto-gerado; FK `fitr`; `aul_numero_ciclo`+`aul_posicao_ciclo` calculados |
 | MinistrarAula | ministrar_aula | 1 linha = 1 aluno em 1 aula; FK `aula` obrigatório (PROTECT); PAS/PAD int, FC, PSE Borg 6-20 |
 | CreditoReposicao | creditos_reposicao | gerado por signal ao registrar falta; `cred_data_geracao` é read-only |
@@ -499,6 +499,8 @@ git pull origin main && docker compose restart nginx
 | Filtros de página não funcionam | `useList(KEY, ENDPOINT, filters)` passa objeto como `options`, não filtros | Usar `setFilters` do hook + `useEffect` para sincronizar |
 | PWA serve bundle antigo mesmo após "Clear site data" | Hash do filename não mudou — SW considera cache válido | Tocar em `src/main.jsx` para forçar novo hash; verificar com `ls dist/assets/*.js` antes e depois |
 | Editou ContasPagar `pago` pela UI após deletar o LivroCaixa → novo lançamento com data de hoje | Signal não encontra LivroCaixa existente → recria com `now()` como data | Corrigir via `LivroCaixa.objects.filter(pk=X).update(lica_data_lancamento=data, lcx_competencia=comp)`; para evitar: usar `QuerySet.update()` no ContasPagar em vez da UI |
+| ContasReceber de pedido pago à vista nasce como `pendente` | Bug no signal `processar_pedido`: `rec_status` hard-coded como `'pendente'` | Corrigido 22/05/2026 — signal usa `pago_agora`; se forma pagamento != 'futuro', nasce como `'recebido'` |
+| `git pull` falha com "divergent branches" no deploy | Remote teve commits (ex: docs) enquanto local também avançou | `git pull --rebase origin main` antes do deploy; commitar ou dar stash se houver unstaged changes |
 
 ---
 
@@ -1079,6 +1081,48 @@ Todos os filtros agora usam `grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wra
 - [ ] Crédito expirado — sem job automático para atualizar status
 - [ ] Agendamentos do site exigem Aluno pré-existente — design a revisar com clientes
 - [ ] LivroCaixa ID=1 / ContasPagar ID=1 — corrigir conta/plano_contas (aguardando confirmação das clientes)
+
+---
+
+### Fase 16 — Hotfix Financeiro, Slots e Apelido de Exercício ✅ EM PRODUÇÃO (22/05/2026)
+
+#### Signal `processar_pedido` — fix status ContasReceber (financeiro/signals.py)
+- Bug: `rec_status` era sempre `'pendente'` e `pago_agora` calculado incorretamente
+- **Fix:** se `ped_forma_pagamento != 'futuro'`, ContasReceber nasce como `'recebido'` com `rec_data_recebimento=now()`
+- Commits: `1efd552`
+
+#### ContasReceberPage — bloco de recorrência no modo editar
+- Formulário de edição agora exibe o bloco de recorrência (igual ao de criação)
+- Se já existirem recorrências criadas, os inputs ficam desabilitados com nota informativa
+
+#### AgendamentosPage — grade de slots 07:00–18:00
+- Grade corrigida para horários reais (era até 21h, sem uso das horas 07-09)
+- Botão **"Gerar Grade Padrão"** adicionado no header da aba Grade → POST `/api/slots-experimentais/gerar-grade/`
+
+#### FichasTreinoExercicios — campo `ftex_apelido`
+- Migration `0029_fichatreinoexercicios_ftex_apelido` aplicada (já existia, agora no container)
+- `FichasTreinoPage`: campo "Apelido (como chamam na aula)" nos modais Adicionar e Editar Exercício
+- `MinistrarAulaPage`: exibe `ftex_apelido` se preenchido, senão `exe_nome`
+- Motivação: mesmo exercício tem nomes diferentes entre professoras
+
+#### Infra — ajustes nginx + compose (VPS)
+- `nginx/nginx.conf`: SSL removido (nginx-proxy na VPS termina o SSL; container não precisa)
+- `docker-compose.yml`: porta nginx mudou de `80:80`+`443:443` para `127.0.0.1:8001:80`
+- `deploy.sh`: ganhou bit de execução (+x)
+
+#### Troubleshooting git — branches divergentes
+- **Causa:** remote tinha commits de docs enquanto local tinha commits do hotfix, sem `git pull` antes
+- **Solução:** `git pull --rebase origin main` — aplica commits locais em cima do remote; histórico limpo
+- Instabilidade: se há unstaged changes, commitar ou dar stash antes do rebase
+- **Regra:** sempre rodar `git pull --rebase` antes de `./deploy.sh prod` se houve commits direto no GitHub
+
+#### Já estava implementado (verificado nessa fase):
+- AlunoPlano → ContasReceber automático no `perform_create` (views.py)
+- Auto-preencher aluno na ContasReceberPage ao selecionar aluno
+- Toggle dark mode na Topbar + persistência em localStorage
+- Endpoint `POST /api/slots-experimentais/gerar-grade/` no backend
+
+**117 testes passando (sem regressão)**
 
 ---
 

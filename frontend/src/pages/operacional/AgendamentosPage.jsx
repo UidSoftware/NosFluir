@@ -278,9 +278,8 @@ const DIAS = [
   { id: 'sex', label: 'Sexta'   },
 ]
 const HORAS = [
-  '06:00','07:00','08:00','09:00','10:00','11:00',
-  '12:00','13:00','14:00','15:00','16:00','17:00',
-  '18:00','19:00','20:00','21:00',
+  '07:00','08:00','09:00','10:00','11:00',
+  '12:00','13:00','14:00','15:00','16:00','17:00','18:00',
 ]
 const MOD_CONFIG = {
   pilates:  { label: 'Pilates',   cls: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
@@ -407,6 +406,20 @@ function SlotEditForm({ slot, onClose }) {
 function TabGrade() {
   const qc = useQueryClient()
   const [cellModal, setCellModal] = useState(null) // { dia, hora, slot? }
+  const [gerando, setGerando] = useState(false)
+
+  const handleGerarGrade = async () => {
+    setGerando(true)
+    try {
+      const res = await api.post('/slots-experimentais/gerar-grade/')
+      qc.invalidateQueries({ queryKey: ['slots-grade'] })
+      toast({ title: res.data?.message || 'Grade gerada com sucesso!', variant: 'success' })
+    } catch {
+      toast({ title: 'Erro ao gerar grade.', variant: 'destructive' })
+    } finally {
+      setGerando(false)
+    }
+  }
 
   const { data: slots = [], isLoading } = useQuery({
     queryKey: ['slots-grade'],
@@ -446,10 +459,14 @@ function TabGrade() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
           Clique em uma célula vazia para ativar um horário. Clique nos badges para alternar ativo/inativo ou editar vagas.
         </p>
+        <Button size="sm" variant="outline" onClick={handleGerarGrade} disabled={gerando} className="shrink-0">
+          {gerando ? <Spinner className="w-3.5 h-3.5 mr-1.5" /> : null}
+          Gerar Grade Padrão
+        </Button>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border">

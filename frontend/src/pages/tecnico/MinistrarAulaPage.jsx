@@ -53,9 +53,10 @@ function SortableExercicioLinha({ ex }) {
       <div className="flex-1 text-sm leading-snug">
         <span className="text-muted-foreground">{ex.ftex_ordem}.</span>{' '}
         <span className="font-medium">
-          {ex.exe_nome}
+          {ex.ftex_apelido || ex.exe_nome}
           {ex.exe2_nome && <span className="text-fluir-cyan"> + {ex.exe2_nome}</span>}
         </span>
+        {ex.ftex_apelido && <span className="text-muted-foreground text-xs"> ({ex.exe_nome})</span>}
         {ex.apar_nome && <span className="text-muted-foreground"> · {ex.apar_nome}</span>}
         {(ex.ftex_series || ex.ftex_repeticoes) && (
           <span className="text-muted-foreground"> — {ex.ftex_series}x{ex.ftex_repeticoes}</span>
@@ -121,9 +122,10 @@ function ExercicioLinha({ ex }) {
     <li className="text-sm list-none">
       <span className="text-muted-foreground">{ex.ftex_ordem}.</span>{' '}
       <span className="font-medium">
-        {ex.exe_nome}
+        {ex.ftex_apelido || ex.exe_nome}
         {ex.exe2_nome && <span className="text-fluir-cyan"> + {ex.exe2_nome}</span>}
       </span>
+      {ex.ftex_apelido && <span className="text-muted-foreground text-xs"> ({ex.exe_nome})</span>}
       {ex.apar_nome && <span className="text-muted-foreground"> · {ex.apar_nome}</span>}
       {(ex.ftex_series || ex.ftex_repeticoes) && (
         <span className="text-muted-foreground"> — {ex.ftex_series}x{ex.ftex_repeticoes}</span>

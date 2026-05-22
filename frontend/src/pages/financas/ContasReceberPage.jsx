@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Wallet, Plus, Pencil, Trash2, DollarSign, ChevronDown, ChevronUp, Zap, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
@@ -247,6 +247,19 @@ function ContaReceberForm({ rec, onClose }) {
     enabled: !!aluId && aluId !== '__none__',
   })
 
+  // Task 4: auto-fill ao selecionar aluno (somente no cadastro)
+  useEffect(() => {
+    if (rec) return
+    if (!contratosDoAluno || contratosDoAluno.length === 0) return
+    if (!aluId || aluId === '__none__') return
+    const plano = contratosDoAluno[0]
+    setValue('rec_tipo', 'mensalidade')
+    setValue('plano_contas', TIPO_PARA_PLANO['mensalidade'])
+    if (plano.plan_valor_plano) {
+      setValue('rec_valor_unitario', parseFloat(plano.plan_valor_plano))
+    }
+  }, [contratosDoAluno, aluId])
+
   const handleServChange = (v) => {
     setValue('serv', v)
     const val = v !== '__none__' ? parseFloat(servicos?.find(x => String(x.serv_id) === v)?.serv_valor_base || 0) : 0
@@ -380,42 +393,50 @@ function ContaReceberForm({ rec, onClose }) {
         </div>
       )}
 
-      {/* Repetição Automática — só no cadastro */}
-      {!rec && (
-        <div className="rounded-lg border border-border/40 bg-fluir-dark-3/40 p-3 space-y-2.5">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={repetir} onChange={e => setRepetir(e.target.checked)} className="w-4 h-4" />
-            <span className="text-sm font-medium">Repetição Automática</span>
-          </label>
-          {repetir && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <FormField label="Quantidade">
-                  <Input type="number" min="2" max="60" value={qtdRep} onChange={e => setQtdRep(e.target.value)} />
-                </FormField>
-                <FormField label="Periodicidade">
-                  <select
-                    value={periodicidade}
-                    onChange={e => setPeriodicidade(e.target.value)}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
-                  >
-                    {PERIODICIDADES_REC.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                  </select>
-                </FormField>
+      {/* Repetição Automática */}
+      <div className="rounded-lg border border-border/40 bg-fluir-dark-3/40 p-3 space-y-2.5">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={repetir}
+            onChange={e => setRepetir(e.target.checked)}
+            className="w-4 h-4"
+          />
+          <span className="text-sm font-medium">Repetição Automática</span>
+          {rec && <span className="text-xs text-muted-foreground ml-1">(somente no cadastro)</span>}
+        </label>
+        {repetir && (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label="Quantidade">
+                <Input type="number" min="2" max="60" value={qtdRep} onChange={e => { if (!rec) setQtdRep(e.target.value) }} disabled={!!rec} />
+              </FormField>
+              <FormField label="Periodicidade">
+                <select
+                  value={periodicidade}
+                  onChange={e => { if (!rec) setPeriodicidade(e.target.value) }}
+                  disabled={!!rec}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {PERIODICIDADES_REC.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+              </FormField>
+            </div>
+            {!rec && preview.length > 0 && (
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground font-medium">Preview:</p>
+                {preview.slice(0, 3).map((d, i) => (
+                  <p key={i} className="text-xs text-muted-foreground">• Venc. {d} — {formatCurrency(total)}</p>
+                ))}
+                {preview.length > 3 && <p className="text-xs text-muted-foreground">... e mais {preview.length - 3}</p>}
               </div>
-              {preview.length > 0 && (
-                <div className="space-y-0.5">
-                  <p className="text-xs text-muted-foreground font-medium">Preview:</p>
-                  {preview.slice(0, 3).map((d, i) => (
-                    <p key={i} className="text-xs text-muted-foreground">• Venc. {d} — {formatCurrency(total)}</p>
-                  ))}
-                  {preview.length > 3 && <p className="text-xs text-muted-foreground">... e mais {preview.length - 3}</p>}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+            )}
+            {rec && (
+              <p className="text-xs text-muted-foreground italic">Recorrências já geradas — configurações exibidas apenas para consulta.</p>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Serviço + Plano */}
       <FormField label="Serviço">

@@ -76,6 +76,7 @@ function EditExercicioForm({ ftex, fichaId, onClose }) {
     defaultValues: {
       exe:              String(ftex.exe),
       exe2:             ftex.exe2 ? String(ftex.exe2) : '__none__',
+      ftex_apelido:     ftex.ftex_apelido || '',
       ftex_secao:       ftex.ftex_secao || '',
       ftex_ordem:       ftex.ftex_ordem,
       ftex_series:      ftex.ftex_series || '',
@@ -109,6 +110,7 @@ function EditExercicioForm({ ftex, fichaId, onClose }) {
     mutation.mutate({
       exe:              exeId,
       exe2:             exe2Id,
+      ftex_apelido:     data.ftex_apelido || null,
       ftex_secao:       data.ftex_secao || null,
       ftex_ordem:       parseInt(data.ftex_ordem),
       ftex_series:      data.ftex_series ? parseInt(data.ftex_series) : null,
@@ -135,6 +137,10 @@ function EditExercicioForm({ ftex, fichaId, onClose }) {
             ))}
           </SelectContent>
         </Select>
+      </FormField>
+
+      <FormField label="Apelido (como chamam na aula)">
+        <Input {...register('ftex_apelido')} placeholder="ex: Elevação Lateral, Bichinho..." disabled={mutation.isPending} />
       </FormField>
 
       <FormField label="Combinado com (opcional)">
@@ -172,7 +178,7 @@ function EditExercicioForm({ ftex, fichaId, onClose }) {
 function AddExercicioForm({ fichaId, onClose }) {
   const queryClient = useQueryClient()
   const { register, handleSubmit, setValue, watch } = useForm({
-    defaultValues: { ftex_ordem: 1, ftex_series: 3, ftex_repeticoes: 12, exe: '__none__', exe2: '__none__' },
+    defaultValues: { ftex_ordem: 1, ftex_series: 3, ftex_repeticoes: 12, exe: '__none__', exe2: '__none__', ftex_apelido: '' },
   })
 
   const { data: exercicios } = useQuery({
@@ -201,6 +207,7 @@ function AddExercicioForm({ fichaId, onClose }) {
       fitr:             fichaId,
       exe:              exeId,
       exe2:             exe2Id,
+      ftex_apelido:     data.ftex_apelido || null,
       ftex_secao:       data.ftex_secao || null,
       ftex_ordem:       parseInt(data.ftex_ordem),
       ftex_series:      parseInt(data.ftex_series),
@@ -227,6 +234,10 @@ function AddExercicioForm({ fichaId, onClose }) {
             ))}
           </SelectContent>
         </Select>
+      </FormField>
+
+      <FormField label="Apelido (como chamam na aula)">
+        <Input {...register('ftex_apelido')} placeholder="ex: Elevação Lateral, Bichinho..." disabled={mutation.isPending} />
       </FormField>
 
       <FormField label="Combinado com (opcional)">

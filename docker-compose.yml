@@ -50,8 +50,7 @@ services:
   nginx:
     build: ./nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:8001:80"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media

@@ -149,6 +149,7 @@ def processar_pedido(sender, instance, **kwargs):
             valor_base = (instance.ped_total / num).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
             resto = instance.ped_total - valor_base * num
             user = instance.updated_by or instance.created_by
+            pago_agora = True  # pedido já confirmado como pago (ped_status='pago' é pré-condição)
             for i in range(num):
                 valor = valor_base + (resto if i == num - 1 else Decimal('0.00'))
                 sufixo = f' {i + 1}/{num}' if num > 1 else ''
@@ -166,7 +167,8 @@ def processar_pedido(sender, instance, **kwargs):
                     rec_valor_total=valor,
                     rec_data_emissao=instance.ped_data,
                     rec_data_vencimento=vencimento,
-                    rec_status='pendente',
+                    rec_status='recebido' if pago_agora else 'pendente',
+                    rec_data_recebimento=instance.ped_data if pago_agora else None,
                     conta=instance.conta,
                     plano_contas=plano_venda,
                     created_by=user,

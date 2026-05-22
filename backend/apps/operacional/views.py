@@ -1,7 +1,9 @@
+from django.db import transaction
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
+from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -122,10 +124,50 @@ class SlotExperimentalViewSet(AuditMixin, ModelViewSet):
     filterset_fields = ['slot_ativo', 'slot_modalidade']
 
     def get_permissions(self):
-        # GET público — site usa para listar slots disponíveis
+        # GET público e gerar-grade para admin — site usa para listar slots disponíveis
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
         return super().get_permissions()
+
+    @action(detail=False, methods=['post'], url_path='gerar-grade')
+    def gerar_grade(self, request):
+        """Cria todos os slots Seg-Sex 07:00-18:00 com modalidade 'ambos' e 2 vagas. Idempotente."""
+        from datetime import time as dtime
+
+        DIAS = ['seg', 'ter', 'qua', 'qui', 'sex']
+        HORAS = [dtime(h, 0) for h in range(7, 19)]  # 07:00 a 18:00
+
+        criados = 0
+        existentes = 0
+
+        with transaction.atomic():
+            for dia in DIAS:
+                for hora in HORAS:
+                    exists = SlotExperimental.objects.filter(
+                        slot_dia_semana=dia,
+                        slot_hora=hora,
+                        slot_modalidade='ambos',
+                        deleted_at__isnull=True,
+                    ).exists()
+                    if not exists:
+                        SlotExperimental.objects.create(
+                            slot_dia_semana=dia,
+                            slot_hora=hora,
+                            slot_modalidade='ambos',
+                            slot_vagas=2,
+                            slot_ativo=True,
+                            created_by=request.user,
+                            updated_by=request.user,
+                        )
+                        criados += 1
+                    else:
+                        existentes += 1
+
+        return Response({
+            'criados': criados,
+            'existentes': existentes,
+            'message': f'{criados} slot(s) criado(s), {existentes} já existiam.',
+        })
 
 
 class AgendamentoExperimentalViewSet(AuditMixin, ModelViewSet):

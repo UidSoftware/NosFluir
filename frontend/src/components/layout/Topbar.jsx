@@ -1,10 +1,30 @@
-import { LogOut, Menu } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { LogOut, Menu, Sun, Moon } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useNavigate } from 'react-router-dom'
+
+function useTheme() {
+  const [isDark, setIsDark] = useState(() => {
+    return localStorage.getItem('theme') !== 'light'
+  })
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.remove('light')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.classList.add('light')
+      localStorage.setItem('theme', 'light')
+    }
+  }, [isDark])
+
+  return [isDark, setIsDark]
+}
 
 export function Topbar({ onMenuClick }) {
   const { logout } = useAuthStore()
   const navigate = useNavigate()
+  const [isDark, setIsDark] = useTheme()
 
   const handleLogout = async () => {
     await logout()
@@ -34,14 +54,23 @@ export function Topbar({ onMenuClick }) {
         </div>
       </div>
 
-      {/* Botão sair */}
-      <button
-        onClick={handleLogout}
-        className="p-1.5 rounded-lg text-muted-foreground hover:bg-fluir-dark-3 hover:text-foreground transition-colors"
-        title="Sair"
-      >
-        <LogOut className="w-4 h-4" />
-      </button>
+      {/* Botões direita */}
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => setIsDark(d => !d)}
+          className="p-1.5 rounded-lg text-muted-foreground hover:bg-fluir-dark-3 hover:text-foreground transition-colors"
+          title={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
+        >
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
+        <button
+          onClick={handleLogout}
+          className="p-1.5 rounded-lg text-muted-foreground hover:bg-fluir-dark-3 hover:text-foreground transition-colors"
+          title="Sair"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
+      </div>
     </header>
   )
 }

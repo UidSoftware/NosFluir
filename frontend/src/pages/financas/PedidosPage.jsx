@@ -39,7 +39,7 @@ function ConfirmarPagamentoModal({ pedido, onClose }) {
   const qc  = useQueryClient()
   const mut = useMutation({
     mutationFn: (payload) => api.post(`/pedidos/${pedido.ped_id}/confirmar/`, payload).then(r => r.data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: [KEY] }); toast({ title: 'Pedido confirmado!', variant: 'success' }); onClose() },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: [KEY] }); qc.invalidateQueries({ queryKey: ['contas-receber'] }); toast({ title: 'Pedido confirmado!', variant: 'success' }); onClose() },
     onError: (e) => toast({ title: 'Erro', description: e.response?.data?.detail || 'Erro desconhecido', variant: 'destructive' }),
   })
 

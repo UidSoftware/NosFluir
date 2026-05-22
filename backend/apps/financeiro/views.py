@@ -223,6 +223,60 @@ class AlunoPlanoViewSet(AuditMixin, ModelViewSet):
     search_fields = ['aluno__alu_nome', 'plano__serv__serv_nome']
     ordering_fields = ['aplano_data_inicio', 'aplano_ativo']
 
+    def perform_create(self, serializer):
+        import calendar
+        from datetime import date
+        from django.utils import timezone as tz
+
+        user = self.request.user
+        instance = serializer.save(created_by=user)
+
+        if not instance.aplano_dia_vencimento or not instance.aplano_ativo:
+            return
+
+        MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+        QTDS = {'mensal': 1, 'trimestral': 3, 'semestral': 6}
+        qtd = QTDS.get(instance.plano.plan_tipo_plano, 1)
+
+        with transaction.atomic():
+            for i in range(qtd):
+                ref = instance.aplano_data_inicio
+                m = ref.month - 1 + i
+                ano = ref.year + m // 12
+                mes = m % 12 + 1
+                dia_vc = min(instance.aplano_dia_vencimento, calendar.monthrange(ano, mes)[1])
+                vencimento = date(ano, mes, dia_vc)
+
+                if instance.aplano_data_fim and instance.aplano_data_fim < vencimento:
+                    continue
+
+                if ContasReceber.objects.filter(
+                    aplano=instance,
+                    rec_data_vencimento__year=ano,
+                    rec_data_vencimento__month=mes,
+                ).exists():
+                    continue
+
+                descricao = f"Mensalidade {instance.plano.serv.serv_nome} {MESES[mes-1]}/{ano}"
+                valor = instance.plano.plan_valor_plano
+                ContasReceber.objects.create(
+                    alu=instance.aluno,
+                    aplano=instance,
+                    rec_tipo='mensalidade',
+                    rec_plano_tipo=instance.plano.plan_tipo_plano,
+                    rec_data_emissao=tz.now(),
+                    rec_data_vencimento=vencimento,
+                    rec_descricao=descricao,
+                    rec_quantidade=1,
+                    rec_valor_unitario=valor,
+                    rec_desconto=0,
+                    rec_valor_total=valor,
+                    rec_status='pendente',
+                    created_by=user,
+                    updated_by=user,
+                )
+
 
 class LivroCaixaViewSet(AuditMixin, ReadCreateViewSet):
     """

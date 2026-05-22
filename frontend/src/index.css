@@ -55,6 +55,43 @@
   }
 }
 
+/* ── Light mode ──────────────────────────────────────────────────────────── */
+html.light {
+  color-scheme: light;
+  --background:  265 100% 97%;
+  --foreground:  258 52% 13%;
+  --card:        260 55% 94%;
+  --card-foreground: 258 52% 13%;
+  --popover:     260 55% 94%;
+  --popover-foreground: 258 52% 13%;
+  --primary:     242 70% 62%;
+  --primary-foreground: 0 0% 100%;
+  --secondary:   260 30% 88%;
+  --secondary-foreground: 258 40% 20%;
+  --muted:       260 25% 86%;
+  --muted-foreground: 258 25% 45%;
+  --accent:      175 100% 44%;
+  --accent-foreground: 244 34% 13%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border:      260 25% 80%;
+  --input:       260 25% 88%;
+  --ring:        242 70% 62%;
+}
+html.light body { background-color: #F5F0FF; color: #1a1033; }
+html.light .bg-fluir-dark    { background-color: #F5F0FF !important; }
+html.light .bg-fluir-dark-2  { background-color: #EDE8FF !important; }
+html.light .bg-fluir-dark-3  { background-color: #E5DFF8 !important; }
+html.light .bg-fluir-dark-4  { background-color: #DDD7F0 !important; }
+html.light .bg-fluir-dark\/95 { background-color: rgba(245,240,255,0.95) !important; }
+html.light .bg-fluir-dark-2\/80 { background-color: rgba(237,232,255,0.8) !important; }
+html.light .bg-fluir-dark-2\/60 { background-color: rgba(237,232,255,0.6) !important; }
+html.light .bg-fluir-dark-3\/40 { background-color: rgba(229,223,248,0.4) !important; }
+html.light .bg-fluir-dark-3\/60 { background-color: rgba(229,223,248,0.6) !important; }
+html.light .bg-fluir-dark-3\/80 { background-color: rgba(229,223,248,0.8) !important; }
+html.light .text-foreground  { color: #1a1033 !important; }
+html.light .border-border    { border-color: hsl(260 25% 80%) !important; }
+
 @layer components {
   .text-gradient {
     background: linear-gradient(135deg, #5D5CE0, #01E2CD);

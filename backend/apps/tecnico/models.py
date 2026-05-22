@@ -124,6 +124,7 @@ class FichaTreinoExercicios(BaseModel):
     ftex_ordem = models.IntegerField('ordem na ficha')
     ftex_repeticoes = models.IntegerField('repetições')
     ftex_series = models.IntegerField('séries', null=True, blank=True)
+    ftex_apelido = models.CharField('apelido do exercício', max_length=100, null=True, blank=True)
     ftex_secao = models.CharField('seção', max_length=100, null=True, blank=True)
     ftex_observacoes = models.TextField('observações', null=True, blank=True)
 

@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 22/05/2026 | Versão: 16.0
+> Última atualização: 29/05/2026 | Versão: 17.0
 
 ---
 
@@ -501,6 +501,7 @@ git pull origin main && docker compose restart nginx
 | Editou ContasPagar `pago` pela UI após deletar o LivroCaixa → novo lançamento com data de hoje | Signal não encontra LivroCaixa existente → recria com `now()` como data | Corrigir via `LivroCaixa.objects.filter(pk=X).update(lica_data_lancamento=data, lcx_competencia=comp)`; para evitar: usar `QuerySet.update()` no ContasPagar em vez da UI |
 | ContasReceber de pedido pago à vista nasce como `pendente` | Bug no signal `processar_pedido`: `rec_status` hard-coded como `'pendente'` | Corrigido 22/05/2026 — signal usa `pago_agora`; se forma pagamento != 'futuro', nasce como `'recebido'` |
 | `git pull` falha com "divergent branches" no deploy | Remote teve commits (ex: docs) enquanto local também avançou | `git pull --rebase origin main` antes do deploy; commitar ou dar stash se houver unstaged changes |
+| 500 após rebuild frontend (loop `try_files` no nginx) | `rm -rf dist/ && mkdir dist/` troca o inode — nginx container aponta para o antigo e enxerga diretório vazio | Sempre `docker compose restart nginx` após rebuild que use `rm -rf dist/` |
 
 ---
 
@@ -1123,6 +1124,18 @@ Todos os filtros agora usam `grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wra
 - Endpoint `POST /api/slots-experimentais/gerar-grade/` no backend
 
 **117 testes passando (sem regressão)**
+
+### Fase 17 — Conformidade Tipográfica Global Uid ✅ EM PRODUÇÃO (29/05/2026)
+
+- [x] Fontes trocadas: `Sora` + `JetBrains Mono` → **`DM Sans`** (body) + **`Plus Jakarta Sans`** (display)
+- [x] `frontend/index.html`: Google Fonts link atualizado
+- [x] `frontend/tailwind.config.js`: `fontFamily.sans` e `fontFamily.display` atualizados
+- [x] Alinhado ao padrão global Uid (`~/.claude/CLAUDE.md`)
+
+#### Bug de deploy descoberto (bind mount + inode):
+- `rm -rf frontend/dist && mkdir -p frontend/dist` durante build troca o inode do diretório
+- Nginx container aponta para o inode antigo → enxerga diretório vazio → loop `try_files` → 500
+- **Regra:** sempre rodar `docker compose restart nginx` após rebuild do frontend que use `rm -rf dist/`
 
 ---
 

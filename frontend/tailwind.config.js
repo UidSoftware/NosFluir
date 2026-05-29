@@ -56,8 +56,8 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['Sora', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        sans: ['DM Sans', 'sans-serif'],
+        display: ['Plus Jakarta Sans', 'sans-serif'],
       },
       keyframes: {
         'accordion-down': {

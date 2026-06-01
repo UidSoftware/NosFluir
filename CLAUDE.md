@@ -1146,6 +1146,39 @@ Todos os filtros agora usam `grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wra
 
 ---
 
+## Histórico de execuções
+
+### [2026-06-01] — serv_valor_base opcional + fix signals DateField
+
+**Tarefas executadas:**
+- feat(financeiro): campo `serv_valor_base` tornado opcional no model `ServicoProduto` (null=True, blank=True)
+- feat(frontend): UI de ServicosPage atualizada para tratar valor base como opcional
+- fix(financeiro): removido `.date()` redundante em `signals.py` (campo já era DateField)
+
+**Arquivos alterados:**
+- `backend/apps/financeiro/models.py` — serv_valor_base opcional
+- `backend/apps/financeiro/serializers.py` — allow_null no campo
+- `frontend/src/pages/financeiro/ServicosPage.jsx` — valor base opcional na UI
+- `backend/apps/financeiro/signals.py` — remove .date() redundante
+
+**Commits:**
+- `f23af16` — feat(financeiro): serv_valor_base opcional no ServicoProduto
+- `2b761db` — feat(frontend): valor base opcional em ServicosPage
+- `1a332aa` — fix(financeiro): corrigir signals.py — DateField e pago_agora em pagamento futuro
+
+**Deploy:**
+- Data: 2026-06-01 20:22 (horário BRT)
+- URL: https://nostudiofluir.com.br/sistema/
+- API: https://nostudiofluir.com.br/api/ (HTTP 401 — autenticação requerida, OK)
+- Porta interna: 8001
+- Status: APROVADO e em producao
+
+**Sentinel:**
+- 117/117 testes passando (0 falhas, 0 migrations pendentes)
+- Resultado: APROVADO
+
+---
+
 **🚀 Bora codar! Good luck, Claude Code!**
 
 > ⚠️ **SISTEMA EM PRODUÇÃO — atualizar este arquivo a cada mudança relevante.**

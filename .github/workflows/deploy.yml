@@ -1,0 +1,115 @@
+name: CI/CD — Nos Studio Fluir
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─────────────────────────────────────────────────
+  # Job 1 — Testes automatizados (117 testes)
+  # Usa SQLite em memória para não precisar de PostgreSQL no runner
+  # ─────────────────────────────────────────────────
+  test:
+    name: Testes — Django
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Rodar suite completa de testes
+        run: |
+          python manage.py test \
+            apps.financeiro \
+            apps.operacional \
+            apps.tecnico \
+            --settings=config.settings_test \
+            --verbosity=2 \
+            --failfast
+
+  # ─────────────────────────────────────────────────
+  # Job 2 — Deploy na VPS
+  # Só executa após test passar e apenas em push na main
+  # Replica exatamente o deploy.sh prod:
+  #   1. git pull
+  #   2. build frontend (Docker multi-stage, sem npm na VPS)
+  #   3. docker compose down
+  #   4. docker compose build --no-cache
+  #   5. docker compose up -d
+  #   6. docker compose restart nginx (crítico — inode fix Fase 17)
+  #   7. health check
+  # ─────────────────────────────────────────────────
+  deploy:
+    name: Deploy — VPS Uid (porta 8001)
+    runs-on: ubuntu-latest
+    needs: test
+
+    # Só faz deploy em push direto na main (não em PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            cd /var/www/studio-fluir
+
+            echo "--- [1/7] git pull ---"
+            git pull origin main
+
+            echo "--- [2/7] Build frontend React via Docker (sem npm na VPS) ---"
+            docker build -t nosfluir-frontend-builder ./frontend
+            docker create --name nosfluir-frontend-build nosfluir-frontend-builder
+            rm -rf ./frontend/dist && mkdir -p ./frontend/dist
+            docker cp nosfluir-frontend-build:/var/www/frontend/. ./frontend/dist/
+            docker rm nosfluir-frontend-build
+            docker rmi nosfluir-frontend-builder
+
+            echo "--- [3/7] Parar containers ---"
+            docker compose down
+
+            echo "--- [4/7] Rebuild completo sem cache ---"
+            docker compose build --no-cache
+
+            echo "--- [5/7] Subir containers ---"
+            docker compose up -d
+
+            echo "--- [6/7] Aguardar inicialização (entrypoint.sh: migrate + collectstatic) ---"
+            sleep 20
+
+            echo "--- [7/7] Restart nginx (fix de inode após rm -rf dist — Fase 17) ---"
+            docker compose restart nginx
+
+            echo "--- Health check ---"
+            sleep 5
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://nostudiofluir.com.br/api/" 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "401" ] || [ "$HTTP_STATUS" = "403" ]; then
+              echo "API respondendo (HTTP $HTTP_STATUS) — deploy OK"
+            else
+              echo "ERRO: API retornou HTTP $HTTP_STATUS"
+              docker compose logs --tail=50 backend
+              exit 1
+            fi
+
+            echo "Deploy concluido: $(date '+%d/%m/%Y %H:%M:%S')" >> /var/www/studio-fluir/deploy_history.log

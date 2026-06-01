@@ -66,7 +66,18 @@ echo ""
 
 # Aguardar banco de dados subir (entrypoint.sh já executa migrations + collectstatic)
 echo "⏳ Aguardando inicialização do backend..."
-sleep 15
+sleep 20
+
+# Restart nginx obrigatório após rebuild que usa rm -rf dist/
+# O rm troca o inode do diretório — nginx aponta para o inode antigo (vazio) → 500
+# (Regra documentada na Fase 17 do CLAUDE.md)
+echo "🔄 Restart nginx (fix de inode após rm -rf dist)..."
+docker compose restart nginx
+echo "✅ Nginx reiniciado"
+echo ""
+
+# Aguardar nginx reiniciar
+sleep 5
 
 # Verificar saúde dos containers
 echo "🩺 Verificando saúde dos containers..."

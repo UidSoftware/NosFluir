@@ -57,7 +57,7 @@ def lancar_contas_pagar(sender, instance, **kwargs):
             lica_forma_pagamento=instance.pag_forma_pagamento,
             conta=instance.conta,
             plano_contas=instance.plano_contas,
-            lcx_competencia=instance.pag_data_vencimento.date() if instance.pag_data_vencimento else None,
+            lcx_competencia=instance.pag_data_vencimento if instance.pag_data_vencimento else None,
             created_by=instance.updated_by or instance.created_by,
         )
 
@@ -96,7 +96,7 @@ def lancar_contas_receber(sender, instance, **kwargs):
             lica_forma_pagamento=instance.rec_forma_recebimento,
             conta=instance.conta,
             plano_contas=instance.plano_contas,
-            lcx_competencia=instance.rec_data_vencimento.date() if instance.rec_data_vencimento else None,
+            lcx_competencia=instance.rec_data_vencimento if instance.rec_data_vencimento else None,
             created_by=instance.updated_by or instance.created_by,
         )
 
@@ -149,7 +149,9 @@ def processar_pedido(sender, instance, **kwargs):
             valor_base = (instance.ped_total / num).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
             resto = instance.ped_total - valor_base * num
             user = instance.updated_by or instance.created_by
-            pago_agora = True  # pedido já confirmado como pago (ped_status='pago' é pré-condição)
+            # Pagamento futuro: parcelas criadas como 'pendente' para confirmação manual.
+            # O LivroCaixa será criado pelo signal lancar_contas_receber quando cada
+            # parcela for marcada como 'recebido' pelo operador.
             for i in range(num):
                 valor = valor_base + (resto if i == num - 1 else Decimal('0.00'))
                 sufixo = f' {i + 1}/{num}' if num > 1 else ''
@@ -167,8 +169,8 @@ def processar_pedido(sender, instance, **kwargs):
                     rec_valor_total=valor,
                     rec_data_emissao=instance.ped_data,
                     rec_data_vencimento=vencimento,
-                    rec_status='recebido' if pago_agora else 'pendente',
-                    rec_data_recebimento=instance.ped_data if pago_agora else None,
+                    rec_status='pendente',
+                    rec_data_recebimento=None,
                     conta=instance.conta,
                     plano_contas=plano_venda,
                     created_by=user,

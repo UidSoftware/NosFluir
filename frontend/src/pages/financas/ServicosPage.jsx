@@ -35,6 +35,7 @@ function ServicoForm({ servico, onClose }) {
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
     )
+    cleaned.serv_valor_base = data.serv_valor_base ? parseFloat(data.serv_valor_base) : null
     if (servico) update.mutate({ id: servico.serv_id, data: cleaned })
     else         create.mutate(cleaned)
   }
@@ -47,8 +48,8 @@ function ServicoForm({ servico, onClose }) {
       <FormField label="Descrição">
         <Input {...register('serv_descricao')} placeholder="Descrição opcional" disabled={busy} />
       </FormField>
-      <FormField label="Valor Base (R$)" required error={errors.serv_valor_base?.message}>
-        <Input type="number" step="0.01" {...register('serv_valor_base', { required: 'Valor obrigatório' })} placeholder="350.00" disabled={busy} />
+      <FormField label="Valor Base (R$)" error={errors.serv_valor_base?.message}>
+        <Input type="number" step="0.01" {...register('serv_valor_base')} placeholder="350.00" disabled={busy} />
       </FormField>
       <FormField label="Ativo">
         <label className="flex items-center gap-2 cursor-pointer">

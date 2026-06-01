@@ -1179,6 +1179,47 @@ Todos os filtros agora usam `grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wra
 
 ---
 
-**🚀 Bora codar! Good luck, Claude Code!**
+### [2026-06-01] — Pipeline CI/CD GitHub Actions
 
-> ⚠️ **SISTEMA EM PRODUÇÃO — atualizar este arquivo a cada mudança relevante.**
+**Tarefas executadas:**
+- Criado `.github/workflows/deploy.yml` com job `test` (Python 3.12 + SQLite em memória) e job `deploy` (SSH VPS, replica deploy.sh prod)
+- Criado `backend/config/settings_test.py` — settings para CI com SQLite `:memory:` (sem PostgreSQL no runner)
+- Corrigido `deploy.sh`: adicionado `docker compose restart nginx` após `up -d` (fix de inode Fase 17 que estava só documentado, não implementado no script)
+
+**Arquivos alterados:**
+- `.github/workflows/deploy.yml` — criado (novo)
+- `backend/config/settings_test.py` — criado (novo)
+- `deploy.sh` — restart nginx adicionado
+
+**Commits:**
+- `f9d1095` — ci: pipeline GitHub Actions CI/CD para Nos Studio Fluir
+
+**Deploy:**
+- Data: 2026-06-01
+- URL: https://nostudiofluir.com.br/sistema/
+- Status: CI/CD configurado — deploy automático ativo a partir deste commit
+
+**Secrets necessários no GitHub (Settings > Secrets and variables > Actions):**
+- `VPS_HOST` = 209.50.241.122
+- `VPS_USER` = notuidsoftware
+- `VPS_SSH_KEY` = chave privada SSH (ver instruções abaixo)
+- `VPS_PORT` = 22
+
+**Como gerar o par de chaves SSH para os secrets:**
+```bash
+# Na máquina local (ou na VPS para chave dedicada ao CI):
+ssh-keygen -t ed25519 -C "github-actions-nosfluir" -f ~/.ssh/nosfluir_ci
+
+# Copiar a chave pública para a VPS (autoriza o runner do GitHub a fazer SSH):
+ssh-copy-id -i ~/.ssh/nosfluir_ci.pub notuidsoftware@209.50.241.122
+# ou manualmente: cat ~/.ssh/nosfluir_ci.pub >> ~/.ssh/authorized_keys (na VPS)
+
+# O conteúdo de ~/.ssh/nosfluir_ci (chave PRIVADA) vai para o secret VPS_SSH_KEY
+cat ~/.ssh/nosfluir_ci
+```
+
+---
+
+**Bora codar! Good luck, Claude Code!**
+
+> SISTEMA EM PRODUCAO — atualizar este arquivo a cada mudança relevante.

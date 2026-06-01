@@ -80,7 +80,7 @@ class ServicoProduto(BaseModel):
     serv_id = models.AutoField(primary_key=True)
     serv_nome = models.CharField('nome', max_length=125)
     serv_descricao = models.TextField('descrição', null=True, blank=True)
-    serv_valor_base = models.DecimalField('valor base', max_digits=10, decimal_places=2)
+    serv_valor_base = models.DecimalField('valor base', max_digits=10, decimal_places=2, null=True, blank=True)
     serv_ativo = models.BooleanField('ativo', default=True)
 
     class Meta:

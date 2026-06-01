@@ -67,6 +67,7 @@ class ServicoProdutoSerializer(serializers.ModelSerializer):
             'serv_ativo', 'created_at', 'updated_at',
         ]
         read_only_fields = ['serv_id', 'created_at', 'updated_at']
+        extra_kwargs = {'serv_valor_base': {'required': False, 'allow_null': True}}
 
 
 class ContasPagarSerializer(serializers.ModelSerializer):

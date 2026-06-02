@@ -34,6 +34,15 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Rodar suite completa de testes
+        env:
+          # Variáveis obrigatórias lidas pelo python-decouple ao importar settings.py.
+          # O settings_test.py sobrescreve SECRET_KEY e ALLOWED_HOSTS depois,
+          # mas o "from .settings import *" precisa que essas vars existam antes.
+          # DB_* são ignorados pelo settings_test.py (usa SQLite em memória).
+          SECRET_KEY: 'ci-test-secret-key-placeholder'
+          DB_NAME: 'ci_db'
+          DB_USER: 'ci_user'
+          DB_PASSWORD: 'ci_pass'
         run: |
           python manage.py test \
             apps.financeiro \

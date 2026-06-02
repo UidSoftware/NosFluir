@@ -1205,18 +1205,57 @@ Todos os filtros agora usam `grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wra
 - `VPS_SSH_KEY` = chave privada SSH (ver instruções abaixo)
 - `VPS_PORT` = 22
 
-**Como gerar o par de chaves SSH para os secrets:**
-```bash
-# Na máquina local (ou na VPS para chave dedicada ao CI):
-ssh-keygen -t ed25519 -C "github-actions-nosfluir" -f ~/.ssh/nosfluir_ci
-
-# Copiar a chave pública para a VPS (autoriza o runner do GitHub a fazer SSH):
-ssh-copy-id -i ~/.ssh/nosfluir_ci.pub notuidsoftware@209.50.241.122
-# ou manualmente: cat ~/.ssh/nosfluir_ci.pub >> ~/.ssh/authorized_keys (na VPS)
-
-# O conteúdo de ~/.ssh/nosfluir_ci (chave PRIVADA) vai para o secret VPS_SSH_KEY
-cat ~/.ssh/nosfluir_ci
+**Chave SSH em uso (VPS):**
 ```
+Chave ativa: /root/.ssh/nosfluir_ci_nopass  ← SEM passphrase (obrigatório para CI)
+Chave pública autorizada: /root/.ssh/authorized_keys (linha: github-actions-nosfluir-ci)
+```
+> ⚠️ A chave `/root/.ssh/nosfluir_ci` (original) tem passphrase e NÃO funciona no CI.
+> Sempre usar `nosfluir_ci_nopass` para o secret `VPS_SSH_KEY`.
+
+**Como gerar nova chave SSH para o CI (se precisar regenerar):**
+```bash
+# Na VPS — SEMPRE sem passphrase (-N ""):
+ssh-keygen -t ed25519 -f /root/.ssh/nosfluir_ci_nopass -N "" -C "github-actions-nosfluir-ci"
+cat /root/.ssh/nosfluir_ci_nopass.pub >> /root/.ssh/authorized_keys
+
+# Setar o secret via gh CLI (evita problemas de copy/paste):
+gh secret set VPS_SSH_KEY --repo UidSoftware/NosFluir < /root/.ssh/nosfluir_ci_nopass
+```
+
+---
+
+### [2026-06-02] — Debug e ativação do CI/CD GitHub Actions
+
+**Tarefas executadas:**
+- fix(ci): env vars placeholder no step de testes (`SECRET_KEY`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`) — python-decouple lançava `UndefinedValueError` ao importar `settings.py` no runner sem `.env`
+- fix(ci): opt-in Node.js 24 via `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` no nível do workflow — `actions/checkout@v4` e `actions/setup-python@v5` deprecados em Node.js 20 (deadline 16/06/2026)
+- fix(ci): nova chave ed25519 **sem passphrase** gerada na VPS (`/root/.ssh/nosfluir_ci_nopass`) e adicionada ao `authorized_keys` — chave original (`nosfluir_ci`) tem passphrase e causava `ssh: no key found` no runner
+- fix(ci): secret `VPS_SSH_KEY` atualizado via `gh` CLI (instalado na VPS) — copy/paste manual corrompía quebras de linha
+- CI/CD totalmente funcional: 117 testes passando → deploy automático na VPS a cada push em `main`
+
+**Arquivos alterados:**
+- `.github/workflows/deploy.yml` — env vars no step de testes + `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`
+- `/root/.ssh/nosfluir_ci_nopass` + `/root/.ssh/nosfluir_ci_nopass.pub` — criados na VPS
+- `/root/.ssh/authorized_keys` — chave nova adicionada
+
+**Commits:**
+- `c136fed` — fix(ci): adicionar env vars placeholder no step de testes do GitHub Actions
+- `007c84b` — fix(ci): optar por Node.js 24 nas GitHub Actions
+- `ed45bb9` — ci: trigger workflow test após fix SSH key
+- `c3d2a56` — ci: trigger após fix VPS_SSH_KEY
+
+**Ferramentas instaladas na VPS:**
+- `gh` CLI v2.93.0 — `/usr/bin/gh` — usado para setar secrets sem copy/paste
+
+**Deploy:**
+- Data: 2026-06-02
+- URL: https://nostudiofluir.com.br/sistema/
+- Status: ✅ CI/CD ativo — 117 testes passando + deploy automático funcionando
+
+**Sentinel:**
+- 117/117 testes passando
+- Resultado: APROVADO (via GitHub Actions)
 
 ---
 

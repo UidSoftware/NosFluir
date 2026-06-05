@@ -1,13 +1,8 @@
 import { useState, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
-  LayoutDashboard, DollarSign, Users, Dumbbell, BarChart2,
-  PieChart, Settings, Settings2, ChevronDown, ChevronLeft,
-  ChevronRightIcon, BookOpen, CreditCard, Wallet, ClipboardList,
-  UserCheck, CalendarDays, ListTodo, FileText, Activity,
-  TrendingUp, Repeat2, Building2, Package, Banknote, UserCog, BellOff,
-  Camera, ArrowLeftRight, ShoppingCart, Wrench, Landmark, ShoppingBag, Briefcase,
-  FlaskConical, Sparkles,
+  ChevronDown, ChevronLeft,
+  Camera,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -19,98 +14,98 @@ const MENU = [
   {
     id: 'dashboard',
     label: 'Dashboard',
-    icon: LayoutDashboard,
+    emoji: '📊',
     path: '/dashboard',
   },
   {
     id: 'financas',
     label: 'Finanças',
-    icon: DollarSign,
+    emoji: '💰',
     permission: 'financeiro',
     children: [
-      { label: 'Minhas Contas',      path: '/financas/minhas-contas',   icon: Landmark },
-      { label: 'Contas a Pagar',     path: '/financas/contas-pagar',    icon: CreditCard },
-      { label: 'Contas a Receber',   path: '/financas/contas-receber',  icon: Wallet },
-      { label: 'Folha de Pagamento', path: '/financas/folha-pagamento', icon: Banknote },
-      { label: 'Fornecedores',       path: '/financas/fornecedores',    icon: Building2 },
+      { label: '🏦 Minhas Contas',      path: '/financas/minhas-contas'   },
+      { label: '💸 Contas a Pagar',     path: '/financas/contas-pagar'    },
+      { label: '💵 Contas a Receber',   path: '/financas/contas-receber'  },
+      { label: '💼 Folha de Pagamento', path: '/financas/folha-pagamento' },
+      { label: '🏢 Fornecedores',       path: '/financas/fornecedores'    },
     ],
   },
   {
     id: 'pagamentos',
     label: 'Pagamentos',
-    icon: ShoppingBag,
+    emoji: '🛒',
     permission: 'financeiro',
     children: [
-      { label: 'Planos de Pagamento', path: '/pagamentos/planos',   icon: ClipboardList },
-      { label: 'Pedidos',             path: '/pagamentos/pedidos',  icon: ShoppingCart },
-      { label: 'Produtos',            path: '/pagamentos/produtos', icon: Package },
-      { label: 'Serviços',            path: '/pagamentos/servicos', icon: Briefcase },
+      { label: '📋 Planos de Pagamento', path: '/pagamentos/planos'   },
+      { label: '🛒 Pedidos',             path: '/pagamentos/pedidos'  },
+      { label: '📦 Produtos',            path: '/pagamentos/produtos' },
+      { label: '🔧 Serviços',            path: '/pagamentos/servicos' },
     ],
   },
   {
     id: 'operacional',
     label: 'Operacional',
-    icon: Users,
+    emoji: '👥',
     permission: 'operacional',
     children: [
-      { label: 'Alunos',         path: '/operacional/alunos',        icon: Users },
-      { label: 'Funcionários',   path: '/operacional/funcionarios',  icon: UserCheck },
-      { label: 'Turmas',         path: '/operacional/turmas',        icon: CalendarDays },
-      { label: 'Faltas',        path: '/operacional/avisos-falta', icon: BellOff },
-      { label: 'Agendamentos', path: '/operacional/agendamentos', icon: ListTodo },
+      { label: '👥 Alunos',          path: '/operacional/alunos'        },
+      { label: '👷 Funcionários',    path: '/operacional/funcionarios'  },
+      { label: '🏋️ Turmas',          path: '/operacional/turmas'        },
+      { label: '🔕 Faltas',          path: '/operacional/avisos-falta'  },
+      { label: '🧪 Agendamentos',    path: '/operacional/agendamentos'  },
     ],
   },
   {
     id: 'tecnico',
     label: 'Técnico',
-    icon: Dumbbell,
+    emoji: '💪',
     permission: 'tecnico',
     children: [
-      { label: 'Experimental',          path: '/tecnico/experimental',     icon: Sparkles },
-      { label: 'Aulas',                path: '/tecnico/aulas',            icon: CalendarDays },
-      { label: 'Ministrar Aula',     path: '/tecnico/ministrar-aula',   icon: Activity },
-      { label: 'Programa das Turmas', path: '/tecnico/programa-turma',  icon: ClipboardList },
-      { label: 'Fichas de Treino',   path: '/tecnico/fichas',           icon: FileText },
-      { label: 'Exercícios',         path: '/tecnico/exercicios',       icon: Dumbbell },
-      { label: 'Reposições',         path: '/tecnico/reposicoes',       icon: Repeat2 },
+      { label: '🧪 Experimental',         path: '/tecnico/experimental'   },
+      { label: '📅 Aulas',               path: '/tecnico/aulas'          },
+      { label: '🎯 Ministrar Aula',      path: '/tecnico/ministrar-aula' },
+      { label: '📋 Programa das Turmas', path: '/tecnico/programa-turma' },
+      { label: '📋 Fichas de Treino',    path: '/tecnico/fichas'         },
+      { label: '💪 Exercícios',          path: '/tecnico/exercicios'     },
+      { label: '🔄 Reposições',          path: '/tecnico/reposicoes'     },
     ],
   },
   {
     id: 'relatorios',
     label: 'Relatórios',
-    icon: BarChart2,
+    emoji: '📈',
     children: [
-      { label: 'Frequência',       path: '/relatorios/frequencia',     icon: UserCheck },
-      { label: 'Pressão Arterial', path: '/relatorios/pressao',        icon: Activity },
-      { label: 'Evolução de Carga', path: '/relatorios/evolucao-carga', icon: TrendingUp },
-      { label: 'Planos',           path: '/relatorios/planos',         icon: ClipboardList },
-      { label: 'Contas a Pagar',   path: '/relatorios/contas-pagar',   icon: CreditCard },
-      { label: 'Contas a Receber', path: '/relatorios/contas-receber', icon: Wallet },
-      { label: 'Livro Caixa',      path: '/relatorios/livro-caixa',    icon: BookOpen },
-      { label: 'DRE',              path: '/relatorios/dre',            icon: BarChart2 },
-      { label: 'Fluxo de Caixa',   path: '/relatorios/fluxo-caixa',   icon: TrendingUp },
-      { label: 'Extrato por Conta',path: '/relatorios/extrato',        icon: FileText },
+      { label: '👥 Frequência',        path: '/relatorios/frequencia'      },
+      { label: '💗 Pressão Arterial',  path: '/relatorios/pressao'         },
+      { label: '📊 Evolução de Carga', path: '/relatorios/evolucao-carga'  },
+      { label: '📋 Planos',            path: '/relatorios/planos'          },
+      { label: '💸 Contas a Pagar',    path: '/relatorios/contas-pagar'    },
+      { label: '💵 Contas a Receber',  path: '/relatorios/contas-receber'  },
+      { label: '📒 Livro Caixa',       path: '/relatorios/livro-caixa'     },
+      { label: '📈 DRE',               path: '/relatorios/dre'             },
+      { label: '🔄 Fluxo de Caixa',    path: '/relatorios/fluxo-caixa'    },
+      { label: '📄 Extrato por Conta', path: '/relatorios/extrato'         },
     ],
   },
   {
     id: 'graficos',
     label: 'Gráficos',
-    icon: PieChart,
+    emoji: '📉',
     children: [
-      { label: 'Financeiro',    path: '/graficos/financeiro',   icon: TrendingUp },
-      { label: 'Alunos',       path: '/graficos/alunos',       icon: Users },
-      { label: 'Frequência',   path: '/graficos/frequencia',   icon: BarChart2 },
-      { label: 'Evolução PSE', path: '/graficos/evolucao-pse', icon: Activity },
+      { label: '💰 Financeiro',    path: '/graficos/financeiro'   },
+      { label: '👥 Alunos',       path: '/graficos/alunos'       },
+      { label: '📊 Frequência',   path: '/graficos/frequencia'   },
+      { label: '📈 Evolução PSE', path: '/graficos/evolucao-pse' },
     ],
   },
   {
     id: 'configuracao',
     label: 'Configuração',
-    icon: Settings,
+    emoji: '⚙️',
     permission: 'admin',
     children: [
-      { label: 'Usuários',   path: '/configuracao/usuarios',   icon: UserCog },
-      { label: 'Profissões', path: '/configuracao/profissoes', icon: ClipboardList },
+      { label: '🔐 Usuários',   path: '/configuracao/usuarios'   },
+      { label: '📋 Profissões', path: '/configuracao/profissoes' },
     ],
   },
 ]
@@ -168,8 +163,8 @@ export function Sidebar({ collapsed, onToggle }) {
     setOpenMenus(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const isActive    = (path) => location.pathname.startsWith(path)
-  const hasActive   = (children) => children?.some(c => isActive(c.path))
+  const isActive  = (path) => location.pathname.startsWith(path)
+  const hasActive = (children) => children?.some(c => isActive(c.path))
 
   return (
     <aside
@@ -179,7 +174,7 @@ export function Sidebar({ collapsed, onToggle }) {
         collapsed ? 'w-14' : 'w-56'
       )}
     >
-      {/* Perfil — avatar + nome + email (só expandido) */}
+      {/* Perfil */}
       {!collapsed && (
         <div className="flex flex-col items-center gap-2 px-4 py-3 border-b border-border shrink-0">
           <div className="relative group">
@@ -225,7 +220,7 @@ export function Sidebar({ collapsed, onToggle }) {
                 )}
                 title={collapsed ? item.label : undefined}
               >
-                <item.icon className="w-4 h-4 shrink-0" />
+                <span className="text-base shrink-0" aria-hidden="true">{item.emoji}</span>
                 {!collapsed && <span className="truncate">{item.label}</span>}
               </NavLink>
             )
@@ -246,7 +241,7 @@ export function Sidebar({ collapsed, onToggle }) {
                 )}
                 title={collapsed ? item.label : undefined}
               >
-                <item.icon className="w-4 h-4 shrink-0" />
+                <span className="text-base shrink-0" aria-hidden="true">{item.emoji}</span>
                 {!collapsed && (
                   <>
                     <span className="flex-1 text-left truncate">{item.label}</span>
@@ -274,7 +269,6 @@ export function Sidebar({ collapsed, onToggle }) {
                           : 'text-muted-foreground hover:text-foreground hover:bg-fluir-dark-3'
                       )}
                     >
-                      <child.icon className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate">{child.label}</span>
                     </NavLink>
                   ))}
@@ -285,7 +279,7 @@ export function Sidebar({ collapsed, onToggle }) {
         })}
       </nav>
 
-      {/* Fechar (só quando expandido) */}
+      {/* Fechar */}
       {!collapsed && (
         <div className="p-2 border-t border-border shrink-0">
           <button

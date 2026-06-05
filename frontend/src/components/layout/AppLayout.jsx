@@ -22,18 +22,14 @@ export function AppLayout() {
         <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)} />
       </div>
 
-      {/* Drawer mobile */}
-      {drawerAberto && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 z-40 md:hidden"
-            onClick={() => setDrawerAberto(false)}
-          />
-          <div className="fixed left-0 top-0 h-full w-64 z-50 md:hidden transition-transform duration-300">
-            <Sidebar collapsed={false} onToggle={() => setDrawerAberto(false)} />
-          </div>
-        </>
-      )}
+      {/* Drawer mobile — sempre no DOM, animação via translate */}
+      <div
+        className={`fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300 ${drawerAberto ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setDrawerAberto(false)}
+      />
+      <div className={`fixed left-0 top-0 h-full w-64 z-50 md:hidden transition-transform duration-300 ease-in-out ${drawerAberto ? 'translate-x-0' : '-translate-x-full'}`}>
+        <Sidebar collapsed={false} onToggle={() => setDrawerAberto(false)} />
+      </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Topbar onMenuClick={() => setDrawerAberto(v => !v)} />

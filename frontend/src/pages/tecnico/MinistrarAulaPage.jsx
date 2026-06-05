@@ -18,6 +18,7 @@ import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import api from '@/services/api'
 import { fetchAll } from '@/hooks/useApi'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 const PRESENCA_OPTS = [
   { value: 'presente',  label: 'Presente',   Icon: CheckCircle },
@@ -373,6 +374,7 @@ export default function MinistrarAulaPage() {
   const [aulaId, setAulaId]                 = useState(null)
   const [iniciando, setIniciando]           = useState(false)
   const [finalizando, setFinalizando]       = useState(false)
+  const [descartarOpen, setDescartarOpen]   = useState(false)
   const [alunoStates, setAlunoStates]       = useState({})
   const [exerciciosOrdenados, setExOrd]     = useState([])
   const [modalidade, setModalidade]         = useState('')
@@ -397,6 +399,18 @@ export default function MinistrarAulaPage() {
       }).catch(() => localStorage.removeItem(STORAGE_KEY))
     } catch {}
   }, [])
+
+  const handleDescartar = () => {
+    localStorage.removeItem(STORAGE_KEY)
+    setAulaId(null)
+    setModalidade()
+    setTurmaId()
+    setFichaId()
+    setFuncId()
+    setAlunoStates({})
+    setExpandidos({})
+    setDescartarOpen(false)
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
@@ -517,7 +531,7 @@ export default function MinistrarAulaPage() {
           obs: '',
           creditoId: null,
         }
-        exp[ta.alu] = !isMobile
+        exp[ta.alu] = false
       })
       setAlunoStates(init)
       setExpandidos(exp)
@@ -789,8 +803,8 @@ export default function MinistrarAulaPage() {
                 state={alunoStates[ta.alu]}
                 onUpdate={updateAluno}
                 exerciciosFicha={exerciciosOrdenados.length ? exerciciosOrdenados : exerciciosFicha}
-                expandido={expandidos[ta.alu] ?? true}
-                onToggle={() => updateExpandido(ta.alu, !(expandidos[ta.alu] ?? true))}
+                expandido={expandidos[ta.alu] ?? false}
+                onToggle={() => updateExpandido(ta.alu, !(expandidos[ta.alu] ?? false))}
                 modalidade={turmaSelecionada?.tur_modalidade}
                 avisoExistente={avisosHoje?.[ta.alu] ?? null}
               />
@@ -857,6 +871,15 @@ export default function MinistrarAulaPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={descartarOpen}
+        onOpenChange={setDescartarOpen}
+        title="Descartar aula em andamento?"
+        description="Todos os registros de presença e medições serão perdidos. Esta ação não pode ser desfeita."
+        confirmLabel="Descartar"
+        onConfirm={handleDescartar}
+      />
 
       <Card className="max-w-lg">
         <CardHeader>

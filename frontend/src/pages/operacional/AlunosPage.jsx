@@ -499,6 +499,7 @@ export default function AlunosPage() {
   const [modalOpen, setModalOpen]   = useState(false)
   const [editando, setEditando]     = useState(null)
   const [deleteId, setDeleteId]     = useState(null)
+  const [inativarId, setInativarId] = useState(null)
   const [detalhe, setDetalhe]       = useState(null)
   const [search, setSearch]         = useState('')
   const [filtroAtivo, setFiltroAtivo] = useState('true')
@@ -614,7 +615,7 @@ export default function AlunosPage() {
                   <Button
                     size="sm" variant="outline"
                     className={cn('text-xs', detalhe.alu_ativo ? 'text-red-400 hover:text-red-300 border-red-500/30' : 'text-emerald-400 hover:text-emerald-300 border-emerald-500/30')}
-                    onClick={() => toggleAtivoMut.mutate({ id: detalhe.alu_id, ativo: !detalhe.alu_ativo })}
+                    onClick={() => detalhe.alu_ativo ? setInativarId(detalhe) : toggleAtivoMut.mutate({ id: detalhe.alu_id, ativo: true })}
                     disabled={toggleAtivoMut.isPending}
                     title={detalhe.alu_ativo ? 'Inativar aluno' : 'Reativar aluno'}
                   >
@@ -645,6 +646,16 @@ export default function AlunosPage() {
           <AlunoForm aluno={editando} onClose={() => setModalOpen(false)} />
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!inativarId}
+        onOpenChange={() => setInativarId(null)}
+        title="Inativar aluno?"
+        description="O aluno será marcado como inativo e não aparecerá nas listas principais. Você pode reativá-lo a qualquer momento."
+        confirmLabel="Inativar"
+        onConfirm={() => { toggleAtivoMut.mutate({ id: inativarId.alu_id, ativo: false }); setInativarId(null) }}
+        isLoading={toggleAtivoMut.isPending}
+      />
 
       <ConfirmDialog
         open={!!deleteId} onOpenChange={() => setDeleteId(null)}

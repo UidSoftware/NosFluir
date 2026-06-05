@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input, FormField } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { FAB } from '@/components/ui/fab'
 import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
 
@@ -802,6 +803,9 @@ export default function ContasReceberPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* FAB mobile */}
+      <FAB onClick={() => setModalForm('novo')} icon={Plus} label="Nova Conta a Receber" />
     </div>
   )
 }

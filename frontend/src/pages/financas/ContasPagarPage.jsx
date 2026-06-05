@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input, FormField } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { FAB } from '@/components/ui/fab'
 import { toast } from '@/hooks/useToast'
 
 const KEY      = 'contas-pagar'
@@ -580,6 +581,9 @@ export default function ContasPagarPage() {
         onConfirm={() => { del.mutate(deleteId); setDeleteId(null) }}
         isLoading={del.isPending}
       />
+
+      {/* FAB mobile */}
+      <FAB onClick={() => setModalForm('novo')} icon={Plus} label="Nova Conta a Pagar" />
     </div>
   )
 }

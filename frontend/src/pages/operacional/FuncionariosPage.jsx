@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { UserCheck, Plus, Pencil, Trash2, Eye } from 'lucide-react'
+import { UserCheck, Plus, Pencil, Trash2, Eye, UserPlus } from 'lucide-react'
+import { FAB } from '@/components/ui/fab'
 import { useList, useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -260,6 +261,9 @@ export default function FuncionariosPage() {
         onConfirm={() => { del.mutate(deleteId); setDeleteId(null) }}
         isLoading={del.isPending}
       />
+
+      {/* FAB mobile */}
+      <FAB onClick={openCreate} icon={UserPlus} label="Novo Funcionário" />
     </div>
   )
 }

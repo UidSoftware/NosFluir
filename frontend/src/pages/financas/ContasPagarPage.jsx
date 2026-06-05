@@ -330,12 +330,19 @@ function ContaPagarForm({ pag, onClose }) {
                 </FormField>
               </div>
               {preview.length > 0 && (
-                <div className="space-y-0.5">
-                  <p className="text-xs text-muted-foreground font-medium">Preview:</p>
-                  {preview.slice(0, 3).map((d, i) => (
-                    <p key={i} className="text-xs text-muted-foreground">• Venc. {d} — {formatCurrency(total)}</p>
-                  ))}
-                  {preview.length > 3 && <p className="text-xs text-muted-foreground">... e mais {preview.length - 3}</p>}
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium">Preview das parcelas:</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {preview.map((d, i) => (
+                      <div
+                        key={i}
+                        className="rounded-lg border border-fluir-purple/30 bg-fluir-purple/10 p-2 text-center text-xs"
+                      >
+                        <p className="font-semibold text-fluir-purple">{i + 1}/{preview.length}</p>
+                        <p className="text-muted-foreground mt-0.5 leading-tight">{d}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </>

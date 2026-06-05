@@ -420,6 +420,23 @@ export default function MinistrarAulaPage() {
     } catch {}
   }, [])
 
+  // Auto-save periódico de 30s — protege contra refresh/queda de conexão durante aula
+  useEffect(() => {
+    if (!aulaId) return
+    const interval = setInterval(() => {
+      const salvo = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null')
+      if (!salvo?.aulaId) return
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        ...salvo,
+        alunoStates,
+        savedAt: new Date().toISOString(),
+      }))
+      const hhmm = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      toast({ title: `Salvo automaticamente às ${hhmm}`, duration: 2000 })
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [aulaId, alunoStates])
+
   const handleDescartar = () => {
     localStorage.removeItem(STORAGE_KEY)
     setAulaId(null)

@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 from rest_framework.decorators import action
+import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -23,12 +24,22 @@ from .serializers import (
 )
 
 
+class AlunoFilter(django_filters.FilterSet):
+    alu_data_nascimento__month = django_filters.NumberFilter(
+        field_name='alu_data_nascimento', lookup_expr='month'
+    )
+
+    class Meta:
+        model = Aluno
+        fields = ['alu_ativo']
+
+
 class AlunoViewSet(AuditMixin, ModelViewSet):
     permission_classes = [IsRecepcionistaOuAdmin]
     queryset = Aluno.objects.filter(deleted_at__isnull=True).order_by('alu_nome')
     serializer_class = AlunoSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['alu_ativo']
+    filterset_class = AlunoFilter
     search_fields = ['alu_nome', 'alu_documento', 'alu_email', 'alu_telefone']
     ordering_fields = ['alu_nome', 'alu_data_nascimento']
 

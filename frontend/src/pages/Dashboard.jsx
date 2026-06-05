@@ -6,7 +6,7 @@ import {
 import {
   DollarSign, TrendingUp, TrendingDown, Users, Calendar,
   Activity, Wallet, Package, RefreshCw, Dumbbell,
-  ChevronRight, UserCheck, UserX, AlertTriangle, Briefcase,
+  ChevronRight, UserCheck, UserX, AlertTriangle, Briefcase, Gift,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge, Skeleton } from '@/components/ui/primitives'
@@ -484,9 +484,41 @@ function SecaoAlunos() {
           color="cyan"
           isLoading={loadMatriculas}
         />
+        <StatCard
+          title="Aniversariantes do Mês"
+          value={aniversariantes?.count ?? '—'}
+          sub={new Date().toLocaleString('pt-BR', { month: 'long' })}
+          icon={Gift}
+          color="purple"
+          isLoading={loadAniversario}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <CardLista title={"Aniversariantes — " + new Date().toLocaleString('pt-BR', { month: 'long' })} icon={Gift}>
+          {loadAniversario
+            ? <ListaLoader />
+            : aniversariantes?.results?.length
+              ? aniversariantes.results.map(a => {
+                  const dia = a.alu_data_nascimento?.slice(8, 10)
+                  const isHoje = parseInt(dia) === new Date().getDate()
+                  return (
+                    <ListRow
+                      key={a.alu_id}
+                      label={a.alu_nome}
+                      sub={"Dia " + dia}
+                      right={
+                        isHoje
+                          ? <Badge className="text-[10px] bg-fluir-purple/20 text-fluir-purple border-fluir-purple/30">Hoje!</Badge>
+                          : <span className="text-xs text-muted-foreground">dia {dia}</span>
+                      }
+                    />
+                  )
+                })
+              : <ListaVazia msg="Nenhum aniversariante este mês." />
+          }
+        </CardLista>
+
         <CardLista title="Planos Vencendo em 30 dias" icon={AlertTriangle} linkTo="/operacional/alunos">
           {loadVencendo
             ? <ListaLoader />

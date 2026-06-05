@@ -143,7 +143,7 @@ function FolhaForm({ folha, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : folha ? 'Salvar Alterações' : 'Criar Registro'}
+          {busy ? 'Salvando...' : folha ? '💾 Salvar Alterações' : '➕ Criar Registro'}
         </Button>
       </DialogFooter>
     </form>

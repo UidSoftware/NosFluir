@@ -172,7 +172,7 @@ function PagamentoModal({ rec, onClose }) {
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
         <Button type="submit" disabled={update.isPending}>
-          {update.isPending ? 'Confirmando...' : 'Confirmar Recebimento'}
+          {update.isPending ? 'Confirmando...' : '✅ Confirmar Recebimento'}
         </Button>
       </DialogFooter>
     </form>
@@ -815,12 +815,12 @@ export default function ContasReceberPage() {
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => dryRun.mutate()} disabled={dryRun.isPending} className="gap-1.5">
-              <Zap className="w-4 h-4" />{dryRun.isPending ? 'Verificando...' : 'Gerar Mensalidades'}
+              <span aria-hidden="true">⚡</span>{dryRun.isPending ? 'Verificando...' : ' Gerar Mensalidades'}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setModalTurma(true)} className="gap-1.5">
-              <CheckCircle2 className="w-4 h-4" />Gerar por Turma
+              <span aria-hidden="true">⚡</span> Gerar por Turma
             </Button>
-            <Button onClick={() => setModalForm('novo')}><Plus className="w-4 h-4" />Nova Conta</Button>
+            <Button onClick={() => setModalForm('novo')}><span aria-hidden="true">➕</span> Nova Conta</Button>
           </div>
         }
       />
@@ -972,7 +972,7 @@ export default function ContasReceberPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => { setModalMens(false); setDryRunResult(null) }}>Cancelar</Button>
             <Button onClick={() => gerarMens.mutate()} disabled={gerarMens.isPending || dryRunResult?.criadas === 0}>
-              {gerarMens.isPending ? 'Gerando...' : `Confirmar (${dryRunResult?.criadas ?? 0})`}
+              {gerarMens.isPending ? 'Gerando...' : `✅ Confirmar (${dryRunResult?.criadas ?? 0})`}
             </Button>
           </DialogFooter>
         </DialogContent>

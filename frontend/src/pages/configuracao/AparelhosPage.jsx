@@ -64,7 +64,7 @@ function AparelhoForm({ aparelho, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : aparelho ? 'Salvar Alterações' : 'Cadastrar Aparelho'}
+          {busy ? 'Salvando...' : aparelho ? '💾 Salvar Alterações' : '✅ Cadastrar Aparelho'}
         </Button>
       </DialogFooter>
     </form>

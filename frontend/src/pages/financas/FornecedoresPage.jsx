@@ -86,7 +86,7 @@ function FornForm({ forn, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : forn ? 'Salvar Alterações' : 'Cadastrar Fornecedor'}
+          {busy ? 'Salvando...' : forn ? '💾 Salvar Alterações' : '✅ Cadastrar Fornecedor'}
         </Button>
       </DialogFooter>
     </form>

@@ -135,7 +135,7 @@ function PagamentoModal({ pag, onClose }) {
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
         <Button type="submit" disabled={update.isPending}>
-          {update.isPending ? 'Confirmando...' : 'Confirmar Pagamento'}
+          {update.isPending ? 'Confirmando...' : '✅ Confirmar Pagamento'}
         </Button>
       </DialogFooter>
     </form>

@@ -69,7 +69,7 @@ export default function ExtratoPorContaPage() {
               <Input type="number" value={ano} onChange={e => setAno(e.target.value)} className="w-24" />
             </div>
           </div>
-          <Button onClick={aplicar} disabled={contaId === '__none__'}>Ver Extrato</Button>
+          <Button onClick={aplicar} disabled={contaId === '__none__'}>🔍 Ver Extrato</Button>
         </CardContent>
       </Card>
 

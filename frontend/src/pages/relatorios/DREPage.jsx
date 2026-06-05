@@ -89,11 +89,11 @@ export default function DREPage() {
             </div>
           </div>
           <Button onClick={aplicar} disabled={isFetching} className="gap-1.5">
-            {isFetching ? <><Loader2 className="w-4 h-4 animate-spin" /> Gerando...</> : 'Gerar DRE'}
+            {isFetching ? <><Loader2 className="w-4 h-4 animate-spin" /> Gerando...</> : '⚡ Gerar DRE'}
           </Button>
           {data && (
             <Button variant="outline" onClick={baixarPdf} className="gap-1.5">
-              <FileDown className="w-4 h-4" /> Exportar PDF
+              <span aria-hidden="true">📥</span> Exportar PDF
             </Button>
           )}
         </CardContent>

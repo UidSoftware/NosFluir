@@ -61,7 +61,7 @@ function ServicoForm({ servico, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : servico ? 'Salvar Alterações' : 'Cadastrar'}
+          {busy ? 'Salvando...' : servico ? '💾 Salvar Alterações' : '✅ Cadastrar'}
         </Button>
       </DialogFooter>
     </form>

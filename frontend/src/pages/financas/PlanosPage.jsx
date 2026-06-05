@@ -86,7 +86,7 @@ function PlanoForm({ plano, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : plano ? 'Salvar' : 'Criar Plano'}
+          {busy ? 'Salvando...' : plano ? '💾 Salvar' : '➕ Criar Plano'}
         </Button>
       </DialogFooter>
     </form>

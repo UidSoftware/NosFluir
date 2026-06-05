@@ -42,7 +42,7 @@ function AcessorioForm({ acessorio, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : acessorio ? 'Salvar Alterações' : 'Cadastrar Acessório'}
+          {busy ? 'Salvando...' : acessorio ? '💾 Salvar Alterações' : '✅ Cadastrar Acessório'}
         </Button>
       </DialogFooter>
     </form>

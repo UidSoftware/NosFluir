@@ -44,7 +44,7 @@ export default function FluxoCaixaPage() {
           ))}
           {data.length > 0 && (
             <Button size="sm" variant="outline" onClick={baixarPdf} className="gap-1.5 ml-auto">
-              <FileDown className="w-4 h-4" /> Exportar PDF
+              <span aria-hidden="true">📥</span> Exportar PDF
             </Button>
           )}
         </CardContent>

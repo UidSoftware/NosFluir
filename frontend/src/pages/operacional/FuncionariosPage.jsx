@@ -116,7 +116,7 @@ function FuncForm({ func, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : func ? 'Salvar Alterações' : 'Cadastrar Funcionário'}
+          {busy ? 'Salvando...' : func ? '💾 Salvar Alterações' : '✅ Cadastrar Funcionário'}
         </Button>
       </DialogFooter>
     </form>

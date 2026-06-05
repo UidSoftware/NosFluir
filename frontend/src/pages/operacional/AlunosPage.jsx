@@ -177,7 +177,7 @@ function AlunoForm({ aluno, onClose }) {
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
           <Button type="submit" disabled={busy}>
-            {busy ? 'Salvando...' : 'Salvar Alterações'}
+            {busy ? 'Salvando...' : '💾 Salvar Alterações'}
           </Button>
         </DialogFooter>
       </form>
@@ -296,7 +296,7 @@ function AlunoForm({ aluno, onClose }) {
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setEtapa(1)} disabled={busy}>← Voltar</Button>
             <Button type="submit" disabled={busy}>
-              {busy ? 'Salvando...' : 'Cadastrar Aluno'}
+              {busy ? 'Salvando...' : '✅ Cadastrar Aluno'}
             </Button>
           </DialogFooter>
         </div>

@@ -42,7 +42,7 @@ function ProfForm({ prof, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : prof ? 'Salvar' : 'Cadastrar'}
+          {busy ? 'Salvando...' : prof ? '💾 Salvar' : '✅ Cadastrar'}
         </Button>
       </DialogFooter>
     </form>

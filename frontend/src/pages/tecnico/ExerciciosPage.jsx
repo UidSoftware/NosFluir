@@ -299,7 +299,7 @@ function ExercForm({ exercicio, modalidadeInicial, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : exercicio ? 'Salvar Alterações' : 'Cadastrar Exercício'}
+          {busy ? 'Salvando...' : exercicio ? '💾 Salvar Alterações' : '✅ Cadastrar Exercício'}
         </Button>
       </DialogFooter>
     </form>

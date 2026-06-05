@@ -288,7 +288,7 @@ function AulaForm({ aula, turmas, funcionarios, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : aula ? 'Salvar Alterações' : 'Criar Aula'}
+          {busy ? 'Salvando...' : aula ? '💾 Salvar Alterações' : '➕ Criar Aula'}
         </Button>
       </DialogFooter>
     </form>

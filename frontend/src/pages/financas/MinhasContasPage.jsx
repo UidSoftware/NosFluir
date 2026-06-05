@@ -216,7 +216,7 @@ function TransferenciaModal({ open, onClose, contas, onSuccess }) {
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => { reset(); setUltima(null); onClose() }}>Fechar</Button>
             <Button type="submit" disabled={mutate.isPending}>
-              {mutate.isPending ? 'Registrando...' : 'Transferir'}
+              {mutate.isPending ? 'Registrando...' : '💱 Transferir'}
             </Button>
           </DialogFooter>
         </form>

@@ -320,7 +320,7 @@ function SlotEditForm({ slot, onClose }) {
         <div className="flex gap-2">
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
           <Button type="submit" disabled={busy}>
-            {busy ? <Spinner className="mr-2" /> : null}Salvar
+            {busy ? <Spinner className="mr-2" /> : null}💾 Salvar
           </Button>
         </div>
       </DialogFooter>

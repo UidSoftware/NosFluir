@@ -176,7 +176,7 @@ function TurmaForm({ turma, modalidadeInicial, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : turma ? 'Salvar Alterações' : 'Criar Turma'}
+          {busy ? 'Salvando...' : turma ? '💾 Salvar Alterações' : '➕ Criar Turma'}
         </Button>
       </DialogFooter>
     </form>

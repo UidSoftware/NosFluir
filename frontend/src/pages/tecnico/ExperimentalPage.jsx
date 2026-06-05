@@ -304,7 +304,7 @@ function AulaExperimentalForm({ agendamento, aulaExistente, onClose }) {
           <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
           <Button type="submit" disabled={busy} className="bg-fluir-purple hover:bg-fluir-purple/90">
             {busy ? <Spinner className="mr-2" /> : <Sparkles className="w-3.5 h-3.5 mr-1.5" />}
-            {decisao === 'cadastrar' ? 'Continuar → Cadastrar Aluno' : 'Finalizar Aula Experimental'}
+            {decisao === 'cadastrar' ? '✅ Continuar → Cadastrar Aluno' : '🏁 Finalizar Aula Experimental'}
           </Button>
         </DialogFooter>
       </form>
@@ -367,7 +367,7 @@ function CadastrarAlunoModal({ agendamento, buildPayload, aulaExistente, onClose
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Voltar</Button>
             <Button type="submit" disabled={busy}>
-              {busy ? <Spinner className="mr-2" /> : <UserPlus className="w-3.5 h-3.5 mr-1.5" />}Cadastrar Aluno
+              {busy ? <Spinner className="mr-2" /> : <span aria-hidden="true">✅ </span>}Cadastrar Aluno
             </Button>
           </DialogFooter>
         </form>
@@ -404,7 +404,7 @@ function PainelDetalhe({ row, onChangeStatus, onIniciarAula, onFechar }) {
             <>
               {row.age_status === 'pendente' && (
                 <Button size="sm" variant="outline" className="text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/10"
-                  onClick={() => onChangeStatus(row.age_id, 'confirmado')}>Confirmar</Button>
+                  onClick={() => onChangeStatus(row.age_id, 'confirmado')}>✅ Confirmar</Button>
               )}
               <Button size="sm" variant="outline" className="text-red-400 border-red-500/40 hover:bg-red-500/10"
                 onClick={() => onChangeStatus(row.age_id, 'cancelado')}>Cancelar</Button>

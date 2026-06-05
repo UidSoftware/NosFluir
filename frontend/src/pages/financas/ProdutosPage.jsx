@@ -76,7 +76,7 @@ function ProdutoForm({ produto, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : produto ? 'Salvar Alterações' : 'Cadastrar'}
+          {busy ? 'Salvando...' : produto ? '💾 Salvar Alterações' : '✅ Cadastrar'}
         </Button>
       </DialogFooter>
     </form>

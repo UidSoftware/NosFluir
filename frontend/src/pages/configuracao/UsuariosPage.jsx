@@ -104,7 +104,7 @@ function UserForm({ usuario, onClose }) {
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : usuario ? 'Salvar Alteracoes' : 'Criar Usuario'}
+          {busy ? 'Salvando...' : usuario ? '💾 Salvar Alterações' : '➕ Criar Usuário'}
         </Button>
       </DialogFooter>
     </form>

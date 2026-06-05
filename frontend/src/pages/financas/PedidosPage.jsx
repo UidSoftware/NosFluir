@@ -78,7 +78,7 @@ function ConfirmarPagamentoModal({ pedido, onClose }) {
           forma: forma !== '__none__' ? forma : null,
           data,
         })}>
-          {mut.isPending ? 'Confirmando...' : 'Confirmar'}
+          {mut.isPending ? 'Confirmando...' : '✅ Confirmar'}
         </Button>
       </DialogFooter>
     </div>

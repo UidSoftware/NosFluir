@@ -868,7 +868,7 @@ export default function MinistrarAulaPage() {
                 <><Spinner className="w-4 h-4" /> Salvando...</>
               ) : (
                 <>
-                  <Square className="w-4 h-4" /> Finalizar Aula
+                  <span aria-hidden="true">🏁</span> Finalizar Aula
                   <span className="ml-2 text-xs opacity-80">
                     {Object.values(alunoStates).filter(s => s?.presenca != null).length} de {alunosTurma.length} marcados
                   </span>
@@ -887,7 +887,7 @@ export default function MinistrarAulaPage() {
             {finalizando ? (
               <><Spinner className="w-4 h-4" /> Salvando...</>
             ) : (
-              <><Square className="w-4 h-4" /> Finalizar Aula</>
+              <><span aria-hidden="true">🏁</span> Finalizar Aula</>
             )}
           </Button>
         </div>

@@ -342,8 +342,8 @@ function TurmaGrupoCard({ grupo, turmas, onEdit, onAlunos, onDelete, onNova }) {
                   <Button variant="ghost" size="icon-sm" title="Gerenciar alunos" onClick={() => onAlunos(t)}>
                     <Users className="w-3.5 h-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon-sm" title="Editar" onClick={() => onEdit(t)}>
-                    <Pencil className="w-3.5 h-3.5" />
+                  <Button variant="ghost" size="icon-sm" title="Editar" onClick={() => onEdit(t)} aria-label="Editar">
+                    <span aria-hidden="true">✏️</span>
                   </Button>
                   <Button variant="ghost" size="icon-sm" onClick={() => onDelete(t.tur_id)} className="text-red-400 hover:text-red-300">
                     <Trash2 className="w-3.5 h-3.5" />

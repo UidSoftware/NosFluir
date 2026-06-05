@@ -341,14 +341,14 @@ function AulaCard({ r, onDetalhe, onEdit, onDelete }) {
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon-sm" title="Ver alunos" onClick={() => onDetalhe(r)}>
-            <Eye className="w-3.5 h-3.5" />
+          <Button variant="ghost" size="icon-sm" title="Ver alunos" onClick={() => onDetalhe(r)} aria-label="Ver alunos">
+            <span aria-hidden="true">👁️</span>
           </Button>
-          <Button variant="ghost" size="icon-sm" title="Editar" onClick={() => onEdit(r)}>
-            <Pencil className="w-3.5 h-3.5" />
+          <Button variant="ghost" size="icon-sm" title="Editar" onClick={() => onEdit(r)} aria-label="Editar">
+            <span aria-hidden="true">✏️</span>
           </Button>
-          <Button variant="ghost" size="icon-sm" title="Excluir" onClick={() => onDelete(r.aul_id)} className="text-red-400 hover:text-red-300">
-            <Trash2 className="w-3.5 h-3.5" />
+          <Button variant="ghost" size="icon-sm" title="Excluir" onClick={() => onDelete(r.aul_id)} className="text-red-400 hover:text-red-300" aria-label="Excluir">
+            <span aria-hidden="true">🗑️</span>
           </Button>
         </div>
       </div>
@@ -458,14 +458,14 @@ export default function AulasPage() {
       key: 'acoes', header: '', cellClassName: 'w-28',
       render: r => (
         <div className="flex items-center gap-1 justify-end">
-          <Button variant="ghost" size="icon-sm" title="Ver alunos" onClick={() => setDetalhe(r)}>
-            <Eye className="w-3.5 h-3.5" />
+          <Button variant="ghost" size="icon-sm" title="Ver alunos" onClick={() => setDetalhe(r)} aria-label="Ver alunos">
+            <span aria-hidden="true">👁️</span>
           </Button>
-          <Button variant="ghost" size="icon-sm" title="Editar" onClick={() => { setSelected(r); setModalOpen(true) }}>
-            <Pencil className="w-3.5 h-3.5" />
+          <Button variant="ghost" size="icon-sm" title="Editar" onClick={() => { setSelected(r); setModalOpen(true) }} aria-label="Editar">
+            <span aria-hidden="true">✏️</span>
           </Button>
-          <Button variant="ghost" size="icon-sm" title="Excluir" onClick={() => setDeleteId(r.aul_id)} className="text-red-400 hover:text-red-300">
-            <Trash2 className="w-3.5 h-3.5" />
+          <Button variant="ghost" size="icon-sm" title="Excluir" onClick={() => setDeleteId(r.aul_id)} className="text-red-400 hover:text-red-300" aria-label="Excluir">
+            <span aria-hidden="true">🗑️</span>
           </Button>
         </div>
       ),

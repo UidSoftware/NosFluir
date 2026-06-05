@@ -85,8 +85,8 @@ function SecaoContas() {
       header: 'Ações',
       render: r => (
         <div className="flex gap-2">
-          <Button size="icon" variant="ghost" title="Editar" onClick={() => setModal(r)}><Pencil className="w-4 h-4" /></Button>
-          <Button size="icon" variant="ghost" title="Excluir" onClick={() => setExcluir(r)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+          <Button size="icon" variant="ghost" title="Editar" onClick={() => setModal(r)} aria-label="Editar"><span aria-hidden="true">✏️</span></Button>
+          <Button size="icon" variant="ghost" title="Excluir" onClick={() => setExcluir(r)} aria-label="Excluir"><span aria-hidden="true">🗑️</span></Button>
         </div>
       ),
     },
@@ -201,7 +201,7 @@ function SecaoPlanoContas() {
     {
       header: 'Ações',
       render: r => (
-        <Button size="icon" variant="ghost" title="Editar" onClick={() => setModal(r)}><Pencil className="w-4 h-4" /></Button>
+        <Button size="icon" variant="ghost" title="Editar" onClick={() => setModal(r)} aria-label="Editar"><span aria-hidden="true">✏️</span></Button>
       ),
     },
   ]

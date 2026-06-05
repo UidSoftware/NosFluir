@@ -175,11 +175,11 @@ export default function UsuariosPage() {
                       <p className="text-xs text-muted-foreground mt-1">{r.groups.join(', ')}</p>
                     )}
                     <div className="flex items-center justify-end gap-1 mt-2">
-                      <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}>
-                        <Pencil className="w-3.5 h-3.5" />
+                      <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }} title="Editar" aria-label="Editar">
+                        <span aria-hidden="true">✏️</span>
                       </Button>
-                      <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300">
-                        <Trash2 className="w-3.5 h-3.5" />
+                      <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.id)} className="text-red-400 hover:text-red-300" title="Excluir" aria-label="Excluir">
+                        <span aria-hidden="true">🗑️</span>
                       </Button>
                     </div>
                   </div>

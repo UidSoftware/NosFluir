@@ -426,8 +426,8 @@ function ListView({ onNovoPedido }) {
       render: r => (
         <div className="flex gap-1 justify-end">
           {r.ped_status === 'pendente' && (
-            <Button size="icon" variant="ghost" title="Confirmar pagamento" onClick={() => setModalPagar(r)}>
-              <Banknote className="w-4 h-4 text-green-400" />
+            <Button size="icon" variant="ghost" title="Confirmar pagamento" onClick={() => setModalPagar(r)} aria-label="Confirmar pagamento">
+              <span aria-hidden="true">✅</span>
             </Button>
           )}
           {r.ped_status === 'pago' && (
@@ -441,11 +441,11 @@ function ListView({ onNovoPedido }) {
                   URL.revokeObjectURL(url)
                 } catch { toast({ title: 'Erro ao gerar recibo', variant: 'destructive' }) }
               }}>
-              <Printer className="w-4 h-4 text-muted-foreground" />
+              <span aria-hidden="true">📥</span>
             </Button>
           )}
-          <Button size="icon" variant="ghost" title="Excluir" onClick={() => setDeleteId(r.ped_id)}>
-            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+          <Button size="icon" variant="ghost" title="Excluir" onClick={() => setDeleteId(r.ped_id)} aria-label="Excluir">
+            <span aria-hidden="true">🗑️</span>
           </Button>
         </div>
       ),

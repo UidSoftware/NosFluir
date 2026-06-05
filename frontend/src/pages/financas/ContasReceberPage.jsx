@@ -689,15 +689,15 @@ function LinhaRec({ r, onEditar, onExcluir, onPagar }) {
   const acoes = (
     <div className="flex items-center gap-1">
       {podeReceber && (
-        <Button size="icon" variant="ghost" title="Confirmar recebimento" onClick={() => onPagar(r)}>
-          <DollarSign className="w-4 h-4 text-green-400" />
+        <Button size="icon" variant="ghost" title="Confirmar recebimento" onClick={() => onPagar(r)} aria-label="Confirmar recebimento">
+          <span aria-hidden="true">✅</span>
         </Button>
       )}
-      <Button size="icon" variant="ghost" title="Editar" onClick={() => onEditar(r)}>
-        <Pencil className="w-3.5 h-3.5" />
+      <Button size="icon" variant="ghost" title="Editar" onClick={() => onEditar(r)} aria-label="Editar">
+        <span aria-hidden="true">✏️</span>
       </Button>
-      <Button size="icon" variant="ghost" title="Excluir" onClick={() => onExcluir(r.rec_id)}>
-        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+      <Button size="icon" variant="ghost" title="Excluir" onClick={() => onExcluir(r.rec_id)} aria-label="Excluir">
+        <span aria-hidden="true">🗑️</span>
       </Button>
     </div>
   )

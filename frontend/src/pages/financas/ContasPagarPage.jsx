@@ -394,15 +394,15 @@ function LinhaPag({ r, onEditar, onExcluir, onPagar }) {
   const acoes = (
     <div className="flex items-center gap-1">
       {podePagar && (
-        <Button size="icon" variant="ghost" title="Confirmar pagamento" onClick={() => onPagar(r)}>
-          <Banknote className="w-4 h-4 text-orange-400" />
+        <Button size="icon" variant="ghost" title="Confirmar pagamento" onClick={() => onPagar(r)} aria-label="Confirmar pagamento">
+          <span aria-hidden="true">✅</span>
         </Button>
       )}
-      <Button size="icon" variant="ghost" title="Editar" onClick={() => onEditar(r)}>
-        <Pencil className="w-3.5 h-3.5" />
+      <Button size="icon" variant="ghost" title="Editar" onClick={() => onEditar(r)} aria-label="Editar">
+        <span aria-hidden="true">✏️</span>
       </Button>
-      <Button size="icon" variant="ghost" title="Excluir" onClick={() => onExcluir(r.pag_id)}>
-        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+      <Button size="icon" variant="ghost" title="Excluir" onClick={() => onExcluir(r.pag_id)} aria-label="Excluir">
+        <span aria-hidden="true">🗑️</span>
       </Button>
     </div>
   )

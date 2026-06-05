@@ -110,8 +110,8 @@ export default function FornecedoresPage() {
       key: 'acoes', header: '', cellClassName: 'w-20',
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
-          <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.forn_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }} title="Editar" aria-label="Editar"><span aria-hidden="true">✏️</span></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.forn_id)} className="text-red-400 hover:text-red-300" title="Excluir" aria-label="Excluir"><span aria-hidden="true">🗑️</span></Button>
         </div>
       ),
     },
@@ -147,8 +147,8 @@ export default function FornecedoresPage() {
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-sm text-muted-foreground">{r.forn_telefone || r.forn_email || '—'}</span>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }}><Pencil className="w-3.5 h-3.5" /></Button>
-                        <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.forn_id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => { setSelected(r); setModalOpen(true) }} title="Editar" aria-label="Editar"><span aria-hidden="true">✏️</span></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.forn_id)} className="text-red-400 hover:text-red-300" title="Excluir" aria-label="Excluir"><span aria-hidden="true">🗑️</span></Button>
                       </div>
                     </div>
                   </div>

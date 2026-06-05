@@ -705,11 +705,11 @@ export default function AlunosPage() {
                       )}
                     </button>
                     <div className="flex items-center gap-0.5 shrink-0">
-                      <Button variant="ghost" size="icon-sm" onClick={() => openEdit(a)} title="Editar">
-                        <Pencil className="w-3.5 h-3.5" />
+                      <Button variant="ghost" size="icon-sm" onClick={() => openEdit(a)} title="Editar" aria-label="Editar">
+                        <span aria-hidden="true">✏️</span>
                       </Button>
-                      <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(a.alu_id)} title="Excluir" className="text-red-400 hover:text-red-300">
-                        <Trash2 className="w-3.5 h-3.5" />
+                      <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(a.alu_id)} title="Excluir" className="text-red-400 hover:text-red-300" aria-label="Excluir">
+                        <span aria-hidden="true">🗑️</span>
                       </Button>
                     </div>
                   </div>
@@ -741,8 +741,8 @@ export default function AlunosPage() {
                     title={detalhe.alu_ativo ? 'Inativar aluno' : 'Reativar aluno'}
                   >
                     {detalhe.alu_ativo
-                      ? <><UserX className="w-3.5 h-3.5" />Inativar</>
-                      : <><UserCheck className="w-3.5 h-3.5" />Reativar</>}
+                      ? <>🔴 Inativar</>
+                      : <>🟢 Reativar</>}
                   </Button>
                   <Button variant="ghost" size="icon-sm" onClick={() => setDetalhe(null)} title="Fechar">
                     <XCircle className="w-4 h-4 text-muted-foreground" />

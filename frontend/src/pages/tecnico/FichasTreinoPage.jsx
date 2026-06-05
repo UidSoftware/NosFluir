@@ -386,11 +386,11 @@ function SortableExerRow({ ex, onEdit, onRemove }) {
         </span>
       )}
       <div className="flex gap-0.5 shrink-0">
-        <Button variant="ghost" size="icon-sm" onClick={() => onEdit(ex)}>
-          <Pencil className="w-3 h-3" />
+        <Button variant="ghost" size="icon-sm" onClick={() => onEdit(ex)} title="Editar" aria-label="Editar">
+          <span aria-hidden="true">✏️</span>
         </Button>
-        <Button variant="ghost" size="icon-sm" onClick={() => onRemove(ex.ftex_id)} className="text-red-400 hover:text-red-300">
-          <Trash2 className="w-3 h-3" />
+        <Button variant="ghost" size="icon-sm" onClick={() => onRemove(ex.ftex_id)} className="text-red-400 hover:text-red-300" title="Excluir" aria-label="Excluir">
+          <span aria-hidden="true">🗑️</span>
         </Button>
       </div>
     </div>
@@ -448,11 +448,11 @@ function FichaGrupoCard({ grupo, fichaDetalhe, onSelect, onEdit, onDelete, onNov
                   {r.fitr_nome}
                 </button>
                 <div className="flex gap-0.5 shrink-0">
-                  <Button variant="ghost" size="icon-sm" onClick={() => onEdit(r)}>
-                    <Pencil className="w-3.5 h-3.5" />
+                  <Button variant="ghost" size="icon-sm" onClick={() => onEdit(r)} title="Editar" aria-label="Editar">
+                    <span aria-hidden="true">✏️</span>
                   </Button>
-                  <Button variant="ghost" size="icon-sm" onClick={() => onDelete(r.fitr_id)} className="text-red-400 hover:text-red-300">
-                    <Trash2 className="w-3.5 h-3.5" />
+                  <Button variant="ghost" size="icon-sm" onClick={() => onDelete(r.fitr_id)} className="text-red-400 hover:text-red-300" title="Excluir" aria-label="Excluir">
+                    <span aria-hidden="true">🗑️</span>
                   </Button>
                 </div>
               </div>
@@ -579,11 +579,11 @@ export default function FichasTreinoPage() {
       key: 'acoes', header: '', cellClassName: 'w-20',
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
-          <Button variant="ghost" size="icon-sm" onClick={() => { setSelectedExer(r); setEditExerOpen(true) }}>
-            <Pencil className="w-3.5 h-3.5" />
+          <Button variant="ghost" size="icon-sm" onClick={() => { setSelectedExer(r); setEditExerOpen(true) }} title="Editar" aria-label="Editar">
+            <span aria-hidden="true">✏️</span>
           </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => removeExerc.mutate(r.ftex_id)} className="text-red-400 hover:text-red-300">
-            <Trash2 className="w-3.5 h-3.5" />
+          <Button variant="ghost" size="icon-sm" onClick={() => removeExerc.mutate(r.ftex_id)} className="text-red-400 hover:text-red-300" title="Excluir" aria-label="Excluir">
+            <span aria-hidden="true">🗑️</span>
           </Button>
         </div>
       ),

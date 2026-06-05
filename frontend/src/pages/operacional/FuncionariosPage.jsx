@@ -170,10 +170,10 @@ export default function FuncionariosPage() {
       key: 'acoes', header: '', cellClassName: 'w-24',
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
-          <Button variant="ghost" size="icon-sm" onClick={() => openDetail(r)}><Eye className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => openEdit(r)}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.func_id)} className="text-red-400 hover:text-red-300">
-            <Trash2 className="w-3.5 h-3.5" />
+          <Button variant="ghost" size="icon-sm" onClick={() => openDetail(r)} title="Ver detalhes" aria-label="Ver detalhes"><span aria-hidden="true">👁️</span></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => openEdit(r)} title="Editar" aria-label="Editar"><span aria-hidden="true">✏️</span></Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.func_id)} className="text-red-400 hover:text-red-300" title="Excluir" aria-label="Excluir">
+            <span aria-hidden="true">🗑️</span>
           </Button>
         </div>
       ),
@@ -208,8 +208,8 @@ export default function FuncionariosPage() {
                         {r.func_formacao && <p className="text-xs text-muted-foreground">{r.func_formacao}</p>}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button variant="ghost" size="icon-sm" onClick={() => openDetail(r)}><Eye className="w-3.5 h-3.5" /></Button>
-                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(r)}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => openDetail(r)} title="Ver detalhes" aria-label="Ver detalhes"><span aria-hidden="true">👁️</span></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(r)} title="Editar" aria-label="Editar"><span aria-hidden="true">✏️</span></Button>
                         <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(r.func_id)} className="text-red-400 hover:text-red-300">
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>

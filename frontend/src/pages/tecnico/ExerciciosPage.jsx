@@ -364,11 +364,11 @@ function GrupoCard({ grupo, exercicios, onEdit, onDelete, onNovo }) {
                   {r.exe_variacao && <span className="text-xs text-muted-foreground hidden md:inline italic">{r.exe_variacao}</span>}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon-sm" onClick={() => onEdit(r)}>
-                    <Pencil className="w-3.5 h-3.5" />
+                  <Button variant="ghost" size="icon-sm" onClick={() => onEdit(r)} title="Editar" aria-label="Editar">
+                    <span aria-hidden="true">✏️</span>
                   </Button>
-                  <Button variant="ghost" size="icon-sm" onClick={() => onDelete(r.exe_id)} className="text-red-400 hover:text-red-300">
-                    <Trash2 className="w-3.5 h-3.5" />
+                  <Button variant="ghost" size="icon-sm" onClick={() => onDelete(r.exe_id)} className="text-red-400 hover:text-red-300" title="Excluir" aria-label="Excluir">
+                    <span aria-hidden="true">🗑️</span>
                   </Button>
                 </div>
               </div>

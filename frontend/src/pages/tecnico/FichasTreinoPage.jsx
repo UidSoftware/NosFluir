@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { FileText, Plus, Pencil, Trash2, Dumbbell, ChevronDown, ChevronRight } from 'lucide-react'
+import { FileText, Plus, Pencil, Trash2, Dumbbell, ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -11,7 +11,7 @@ import { DataTable } from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input, FormField, Spinner, Badge } from '@/components/ui/primitives'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/useToast'
 import { cn } from '@/lib/utils'
 import api from '@/services/api'
@@ -70,6 +70,79 @@ function FichaForm({ ficha, modalidadeInicial, onClose }) {
   )
 }
 
+
+// ── Combobox de Exercícios com Busca Inline ───────────────────────────────────
+
+function ExercicioSelect({ exercicios, value, onChange, disabled, placeholder }) {
+  const [busca, setBusca] = useState('')
+
+  const filtrados = (exercicios || []).filter(e => {
+    if (!busca.trim()) return true
+    const q = busca.toLowerCase()
+    return e.exe_nome.toLowerCase().includes(q) ||
+      (e.apar_nome || '').toLowerCase().includes(q) ||
+      (e.exe_modalidade || '').toLowerCase().includes(q)
+  })
+
+  const pilates   = filtrados.filter(e => e.exe_modalidade === 'pilates')
+  const funcional = filtrados.filter(e => e.exe_modalidade === 'funcional')
+  const outros    = filtrados.filter(e => e.exe_modalidade !== 'pilates' && e.exe_modalidade !== 'funcional')
+
+  const nomeExercicio = (e) => {
+    const apar = e.apar_nome ? ' · ' + e.apar_nome : ''
+    return e.exe_nome + apar
+  }
+
+  return (
+    <Select value={value} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger><SelectValue placeholder={placeholder || 'Selecionar exercicio...'} /></SelectTrigger>
+      <SelectContent>
+        <div className="p-2 pb-1 sticky top-0 bg-popover z-10">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              onKeyDown={e => e.stopPropagation()}
+              placeholder="Buscar exercicio..."
+              className="w-full pl-8 pr-3 py-1.5 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+        </div>
+        <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar...</SelectItem>
+        {pilates.length > 0 && (
+          <SelectGroup>
+            <SelectLabel>Mat Pilates</SelectLabel>
+            {pilates.map(e => (
+              <SelectItem key={e.exe_id} value={String(e.exe_id)}>{nomeExercicio(e)}</SelectItem>
+            ))}
+          </SelectGroup>
+        )}
+        {funcional.length > 0 && (
+          <SelectGroup>
+            <SelectLabel>Funcional</SelectLabel>
+            {funcional.map(e => (
+              <SelectItem key={e.exe_id} value={String(e.exe_id)}>{nomeExercicio(e)}</SelectItem>
+            ))}
+          </SelectGroup>
+        )}
+        {outros.length > 0 && (
+          <SelectGroup>
+            <SelectLabel>Outros</SelectLabel>
+            {outros.map(e => (
+              <SelectItem key={e.exe_id} value={String(e.exe_id)}>{nomeExercicio(e)}</SelectItem>
+            ))}
+          </SelectGroup>
+        )}
+        {filtrados.length === 0 && (
+          <div className="py-3 text-center text-sm text-muted-foreground">Nenhum exercicio encontrado.</div>
+        )}
+      </SelectContent>
+    </Select>
+  )
+}
+
 function EditExercicioForm({ ftex, fichaId, onClose }) {
   const queryClient = useQueryClient()
   const { register, handleSubmit, setValue, watch } = useForm({
@@ -119,40 +192,29 @@ function EditExercicioForm({ ftex, fichaId, onClose }) {
     })
   }
 
-  const nomeExercicio = (e) => {
-    const mod  = e.exe_modalidade === 'pilates' ? 'Pilates' : 'Funcional'
-    const apar = e.apar_nome ? ` · ${e.apar_nome}` : ''
-    return `${e.exe_nome} (${mod}${apar})`
-  }
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <FormField label="Exercício" required>
-        <Select value={watch('exe')} onValueChange={v => setValue('exe', v)} disabled={mutation.isPending}>
-          <SelectTrigger><SelectValue placeholder="Selecionar exercício..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar exercício...</SelectItem>
-            {exercicios?.map(e => (
-              <SelectItem key={e.exe_id} value={String(e.exe_id)}>{nomeExercicio(e)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ExercicioSelect
+          exercicios={exercicios}
+          value={watch('exe')}
+          onChange={v => setValue('exe', v)}
+          disabled={mutation.isPending}
+        />
       </FormField>
 
       <FormField label="Apelido (como chamam na aula)">
-        <Input {...register('ftex_apelido')} placeholder="ex: Elevação Lateral, Bichinho..." disabled={mutation.isPending} />
+        <Input {...register('ftex_apelido')} placeholder="ex: Elevacao Lateral, Bichinho..." disabled={mutation.isPending} />
       </FormField>
 
       <FormField label="Combinado com (opcional)">
-        <Select value={watch('exe2')} onValueChange={v => setValue('exe2', v)} disabled={mutation.isPending}>
-          <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
-            {exercicios?.map(e => (
-              <SelectItem key={e.exe_id} value={String(e.exe_id)}>{nomeExercicio(e)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ExercicioSelect
+          exercicios={exercicios}
+          value={watch('exe2')}
+          onChange={v => setValue('exe2', v)}
+          disabled={mutation.isPending}
+          placeholder="Nenhum"
+        />
       </FormField>
 
       <FormField label="Seção">
@@ -225,31 +287,26 @@ function AddExercicioForm({ fichaId, onClose }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <FormField label="Exercício" required>
-        <Select value={watch('exe')} onValueChange={v => setValue('exe', v)} disabled={mutation.isPending}>
-          <SelectTrigger><SelectValue placeholder="Selecionar exercício..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar exercício...</SelectItem>
-            {exercicios?.map(e => (
-              <SelectItem key={e.exe_id} value={String(e.exe_id)}>{nomeExercicio(e)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ExercicioSelect
+          exercicios={exercicios}
+          value={watch('exe')}
+          onChange={v => setValue('exe', v)}
+          disabled={mutation.isPending}
+        />
       </FormField>
 
       <FormField label="Apelido (como chamam na aula)">
-        <Input {...register('ftex_apelido')} placeholder="ex: Elevação Lateral, Bichinho..." disabled={mutation.isPending} />
+        <Input {...register('ftex_apelido')} placeholder="ex: Elevacao Lateral, Bichinho..." disabled={mutation.isPending} />
       </FormField>
 
       <FormField label="Combinado com (opcional)">
-        <Select value={watch('exe2')} onValueChange={v => setValue('exe2', v)} disabled={mutation.isPending}>
-          <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-muted-foreground italic">Nenhum</SelectItem>
-            {exercicios?.map(e => (
-              <SelectItem key={e.exe_id} value={String(e.exe_id)}>{nomeExercicio(e)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ExercicioSelect
+          exercicios={exercicios}
+          value={watch('exe2')}
+          onChange={v => setValue('exe2', v)}
+          disabled={mutation.isPending}
+          placeholder="Nenhum"
+        />
       </FormField>
 
       <FormField label="Seção">

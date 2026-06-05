@@ -430,6 +430,15 @@ function SecaoAlunos() {
     }).then(r => r.data),
   })
 
+  const mesAtualAniv = new Date().getMonth() + 1
+
+  const { data: aniversariantes, isLoading: loadAniversario } = useQuery({
+    queryKey: ['dash-aniversariantes', mesAtualAniv],
+    queryFn: () => api.get('/alunos/', {
+      params: { alu_ativo: true, alu_data_nascimento__month: mesAtualAniv, page_size: 50, ordering: 'alu_data_nascimento' },
+    }).then(r => r.data),
+  })
+
   const { data: matriculas, isLoading: loadMatriculas } = useQuery({
     queryKey: ['dash-matriculas-ativas'],
     queryFn: () => api.get('/turma-alunos/', { params: { ativo: true, page_size: 200 } }).then(r => r.data.results),

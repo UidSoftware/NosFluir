@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { FileText, Plus, Pencil, Trash2, Dumbbell, ChevronDown, ChevronRight, Search } from 'lucide-react'
+import { FileText, Plus, Pencil, Trash2, Dumbbell, ChevronDown, ChevronRight, Search, GripVertical } from 'lucide-react'
 import { useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -14,6 +14,22 @@ import { Input, FormField, Spinner, Badge } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/useToast'
 import { cn } from '@/lib/utils'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import api from '@/services/api'
 
 const ENDPOINT      = '/fichas-treino/'
@@ -329,6 +345,58 @@ function AddExercicioForm({ fichaId, onClose }) {
   )
 }
 
+
+// ── Exercício Sortable (drag & drop) ─────────────────────────────────────────
+
+function SortableExerRow({ ex, onEdit, onRemove }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ex.ftex_id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 py-1.5 border-b border-border/40 last:border-0"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-1 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0 touch-none"
+        aria-label="Arrastar"
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <span className="text-muted-foreground text-xs w-5 shrink-0">{ex.ftex_ordem}.</span>
+      <span className="flex-1 text-sm font-medium min-w-0">
+        {ex.exe_nome}
+        {ex.exe2_nome && <span className="text-fluir-cyan"> + {ex.exe2_nome}</span>}
+        {ex.apar_nome && <span className="text-muted-foreground font-normal"> · {ex.apar_nome}</span>}
+      </span>
+      {(ex.ftex_series || ex.ftex_repeticoes) && (
+        <span className="text-xs text-muted-foreground shrink-0">{ex.ftex_series}x{ex.ftex_repeticoes}</span>
+      )}
+      {ex.ftex_observacoes && (
+        <span className="text-xs text-muted-foreground italic shrink-0 max-w-[120px] truncate" title={ex.ftex_observacoes}>
+          {ex.ftex_observacoes}
+        </span>
+      )}
+      <div className="flex gap-0.5 shrink-0">
+        <Button variant="ghost" size="icon-sm" onClick={() => onEdit(ex)}>
+          <Pencil className="w-3 h-3" />
+        </Button>
+        <Button variant="ghost" size="icon-sm" onClick={() => onRemove(ex.ftex_id)} className="text-red-400 hover:text-red-300">
+          <Trash2 className="w-3 h-3" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 const GRUPOS_MODALIDADE = [
   { key: 'pilates',   label: 'Mat Pilates', icon: '🧘' },
   { key: 'funcional', label: 'Funcional',   icon: '💪' },
@@ -408,6 +476,30 @@ export default function FichasTreinoPage() {
   const [busca, setBusca]               = useState('')
 
   const queryClient = useQueryClient()
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const reordenarMut = useMutation({
+    mutationFn: ({ id, ordem }) => api.patch(`${EXER_ENDPOINT}${id}/`, { ftex_ordem: ordem }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ficha-exercicios', fichaDetalhe?.fitr_id] }),
+  })
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = exerciciosOrdenados.findIndex(e => e.ftex_id === active.id)
+    const newIndex = exerciciosOrdenados.findIndex(e => e.ftex_id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const novosIds = arrayMove(exerciciosOrdenados, oldIndex, newIndex)
+    novosIds.forEach((ex, idx) => {
+      if (ex.ftex_ordem !== idx + 1) {
+        reordenarMut.mutate({ id: ex.ftex_id, ordem: idx + 1 })
+      }
+    })
+  }
 
   const { data: todasFichas, isLoading } = useQuery({
     queryKey: [KEY],
@@ -546,52 +638,45 @@ export default function FichasTreinoPage() {
                 <div className="flex justify-center py-6"><Spinner /></div>
               ) : exerciciosOrdenados.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-6">Nenhum exercício nesta ficha.</p>
-              ) : temSecao ? (
-                <div className="space-y-4">
-                  {gruposSecao.map(({ secao, itens }) => (
-                    <div key={secao || '__sem_secao__'}>
-                      {secao && (
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-fluir-cyan mb-1.5">
-                          {secao}
-                        </p>
-                      )}
-                      <div className="space-y-1">
-                        {itens.map(ex => (
-                          <div key={ex.ftex_id} className="flex items-center gap-2 py-1.5 border-b border-border/40 last:border-0">
-                            <span className="text-muted-foreground text-xs w-5 shrink-0">{ex.ftex_ordem}.</span>
-                            <span className="flex-1 text-sm font-medium min-w-0">
-                              {ex.exe_nome}
-                              {ex.exe2_nome && <span className="text-fluir-cyan"> + {ex.exe2_nome}</span>}
-                              {ex.apar_nome && <span className="text-muted-foreground font-normal"> · {ex.apar_nome}</span>}
-                            </span>
-                            {(ex.ftex_series || ex.ftex_repeticoes) && (
-                              <span className="text-xs text-muted-foreground shrink-0">{ex.ftex_series}×{ex.ftex_repeticoes}</span>
+              ) : (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={exerciciosOrdenados.map(e => e.ftex_id)} strategy={verticalListSortingStrategy}>
+                    {temSecao ? (
+                      <div className="space-y-4">
+                        {gruposSecao.map(({ secao, itens }) => (
+                          <div key={secao || '__sem_secao__'}>
+                            {secao && (
+                              <p className="text-[11px] font-semibold uppercase tracking-wider text-fluir-cyan mb-1.5">
+                                {secao}
+                              </p>
                             )}
-                            {ex.ftex_observacoes && (
-                              <span className="text-xs text-muted-foreground italic shrink-0 max-w-[120px] truncate" title={ex.ftex_observacoes}>
-                                {ex.ftex_observacoes}
-                              </span>
-                            )}
-                            <div className="flex gap-0.5 shrink-0">
-                              <Button variant="ghost" size="icon-sm" onClick={() => { setSelectedExer(ex); setEditExerOpen(true) }}>
-                                <Pencil className="w-3 h-3" />
-                              </Button>
-                              <Button variant="ghost" size="icon-sm" onClick={() => removeExerc.mutate(ex.ftex_id)} className="text-red-400 hover:text-red-300">
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
+                            <div className="space-y-1">
+                              {itens.map(ex => (
+                                <SortableExerRow
+                                  key={ex.ftex_id}
+                                  ex={ex}
+                                  onEdit={ex => { setSelectedExer(ex); setEditExerOpen(true) }}
+                                  onRemove={id => removeExerc.mutate(id)}
+                                />
+                              ))}
                             </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <DataTable
-                  columns={exercCols}
-                  data={exerciciosOrdenados}
-                  emptyMessage="Nenhum exercício nesta ficha."
-                />
+                    ) : (
+                      <div className="space-y-0.5">
+                        {exerciciosOrdenados.map(ex => (
+                          <SortableExerRow
+                            key={ex.ftex_id}
+                            ex={ex}
+                            onEdit={ex => { setSelectedExer(ex); setEditExerOpen(true) }}
+                            onRemove={id => removeExerc.mutate(id)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </SortableContext>
+                </DndContext>
               )}
             </CardContent>
           </Card>

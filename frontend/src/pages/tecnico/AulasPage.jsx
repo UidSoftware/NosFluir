@@ -322,6 +322,12 @@ function AulaCard({ r, onDetalhe, onEdit, onDelete }) {
         : <p className="text-xs text-muted-foreground italic">Sem ficha</p>
       }
 
+      {r.aul_numero_ciclo && (
+        <span className="inline-block bg-fluir-purple/10 text-fluir-purple text-xs px-2 py-0.5 rounded border border-fluir-purple/30 font-medium">
+          Ciclo {r.aul_numero_ciclo}
+        </span>
+      )}
+
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-3 text-xs">
           <span className="flex items-center gap-1 text-green-400" title="Presentes">
@@ -413,6 +419,18 @@ export default function AulasPage() {
       render: r => r.fitr_nome
         ? <span className="text-sm">{r.fitr_nome}</span>
         : <span className="text-xs text-muted-foreground italic">Sem ficha</span>,
+    },
+    {
+      key: 'aul_numero_ciclo', header: 'Ciclo',
+      headerClassName: 'hidden lg:table-cell',
+      cellClassName: 'hidden lg:table-cell',
+      render: r => r.aul_numero_ciclo
+        ? (
+          <span className="bg-fluir-purple/10 text-fluir-purple text-xs px-2 py-0.5 rounded border border-fluir-purple/30 font-medium whitespace-nowrap">
+            Ciclo {r.aul_numero_ciclo}
+          </span>
+        )
+        : <span className="text-xs text-muted-foreground">—</span>,
     },
     {
       key: 'func_nome', header: 'Professor',

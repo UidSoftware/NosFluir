@@ -23,18 +23,51 @@ const MODALIDADES = [
 ]
 const MODALIDADE_VARIANT = { pilates: 'cyan', funcional: 'success' }
 
+const DIAS_SEMANA = [
+  { id: 'Dom', label: 'Dom' },
+  { id: 'Seg', label: 'Seg' },
+  { id: 'Ter', label: 'Ter' },
+  { id: 'Qua', label: 'Qua' },
+  { id: 'Qui', label: 'Qui' },
+  { id: 'Sex', label: 'Sex' },
+  { id: 'Sáb', label: 'Sáb' },
+]
+
+function parseHorario(str) {
+  if (!str) return null
+  const parts = str.trim().split(' ')
+  if (parts.length < 2) return null
+  const hora = parts[parts.length - 1]
+  const diasStr = parts.slice(0, parts.length - 1).join(' ')
+  if (!/^\d{2}:\d{2}$/.test(hora)) return null
+  const dias = diasStr.split('/').map(d => d.trim()).filter(Boolean)
+  const validos = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
+  if (!dias.every(d => validos.includes(d))) return null
+  return { dias, hora }
+}
+
 function TurmaForm({ turma, modalidadeInicial, onClose }) {
+  const parsed = turma ? parseHorario(turma.tur_horario) : null
+
   const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm({
     defaultValues: turma ? {
       tur_nome:       turma.tur_nome,
-      tur_horario:    turma.tur_horario || '',
+      tur_horario:    parsed ? '' : (turma.tur_horario || ''),
       tur_modalidade: turma.tur_modalidade || '__none__',
     } : { tur_modalidade: modalidadeInicial || '__none__' },
   })
 
+  const [diasSel, setDiasSel] = useState(parsed?.dias ?? [])
+  const [hora,    setHora]    = useState(parsed?.hora ?? '')
+  const [modoTexto, setModoTexto] = useState(!parsed && !!turma?.tur_horario)
+
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
   const update = useUpdate(KEY, ENDPOINT, { onSuccess: onClose })
   const busy   = create.isPending || update.isPending
+
+  const toggleDia = (id) => {
+    setDiasSel(prev => prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id])
+  }
 
   const onSubmit = (data) => {
     const modVal = data.tur_modalidade && data.tur_modalidade !== '__none__' ? data.tur_modalidade : null
@@ -42,7 +75,25 @@ function TurmaForm({ turma, modalidadeInicial, onClose }) {
       toast({ title: 'Selecione a modalidade.', variant: 'destructive' })
       return
     }
-    const payload = { tur_nome: data.tur_nome, tur_horario: data.tur_horario, tur_modalidade: modVal }
+
+    let horarioFinal
+    if (modoTexto) {
+      horarioFinal = data.tur_horario
+    } else {
+      if (diasSel.length === 0) {
+        toast({ title: 'Selecione ao menos um dia da semana.', variant: 'destructive' })
+        return
+      }
+      if (!hora) {
+        toast({ title: 'Informe o horário de início.', variant: 'destructive' })
+        return
+      }
+      const ordem = DIAS_SEMANA.map(d => d.id)
+      const diasOrdenados = [...diasSel].sort((a, b) => ordem.indexOf(a) - ordem.indexOf(b))
+      horarioFinal = diasOrdenados.join('/') + ' ' + hora
+    }
+
+    const payload = { tur_nome: data.tur_nome, tur_horario: horarioFinal, tur_modalidade: modVal }
     if (turma) update.mutate({ id: turma.tur_id, data: payload })
     else       create.mutate(payload)
   }
@@ -54,9 +105,62 @@ function TurmaForm({ turma, modalidadeInicial, onClose }) {
           <Input {...register('tur_nome', { required: 'Nome obrigatório' })} placeholder="Ex: Pilates Segunda 07h" disabled={busy} />
         </FormField>
 
-        <FormField label="Horário" required error={errors.tur_horario?.message}>
-          <Input {...register('tur_horario', { required: 'Horário obrigatório' })} placeholder="Seg/Qua/Sex 07:00" disabled={busy} />
-        </FormField>
+        {modoTexto ? (
+          <div className="space-y-1.5">
+            <FormField label="Horário" required error={errors.tur_horario?.message}>
+              <Input {...register('tur_horario', { required: 'Horário obrigatório' })} placeholder="Seg/Qua/Sex 07:00" disabled={busy} />
+            </FormField>
+            <button
+              type="button"
+              className="text-xs text-fluir-purple underline underline-offset-2"
+              onClick={() => setModoTexto(false)}
+            >
+              Usar seleção visual
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <FormField label="Dias da semana" required>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {DIAS_SEMANA.map(d => {
+                  const ativo = diasSel.includes(d.id)
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => toggleDia(d.id)}
+                      className={ativo
+                        ? 'px-2.5 py-1 rounded-md text-xs font-medium bg-fluir-purple text-white transition-colors'
+                        : 'px-2.5 py-1 rounded-md text-xs font-medium border border-slate-600 text-slate-400 hover:border-fluir-purple/50 transition-colors'
+                      }
+                    >
+                      {d.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </FormField>
+
+            <FormField label="Horário de início" required>
+              <Input
+                type="time"
+                value={hora}
+                onChange={e => setHora(e.target.value)}
+                disabled={busy}
+                className="w-32"
+              />
+            </FormField>
+
+            {diasSel.length > 0 && hora && (
+              <p className="text-xs text-muted-foreground">
+                Preview: <span className="text-foreground font-medium">
+                  {[...diasSel].sort((a,b) => DIAS_SEMANA.map(d=>d.id).indexOf(a) - DIAS_SEMANA.map(d=>d.id).indexOf(b)).join('/') + ' ' + hora}
+                </span>
+              </p>
+            )}
+          </div>
+        )}
 
         <FormField label="Modalidade" required>
           <Select value={watch('tur_modalidade')} onValueChange={v => setValue('tur_modalidade', v)} disabled={busy}>

@@ -6,7 +6,7 @@ import {
 import {
   DollarSign, TrendingUp, TrendingDown, Users, Calendar,
   Activity, Wallet, Package, RefreshCw, Dumbbell,
-  ChevronRight, UserCheck,
+  ChevronRight, UserCheck, UserX, AlertTriangle, Briefcase,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge, Skeleton } from '@/components/ui/primitives'
@@ -139,6 +139,21 @@ function ChartTooltip({ active, payload, label }) {
   )
 }
 
+// ── Barra de ocupação ─────────────────────────────────────────────────────────
+
+function OccupancyBar({ count, max = 15 }) {
+  const pct = Math.min((count / max) * 100, 100)
+  const color = count >= 13 ? 'bg-red-400' : count >= 9 ? 'bg-amber-400' : 'bg-emerald-400'
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs text-muted-foreground tabular-nums">{count}/{max}</span>
+    </div>
+  )
+}
+
 // ── Seção Financeiro ──────────────────────────────────────────────────────────
 
 function SecaoFinanceiro() {
@@ -170,14 +185,17 @@ function SecaoFinanceiro() {
     queryFn: () => api.get('/produtos/alertas-estoque/').then(r => r.data),
   })
 
-  // Saldo total das contas
-  const saldoTotal = contas?.reduce((s, c) => s + parseFloat(c.saldo_atual || 0), 0) ?? 0
+  const { data: folhaData, isLoading: loadFolha } = useQuery({
+    queryKey: ['dash-folha', mesAtual, anoAtual],
+    queryFn: () => api.get('/folha-pagamento/', {
+      params: { fopa_mes_referencia: mesAtual, fopa_ano_referencia: anoAtual, page_size: 50 },
+    }).then(r => r.data),
+  })
 
-  // Totais pendentes
-  const totalPagar   = pagarData?.results?.reduce((s, r) => s + parseFloat(r.pag_valor_total || 0), 0) ?? 0
-  const totalReceber = receberData?.results?.reduce((s, r) => s + parseFloat(r.rec_valor_total || 0), 0) ?? 0
+  const saldoTotal    = contas?.reduce((s, c) => s + parseFloat(c.saldo_atual || 0), 0) ?? 0
+  const totalPagar    = pagarData?.results?.reduce((s, r) => s + parseFloat(r.pag_valor_total || 0), 0) ?? 0
+  const totalReceber  = receberData?.results?.reduce((s, r) => s + parseFloat(r.rec_valor_total || 0), 0) ?? 0
 
-  // Resultado do mês atual via livro-caixa
   let entradasMes = 0, saidasMes = 0
   lcxData?.forEach(item => {
     if (!item.lica_data_lancamento) return
@@ -190,7 +208,6 @@ function SecaoFinanceiro() {
   })
   const resultadoMes = entradasMes - saidasMes
 
-  // Gráfico — agrupa por mês, últimos 3
   const agrupado = {}
   lcxData?.forEach(item => {
     if (!item.lica_data_lancamento) return
@@ -207,18 +224,21 @@ function SecaoFinanceiro() {
 
   const alertasEstoque = estoqueData?.results ?? []
 
+  const totalFolha   = folhaData?.results?.reduce((s, f) => s + parseFloat(f.fopa_valor_liquido || 0), 0) ?? 0
+  const folhaPendente = folhaData?.results?.filter(f => f.fopa_status === 'pendente') ?? []
+  const totalFolhaPendente = folhaPendente.reduce((s, f) => s + parseFloat(f.fopa_valor_liquido || 0), 0)
+
   return (
     <div className="space-y-4">
       <SectionHeader
         title="Financeiro"
-        subtitle="Contas, fluxo e pendências"
+        subtitle="Contas, fluxo, folha e pendências"
         icon={Wallet}
         iconBg="bg-emerald-500/10"
         iconColor="text-emerald-400"
       />
 
-      {/* 4 stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <StatCard
           title="Saldo Total"
           value={formatCurrency(saldoTotal)}
@@ -251,9 +271,24 @@ function SecaoFinanceiro() {
           color={resultadoMes >= 0 ? 'green' : 'red'}
           isLoading={loadLcx}
         />
+        <StatCard
+          title="Folha do Mês"
+          value={formatCurrency(totalFolha)}
+          sub={`${folhaData?.count ?? 0} funcionário(s)`}
+          icon={Briefcase}
+          color="amber"
+          isLoading={loadFolha}
+        />
+        <StatCard
+          title="Folha Pendente"
+          value={formatCurrency(totalFolhaPendente)}
+          sub={`${folhaPendente.length} pagamento(s) em aberto`}
+          icon={AlertTriangle}
+          color={totalFolhaPendente > 0 ? 'red' : 'green'}
+          isLoading={loadFolha}
+        />
       </div>
 
-      {/* Gráfico + Próximas a Pagar */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-3">
@@ -303,7 +338,6 @@ function SecaoFinanceiro() {
         </CardLista>
       </div>
 
-      {/* Próximas a Receber + Alertas Estoque */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <CardLista title="Próximas a Receber" icon={TrendingUp} linkTo="/financas/contas-receber">
           {loadReceber
@@ -344,6 +378,150 @@ function SecaoFinanceiro() {
             }
           </CardLista>
         )}
+
+        {folhaPendente.length > 0 && (
+          <CardLista title="Folha Pendente" icon={Briefcase} linkTo="/financas/folha-pagamento">
+            {loadFolha
+              ? <ListaLoader />
+              : folhaPendente.slice(0, 5).map(f => (
+                  <ListRow
+                    key={f.fopa_id}
+                    label={f.func_nome || '—'}
+                    sub={`Ref: ${String(f.fopa_mes_referencia).padStart(2,'0')}/${f.fopa_ano_referencia}`}
+                    right={
+                      <span className="text-sm font-medium text-amber-400">
+                        {formatCurrency(f.fopa_valor_liquido)}
+                      </span>
+                    }
+                  />
+                ))
+            }
+          </CardLista>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Seção Alunos ──────────────────────────────────────────────────────────────
+
+function SecaoAlunos() {
+  const hoje = hojeISO()
+  const em30dias = (() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 30)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
+
+  const { data: ativos, isLoading: loadAtivos } = useQuery({
+    queryKey: ['dash-alunos-ativos'],
+    queryFn: () => api.get('/alunos/', { params: { alu_ativo: true, page_size: 1 } }).then(r => r.data),
+  })
+
+  const { data: inativos, isLoading: loadInativos } = useQuery({
+    queryKey: ['dash-alunos-inativos'],
+    queryFn: () => api.get('/alunos/', { params: { alu_ativo: false, page_size: 1 } }).then(r => r.data),
+  })
+
+  const { data: planosVencendo, isLoading: loadVencendo } = useQuery({
+    queryKey: ['dash-planos-vencendo', hoje, em30dias],
+    queryFn: () => api.get('/aluno-plano/', {
+      params: { aplano_ativo: true, aplano_data_fim__gte: hoje, aplano_data_fim__lte: em30dias, page_size: 10 },
+    }).then(r => r.data),
+  })
+
+  const { data: matriculas, isLoading: loadMatriculas } = useQuery({
+    queryKey: ['dash-matriculas-ativas'],
+    queryFn: () => api.get('/turma-alunos/', { params: { ativo: true, page_size: 200 } }).then(r => r.data.results),
+  })
+
+  const turmaOcupacao = {}
+  matriculas?.forEach(m => {
+    const key = m.tur_nome || String(m.tur)
+    if (!turmaOcupacao[key]) turmaOcupacao[key] = { nome: key, count: 0 }
+    turmaOcupacao[key].count++
+  })
+  const turmasList = Object.values(turmaOcupacao).sort((a, b) => b.count - a.count)
+
+  return (
+    <div className="space-y-4">
+      <SectionHeader
+        title="Alunos"
+        subtitle="Ativos, planos e ocupação das turmas"
+        icon={Users}
+        iconBg="bg-fluir-purple/10"
+        iconColor="text-fluir-purple"
+      />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard
+          title="Alunos Ativos"
+          value={ativos?.count ?? '—'}
+          icon={Users}
+          color="purple"
+          isLoading={loadAtivos}
+        />
+        <StatCard
+          title="Alunos Inativos"
+          value={inativos?.count ?? '—'}
+          icon={UserX}
+          color="amber"
+          isLoading={loadInativos}
+        />
+        <StatCard
+          title="Planos Vencendo"
+          value={planosVencendo?.count ?? '—'}
+          sub="nos próximos 30 dias"
+          icon={AlertTriangle}
+          color={planosVencendo?.count > 0 ? 'red' : 'green'}
+          isLoading={loadVencendo}
+        />
+        <StatCard
+          title="Matrículas em Turmas"
+          value={loadMatriculas ? '—' : (matriculas?.length ?? 0)}
+          sub={`${turmasList.length} turma(s)`}
+          icon={Calendar}
+          color="cyan"
+          isLoading={loadMatriculas}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <CardLista title="Planos Vencendo em 30 dias" icon={AlertTriangle} linkTo="/operacional/alunos">
+          {loadVencendo
+            ? <ListaLoader />
+            : planosVencendo?.results?.length
+              ? planosVencendo.results.map(p => (
+                  <ListRow
+                    key={p.aplano_id}
+                    label={p.alu_nome || '—'}
+                    sub={`Vence: ${formatDate(p.aplano_data_fim)}`}
+                    right={
+                      <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-400">
+                        Vencendo
+                      </Badge>
+                    }
+                  />
+                ))
+              : <ListaVazia msg="Nenhum plano vencendo nos próximos 30 dias." />
+          }
+        </CardLista>
+
+        <CardLista title="Ocupação das Turmas" icon={UserCheck}>
+          {loadMatriculas
+            ? <ListaLoader />
+            : turmasList.length
+              ? turmasList.map(t => (
+                  <ListRow
+                    key={t.nome}
+                    label={t.nome}
+                    sub={`${t.count} aluno(s) matriculado(s)`}
+                    right={<OccupancyBar count={t.count} />}
+                  />
+                ))
+              : <ListaVazia msg="Nenhuma turma com matrículas ativas." />
+          }
+        </CardLista>
       </div>
     </div>
   )
@@ -353,11 +531,6 @@ function SecaoFinanceiro() {
 
 function SecaoTecnico() {
   const hoje = hojeISO()
-
-  const { data: alunos, isLoading: loadAlunos } = useQuery({
-    queryKey: ['dash-alunos'],
-    queryFn: () => api.get('/alunos/', { params: { page_size: 1 } }).then(r => r.data),
-  })
 
   const { data: turmas, isLoading: loadTurmas } = useQuery({
     queryKey: ['dash-turmas'],
@@ -379,32 +552,29 @@ function SecaoTecnico() {
     queryFn: () => api.get('/agendamento-experimental/', { params: { age_status: 'pendente', page_size: 5 } }).then(r => r.data),
   })
 
+  const { data: funcionarios, isLoading: loadFunc } = useQuery({
+    queryKey: ['dash-funcionarios'],
+    queryFn: () => api.get('/funcionarios/', { params: { page_size: 1 } }).then(r => r.data),
+  })
+
   const totalPresentes = aulasHoje?.reduce((s, a) => s + (a.total_presentes ?? 0), 0) ?? 0
 
   return (
     <div className="space-y-4">
       <SectionHeader
-        title="Técnico / Operacional"
-        subtitle="Alunos, aulas e agendamentos"
+        title="Aulas & Equipe"
+        subtitle="Programação, agendamentos e funcionários"
         icon={Dumbbell}
-        iconBg="bg-fluir-purple/10"
-        iconColor="text-fluir-purple"
+        iconBg="bg-fluir-cyan/10"
+        iconColor="text-fluir-cyan"
       />
 
-      {/* 4 stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard
-          title="Total de Alunos"
-          value={alunos?.count ?? '—'}
-          icon={Users}
-          color="purple"
-          isLoading={loadAlunos}
-        />
         <StatCard
           title="Turmas Ativas"
           value={turmas?.count ?? '—'}
           icon={Calendar}
-          color="cyan"
+          color="purple"
           isLoading={loadTurmas}
         />
         <StatCard
@@ -420,12 +590,18 @@ function SecaoTecnico() {
           value={creditos?.count ?? '—'}
           sub="reposições"
           icon={RefreshCw}
-          color="amber"
+          color="cyan"
           isLoading={loadCreditos}
+        />
+        <StatCard
+          title="Funcionários"
+          value={funcionarios?.count ?? '—'}
+          icon={Briefcase}
+          color="amber"
+          isLoading={loadFunc}
         />
       </div>
 
-      {/* Aulas de hoje + Experimentais pendentes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <CardLista title="Aulas de Hoje" icon={Activity} linkTo="/tecnico/aulas">
           {loadAulas
@@ -504,7 +680,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Boas-vindas */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-base font-semibold">
@@ -518,7 +693,8 @@ export default function Dashboard() {
       </div>
 
       {showFinanceiro && <SecaoFinanceiro />}
-      {showTecnico    && <SecaoTecnico />}
+      {(showTecnico || showFinanceiro) && <SecaoAlunos />}
+      {showTecnico && <SecaoTecnico />}
 
       {!showFinanceiro && !showTecnico && (
         <Card>

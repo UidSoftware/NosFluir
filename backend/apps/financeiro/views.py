@@ -10,6 +10,7 @@ from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -214,12 +215,21 @@ class PlanosPagamentosViewSet(AuditMixin, ModelViewSet):
     ordering_fields = ['plan_valor_plano', 'plan_tipo_plano']
 
 
+class AlunoPlanoFilter(django_filters.FilterSet):
+    aplano_data_fim__gte = django_filters.DateFilter(field_name='aplano_data_fim', lookup_expr='gte')
+    aplano_data_fim__lte = django_filters.DateFilter(field_name='aplano_data_fim', lookup_expr='lte')
+
+    class Meta:
+        model = AlunoPlano
+        fields = ['aluno', 'plano', 'aplano_ativo']
+
+
 class AlunoPlanoViewSet(AuditMixin, ModelViewSet):
     permission_classes = [IsFinanceiroOuAdmin]
     queryset = AlunoPlano.objects.filter(deleted_at__isnull=True).select_related('aluno', 'plano__serv').order_by('-aplano_data_inicio')
     serializer_class = AlunoPlanoSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['aluno', 'plano', 'aplano_ativo']
+    filterset_class = AlunoPlanoFilter
     search_fields = ['aluno__alu_nome', 'plano__serv__serv_nome']
     ordering_fields = ['aplano_data_inicio', 'aplano_ativo']
 

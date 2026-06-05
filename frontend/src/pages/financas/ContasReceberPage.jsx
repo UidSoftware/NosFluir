@@ -11,7 +11,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input, FormField } from '@/components/ui/primitives'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { FAB } from '@/components/ui/fab'
 import { toast } from '@/hooks/useToast'
 import api from '@/services/api'
@@ -330,9 +330,12 @@ function ContaReceberForm({ rec, onClose }) {
         </Select>
       </FormField>
 
-      {/* Aluno ou Nome Pagador */}
-      {showAlu ? (
-        <FormField label={TIPOS_COM_ALUNO.has(recTipo) ? 'Aluno (obrigatório)' : 'Aluno'}>
+      {/* Aluno ou Nome Pagador — com animacao */}
+      <div className={cn(
+        'overflow-hidden transition-all duration-200',
+        showAlu ? 'max-h-28 opacity-100' : 'max-h-0 opacity-0'
+      )}>
+        <FormField label={TIPOS_COM_ALUNO.has(recTipo) ? 'Aluno (obrigatorio)' : 'Aluno'}>
           <Select value={watch('alu')} onValueChange={v => { setValue('alu', v); setValue('aplano', null) }} disabled={busy}>
             <SelectTrigger><SelectValue placeholder="Selecionar aluno..." /></SelectTrigger>
             <SelectContent>
@@ -341,13 +344,18 @@ function ContaReceberForm({ rec, onClose }) {
             </SelectContent>
           </Select>
         </FormField>
-      ) : null}
+      </div>
 
-      {(!showAlu || (aluId === '__none__' || !aluId)) && !TIPOS_COM_ALUNO.has(recTipo) && (
+      <div className={cn(
+        'overflow-hidden transition-all duration-200',
+        (!showAlu || (aluId === '__none__' || !aluId)) && !TIPOS_COM_ALUNO.has(recTipo)
+          ? 'max-h-28 opacity-100'
+          : 'max-h-0 opacity-0'
+      )}>
         <FormField label="Nome do Pagador">
           <Input {...register('rec_nome_pagador')} placeholder="Nome para registro" disabled={busy} />
         </FormField>
-      )}
+      </div>
 
       {/* Descrição */}
       <FormField label="Descrição" required>
@@ -377,7 +385,10 @@ function ContaReceberForm({ rec, onClose }) {
         </Select>
       </FormField>
 
-      {status === 'recebido' && (
+      <div className={cn(
+        'overflow-hidden transition-all duration-200',
+        status === 'recebido' ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0'
+      )}>
         <div className="grid grid-cols-2 gap-3">
           <FormField label="Data do Recebimento" required>
             <Input type="date" {...register('rec_data_recebimento')} disabled={busy} />
@@ -392,7 +403,7 @@ function ContaReceberForm({ rec, onClose }) {
             </Select>
           </FormField>
         </div>
-      )}
+      </div>
 
       {/* Repetição Automática */}
       <div className="rounded-lg border border-border/40 bg-fluir-dark-3/40 p-3 space-y-2.5">

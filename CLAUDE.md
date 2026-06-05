@@ -1259,6 +1259,124 @@ gh secret set VPS_SSH_KEY --repo UidSoftware/NosFluir < /root/.ssh/nosfluir_ci_n
 
 ---
 
+
+---
+
+### [2026-06-04/05] — Ciclo UI/UX completo + Dashboard profissional
+
+**Contexto:** Pipeline de manutenção disparado via Boss CLI — tarefa: criar dashboard profissional e melhorar o sistema por completo.
+
+---
+
+#### Dashboard profissional (`Dashboard.jsx`)
+
+**Nova `SecaoFinanceiro`:**
+- Folha de pagamento do mês (total + pendente + lista de funcionários em aberto)
+- 6 StatCards: Saldo Total, A Pagar, A Receber, Resultado do Mês, Folha do Mês, Folha Pendente
+
+**Nova `SecaoAlunos`:**
+- StatCards: Ativos, Inativos, Planos Vencendo (30 dias), Matrículas em Turmas, Aniversariantes do Mês
+- `OccupancyBar` por turma (max=15 — regra de negócio do backend, hardcoded no serializer)
+- CardLista de planos vencendo e aniversariantes do mês (destaque "Hoje!" para aniversariante do dia)
+
+**`SecaoTecnico` → renomeada "Aulas & Equipe":**
+- Card de Funcionários adicionado
+
+**StatCards clicáveis:** todos os 15 StatCards têm `<Link>` para a rota correspondente.
+
+---
+
+#### Backend — novos filtros
+
+- `AlunoPlanoFilter` em `financeiro/views.py`: `aplano_data_fim__gte` e `aplano_data_fim__lte` para query de planos vencendo
+- `AlunoFilter` em `operacional/views.py`: `alu_data_nascimento__month` para query de aniversariantes
+
+---
+
+#### Análise UI/UX (Brush) — 30 melhorias identificadas e implementadas
+
+**P0 — Crítico (6 itens):**
+- Drawer mobile com animação de slide (`translate-x` + `transition-transform duration-300`)
+- `AlunoRow` colapsado por padrão em Ministrar Aula (default `false`)
+- "Descartar aula" com `ConfirmDialog` (ação destrutiva)
+- Inativar aluno com `ConfirmDialog`
+- Touch target dos botões Presente/Falta/Reposição: `min-w-[44px] min-h-[44px]`
+- Versão mobile card (`block md:hidden`) em AlunosPage, FuncionariosPage, AulasPage
+
+**P1 — Alto impacto (8 itens):**
+- Botão "Finalizar Aula" `sticky bottom-16` no mobile + contador "X de N marcados"
+- `Plus Jakarta Sans` (`font-display`) aplicada em PageHeader, CardTitle, DialogTitle, saudação Dashboard
+- `<select>` nativo no DRE substituído por `Select` Radix + spinner no botão
+- Emojis 🧘/💪 nas modalidades (revertidos de Lucide para emoji no Bloco 4)
+- `SlotCalendar` extraído para `components/shared/SlotCalendar.jsx` (era duplicado)
+- Filtro de período (mês/ano) no Livro Caixa e Folha de Pagamento
+- Dead code `TIPOS_DESPESA = []` removido de ContasPagarPage
+
+**P2 — Médio prazo (9 itens):**
+- Formulário de cadastro de aluno em 2 etapas com indicador de progresso
+- FAB (Floating Action Button) mobile em `components/ui/fab.jsx`, aplicado em 4 páginas
+- "Gerar mensalidades da turma" em lote com barra de progresso em ContasReceberPage
+- Select de exercícios com busca inline e agrupamento por modalidade em FichasTreinoPage
+- Drag & drop de exercícios na tela de Fichas (`@dnd-kit`)
+- Gráficos com filtro de período e `dot` condicional em GrafFinanceiroPage
+- Campos PA/FC colapsáveis em MinistrarAulaPage (PSE e Obs sempre visíveis)
+- Animação `max-h/opacity` em campos condicionais de ContasReceberPage
+- Grupos de acesso como badges clicáveis em UsuariosPage
+
+**P3 — Nice-to-have (6 itens):**
+- OccupancyBar: max=15 documentado (sem campo de capacidade no model Turma)
+- Preview de parcelas como grid visual `grid-cols-3` de badges em ContasPagarPage
+- Auto-save de 30s em localStorage durante Ministrar Aula + toast "Salvo automaticamente às HH:MM"
+- Horário de turma: 7 botões toggle de dias + `Input type="time"` com preview em tempo real
+- Breadcrumb mobile no Topbar: 47 rotas mapeadas em português via `useLocation`
+- Badge "Ciclo N" na tabela e cards de Aulas (`aul_numero_ciclo` já existia no serializer)
+
+---
+
+#### Emojis em todo o sistema (42 arquivos)
+
+- **Sidebar:** todos os itens com emoji antes do label
+- **Botões de ação nas tabelas:** ✏️ Editar, 🗑️ Excluir, 👁️ Ver, ✅ Pagar/Receber, 📥 PDF, 🔴 Inativar, 🟢 Reativar
+- **Botões principais:** ➕ Novo, 💾 Salvar, ✅ Cadastrar, 🏁 Finalizar Aula, ⚡ Gerar, 💱 Transferir
+- **Badges e status:** 🟢 Ativo, 🔴 Inativo, 🟡 Pendente, ✅ Pago, ❌ Cancelado
+- **Modalidades:** 🧘 Mat Pilates, 💪 Funcional
+
+---
+
+#### Novos componentes criados
+
+| Componente | Caminho | Descrição |
+|---|---|---|
+| `FAB` | `components/ui/fab.jsx` | Floating Action Button mobile fixo acima da BottomBar |
+| `SlotCalendar` | `components/shared/SlotCalendar.jsx` | Calendário de slots compartilhado (ExperimentalPage + AgendamentosPage) |
+| `OccupancyBar` | `Dashboard.jsx` (inline) | Barra de ocupação de turma com cores verde/âmbar/vermelho |
+
+---
+
+#### Commits deste ciclo
+
+- `ece5c68` — feat(dashboard): dashboard profissional com alunos, turmas e folha
+- `c3983de` — feat(dashboard): adiciona aniversariantes do mês
+- `9a8e562` — fix(dashboard): declara useQuery de aniversariantes em SecaoAlunos
+- `85a8666` — fix(ui): correções P0 de UX
+- `9fc5130` — feat(ui): melhorias P1 de UX
+- `9ab20bb` — fix(build): remove declaração duplicada em FolhaPagamentoPage
+- `8371583..828e74e` — feat(ui): melhorias P2 (9 commits)
+- `03e3cda..33e710f` — feat(ui): melhorias P3 (6 commits)
+- `74ae644..76b9b6c` — feat(ui): emojis em todo o sistema (4 commits)
+
+**Deploy:**
+- Data: 2026-06-05
+- URL: https://nostudiofluir.com.br/sistema/
+- Status: ✅ Em produção — 117 testes passando, CI/CD ativo
+
+**Sentinel:**
+- Build Docker: OK (sem erros de TypeScript/Rollup)
+- API: HTTP 401 (autenticação requerida — correto)
+- Containers: backend ✅ nginx ✅ db ✅
+
+---
+
 **Bora codar! Good luck, Claude Code!**
 
 > SISTEMA EM PRODUCAO — atualizar este arquivo a cada mudança relevante.

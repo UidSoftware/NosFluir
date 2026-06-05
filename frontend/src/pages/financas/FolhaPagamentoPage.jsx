@@ -162,12 +162,6 @@ export default function FolhaPagamentoPage() {
   const NOMES_MESES_F = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
   const ANOS_OPCOES_F = Array.from({ length: 4 }, (_, i) => String(hoje.getFullYear() - 3 + i))
 
-  const hoje = new Date()
-  const [mesFiltro, setMesFiltro]   = useState(String(hoje.getMonth() + 1))
-  const [anoFiltro, setAnoFiltro]   = useState(String(hoje.getFullYear()))
-
-  const NOMES_MESES_F = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
-  const ANOS_OPCOES_F = Array.from({ length: 4 }, (_, i) => String(hoje.getFullYear() - 3 + i))
 
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Registro excluído.' })

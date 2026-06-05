@@ -11,6 +11,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input, FormField, Spinner } from '@/components/ui/primitives'
+import { cn } from '@/lib/utils'
 import { BooleanBadge } from '@/components/shared/StatusBadge'
 
 const ENDPOINT = '/usuarios/'
@@ -26,16 +27,23 @@ function UserForm({ usuario, onClose }) {
       email:      usuario.email || '',
       password:   '',
       is_active:  usuario.is_active !== false,
-      groups:     usuario.groups || [],
-    } : { is_active: true, groups: [] },
+    } : { is_active: true },
   })
+
+  const [selectedGrupos, setSelectedGrupos] = useState(usuario?.groups || [])
+
+  const toggleGrupo = (g) => {
+    setSelectedGrupos(prev =>
+      prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]
+    )
+  }
 
   const create = useCreate(KEY, ENDPOINT, { onSuccess: onClose })
   const update = useUpdate(KEY, ENDPOINT, { onSuccess: onClose })
   const busy   = create.isPending || update.isPending
 
   const onSubmit = (data) => {
-    const payload = { ...data }
+    const payload = { ...data, groups: selectedGrupos }
     if (!payload.password) delete payload.password
     if (usuario) update.mutate({ id: usuario.id, data: payload })
     else         create.mutate(payload)
@@ -45,7 +53,7 @@ function UserForm({ usuario, onClose }) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 p-5">
       <div className="grid grid-cols-2 gap-3">
         <FormField label="Nome" required error={errors.first_name?.message}>
-          <Input {...register('first_name', { required: 'Nome obrigatório' })} placeholder="Giulia" disabled={busy} />
+          <Input {...register('first_name', { required: 'Nome obrigatorio' })} placeholder="Giulia" disabled={busy} />
         </FormField>
         <FormField label="Sobrenome">
           <Input {...register('last_name')} placeholder="Fagionato" disabled={busy} />
@@ -53,31 +61,35 @@ function UserForm({ usuario, onClose }) {
       </div>
 
       <FormField label="E-mail" required error={errors.email?.message}>
-        <Input type="email" {...register('email', { required: 'E-mail obrigatório' })} placeholder="giulia@email.com" disabled={busy} />
+        <Input type="email" {...register('email', { required: 'E-mail obrigatorio' })} placeholder="giulia@email.com" disabled={busy} />
       </FormField>
 
       <FormField label={usuario ? 'Nova Senha (deixar em branco para manter)' : 'Senha'} error={errors.password?.message}>
         <Input
           type="password"
-          {...register('password', { required: !usuario ? 'Senha obrigatória' : false })}
+          {...register('password', { required: !usuario ? 'Senha obrigatoria' : false })}
           placeholder="••••••••"
           disabled={busy}
         />
       </FormField>
 
       <FormField label="Grupos de Acesso">
-        <div className="space-y-1.5">
+        <div className="flex flex-wrap gap-2 pt-1">
           {GRUPOS.map(g => (
-            <label key={g} className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                value={g}
-                {...register('groups')}
-                className="w-4 h-4 rounded accent-fluir-purple"
-                disabled={busy}
-              />
-              <span className="text-sm">{g}</span>
-            </label>
+            <button
+              key={g}
+              type="button"
+              onClick={() => toggleGrupo(g)}
+              disabled={busy}
+              className={cn(
+                'px-3 py-1 rounded-full text-xs font-medium border transition-colors',
+                selectedGrupos.includes(g)
+                  ? 'bg-fluir-purple text-white border-fluir-purple'
+                  : 'bg-transparent text-slate-400 border-slate-600 hover:border-fluir-purple/50'
+              )}
+            >
+              {g}
+            </button>
           ))}
         </div>
       </FormField>
@@ -85,14 +97,14 @@ function UserForm({ usuario, onClose }) {
       <FormField label="Ativo">
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" {...register('is_active')} className="w-4 h-4 rounded accent-fluir-purple" disabled={busy} />
-          <span className="text-sm">Usuário ativo</span>
+          <span className="text-sm">Usuario ativo</span>
         </label>
       </FormField>
 
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button type="submit" disabled={busy}>
-          {busy ? 'Salvando...' : usuario ? 'Salvar Alterações' : 'Criar Usuário'}
+          {busy ? 'Salvando...' : usuario ? 'Salvar Alteracoes' : 'Criar Usuario'}
         </Button>
       </DialogFooter>
     </form>

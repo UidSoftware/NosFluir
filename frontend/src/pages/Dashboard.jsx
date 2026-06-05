@@ -143,6 +143,9 @@ function ChartTooltip({ active, payload, label }) {
 
 // ── Barra de ocupação ─────────────────────────────────────────────────────────
 
+// OccupancyBar: max=15 é a capacidade padrão de toda turma no Studio Fluir.
+// Regra de negócio definida no backend (TurmaAlunosSerializer.validate).
+// O model Turma não possui campo de capacidade customizável por design.
 function OccupancyBar({ count, max = 15 }) {
   const pct = Math.min((count / max) * 100, 100)
   const color = count >= 13 ? 'bg-red-400' : count >= 9 ? 'bg-amber-400' : 'bg-emerald-400'

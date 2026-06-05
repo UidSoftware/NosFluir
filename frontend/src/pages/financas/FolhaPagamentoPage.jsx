@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Banknote, Plus, Pencil, Trash2 } from 'lucide-react'
 import { useList, useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery } from '@tanstack/react-query'
@@ -155,8 +155,26 @@ export default function FolhaPagamentoPage() {
   const [selected, setSelected]   = useState(null)
   const [deleteId, setDeleteId]   = useState(null)
 
+  const hoje = new Date()
+  const [mesFiltro, setMesFiltro]   = useState(String(hoje.getMonth() + 1))
+  const [anoFiltro, setAnoFiltro]   = useState(String(hoje.getFullYear()))
+
+  const NOMES_MESES_F = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  const ANOS_OPCOES_F = Array.from({ length: 4 }, (_, i) => String(hoje.getFullYear() - 3 + i))
+
+  const hoje = new Date()
+  const [mesFiltro, setMesFiltro]   = useState(String(hoje.getMonth() + 1))
+  const [anoFiltro, setAnoFiltro]   = useState(String(hoje.getFullYear()))
+
+  const NOMES_MESES_F = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  const ANOS_OPCOES_F = Array.from({ length: 4 }, (_, i) => String(hoje.getFullYear() - 3 + i))
+
   const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
   const del = useDelete(KEY, ENDPOINT, { successMsg: 'Registro excluído.' })
+
+  useEffect(() => {
+    setFilters({ fopa_mes_referencia: mesFiltro, fopa_ano_referencia: anoFiltro })
+  }, [mesFiltro, anoFiltro])
 
   const columns = [
     { key: 'func_nome',          header: 'Funcionário',  render: r => <span className="font-medium">{r.func_nome || '—'}</span> },
@@ -186,7 +204,25 @@ export default function FolhaPagamentoPage() {
 
       <Card>
         <CardContent className="p-5 space-y-4">
-          <SearchFilter placeholder="Buscar por funcionário..." onSearch={q => setFilters(q ? { search: q } : {})} />
+          {/* Filtro de período */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-xs text-muted-foreground">Período:</span>
+            <Select value={mesFiltro} onValueChange={setMesFiltro}>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {NOMES_MESES_F.map((m, i) => (
+                  <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={anoFiltro} onValueChange={setAnoFiltro}>
+              <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ANOS_OPCOES_F.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <SearchFilter placeholder="Buscar por funcionário..." onSearch={q => setFilters(q ? { search: q, fopa_mes_referencia: mesFiltro, fopa_ano_referencia: anoFiltro } : { fopa_mes_referencia: mesFiltro, fopa_ano_referencia: anoFiltro })} />
 
           {/* Mobile: cards */}
           <div className="block md:hidden">

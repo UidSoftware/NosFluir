@@ -15,6 +15,7 @@ import { toast } from '@/hooks/useToast'
 import { formatDate, cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import api from '@/services/api'
+import { SlotCalendar } from '@/components/shared/SlotCalendar'
 
 const KEY_AGE  = 'agendamento-experimental'
 const KEY_AEXP = 'aula-experimental'
@@ -37,144 +38,8 @@ function StatusBadge({ status }) {
   )
 }
 
-const MOD_LABELS = { pilates: 'Mat Pilates', funcional: 'Funcional', ambos: 'Ambos' }
-const MOD_CLS    = {
-  pilates:  'bg-purple-500/20 text-purple-300 border-purple-500/40',
-  funcional:'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
-  ambos:    'bg-slate-500/20 text-slate-300 border-slate-500/40',
-}
-const DOW_DIA = { 1:'seg', 2:'ter', 3:'qua', 4:'qui', 5:'sex' }
-const MES_PT  = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+// SlotCalendar e helpers movidos para @/components/shared/SlotCalendar
 
-// Usa data local (não UTC) para evitar deslocamento de fuso
-const isoLocal = (dt) =>
-  `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
-
-function gerarSemanas(numSemanas) {
-  const hoje     = new Date()
-  const hojeDow  = hoje.getDay()
-  const seg      = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - (hojeDow === 0 ? 6 : hojeDow - 1))
-  const semanas  = []
-  for (let w = 0; w < numSemanas; w++) {
-    const sem = []
-    for (let d = 0; d < 5; d++) {
-      const dt = new Date(seg.getFullYear(), seg.getMonth(), seg.getDate() + w * 7 + d)
-      sem.push({ iso: isoLocal(dt), dt, dia: DOW_DIA[dt.getDay()] })
-    }
-    semanas.push(sem)
-  }
-  return semanas
-}
-
-function SlotCalendar({ slots, slotIdSelecionado, dataAtual, onSelect }) {
-  const [diaFoco, setDiaFoco] = useState(null)
-
-  const slotsByDia = {}
-  slots.forEach(s => {
-    if (!slotsByDia[s.slot_dia_semana]) slotsByDia[s.slot_dia_semana] = []
-    slotsByDia[s.slot_dia_semana].push(s)
-  })
-
-  const semanas = gerarSemanas(4)
-  const hojeStr = isoLocal(new Date())
-
-  const slotsFoco = diaFoco
-    ? (slotsByDia[DOW_DIA[new Date(diaFoco + 'T00:00').getDay()]] || [])
-    : []
-
-  const meses = [...new Set(semanas.flat().map(c => c.dt.getMonth()))]
-  const headerMes = meses.map(m => MES_PT[m]).join(' / ')
-
-  return (
-    <div className="space-y-3">
-      <div className="rounded-lg border border-border overflow-hidden">
-        {/* Cabeçalho mês + dias */}
-        <div className="bg-fluir-dark-2/60 px-3 py-1.5 text-xs text-muted-foreground font-medium">{headerMes}</div>
-        <div className="grid grid-cols-5 border-b border-border/50">
-          {['Seg','Ter','Qua','Qui','Sex'].map(d => (
-            <div key={d} className="text-center text-xs text-muted-foreground py-1.5 font-medium">{d}</div>
-          ))}
-        </div>
-
-        {semanas.map((sem, wi) => (
-          <div key={wi} className="grid grid-cols-5 border-t border-border/30">
-            {sem.map(({ iso, dt, dia }) => {
-              const temSlot  = (slotsByDia[dia] || []).length > 0
-              const isPast   = iso < hojeStr
-              const isFoco   = diaFoco === iso
-              const temSel   = dataAtual === iso
-              return (
-                <button
-                  key={iso}
-                  type="button"
-                  disabled={!temSlot || isPast}
-                  onClick={() => setDiaFoco(isFoco ? null : iso)}
-                  className={cn(
-                    'relative py-2 text-center text-sm transition-colors',
-                    isPast         ? 'text-muted-foreground/20 cursor-not-allowed' :
-                    !temSlot       ? 'text-muted-foreground/30 cursor-not-allowed' :
-                    isFoco         ? 'bg-fluir-purple text-white font-semibold' :
-                    temSel         ? 'bg-fluir-purple/20 text-fluir-purple font-semibold' :
-                    'text-foreground hover:bg-fluir-purple/15 cursor-pointer font-medium',
-                  )}
-                >
-                  {dt.getDate()}
-                  {temSlot && !isPast && !isFoco && (
-                    <span className={cn(
-                      'absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full',
-                      temSel ? 'bg-fluir-purple' : 'bg-fluir-purple/50',
-                    )} />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        ))}
-      </div>
-
-      {/* Horários do dia focado */}
-      {diaFoco && (
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">
-            {new Date(diaFoco + 'T00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {slotsFoco.map(slot => {
-              const isSel = String(slot.slot_id) === String(slotIdSelecionado) && dataAtual === diaFoco
-              return (
-                <button
-                  key={slot.slot_id}
-                  type="button"
-                  onClick={() => onSelect(slot, diaFoco)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all',
-                    isSel
-                      ? 'bg-fluir-purple text-white border-fluir-purple'
-                      : 'border-border hover:border-fluir-purple/50 hover:bg-fluir-purple/10',
-                  )}
-                >
-                  <span className="font-medium tabular-nums">{slot.slot_hora?.slice(0,5)}</span>
-                  <span className={cn('text-xs px-1.5 py-0.5 rounded border', MOD_CLS[slot.slot_modalidade])}>
-                    {MOD_LABELS[slot.slot_modalidade]}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {slot.vagas_disponiveis} vaga{slot.vagas_disponiveis > 1 ? 's' : ''}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {slots.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center py-2">
-          Nenhum horário ativo — configure na aba <strong>Grade de Horários</strong> em Agendamentos.
-        </p>
-      )}
-    </div>
-  )
-}
 
 function NovoAgendamentoForm({ onClose }) {
   const { register, handleSubmit, setValue, watch } = useForm({

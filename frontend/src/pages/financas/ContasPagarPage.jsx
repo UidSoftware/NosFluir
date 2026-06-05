@@ -17,8 +17,6 @@ import { toast } from '@/hooks/useToast'
 const KEY      = 'contas-pagar'
 const ENDPOINT = '/contas-pagar/'
 
-const TIPOS_DESPESA = [
-]
 
 const FORMAS = ['PIX', 'Dinheiro', 'Cartão', 'Boleto', 'Transferência']
 

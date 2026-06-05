@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
-import { Activity, Play, Square, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp, ClipboardList, GripVertical, ClipboardCheck } from 'lucide-react'
+import { Activity, Play, Square, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp, ClipboardList, GripVertical, ClipboardCheck, Dumbbell, Zap } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors,
@@ -34,8 +34,8 @@ const FALTA_TIPOS = [
 ]
 
 const MODALIDADES = [
-  { value: 'pilates',   label: '🧘 Mat Pilates' },
-  { value: 'funcional', label: '💪 Funcional' },
+  { value: 'pilates',   label: 'Mat Pilates' },
+  { value: 'funcional', label: 'Funcional' },
 ]
 
 function SortableExercicioLinha({ ex }) {
@@ -818,7 +818,30 @@ export default function MinistrarAulaPage() {
           )}
         </div>
 
-        <div className="flex justify-end gap-3">
+        {/* Botão sticky mobile - acima da BottomBar */}
+        {alunosTurma?.length > 0 && (
+          <div className="sticky bottom-16 z-10 mx-auto max-w-xl px-4 pb-3 md:hidden">
+            <Button
+              variant="gradient"
+              className="w-full shadow-lg"
+              onClick={finalizar}
+              disabled={finalizando}
+            >
+              {finalizando ? (
+                <><Spinner className="w-4 h-4" /> Salvando...</>
+              ) : (
+                <>
+                  <Square className="w-4 h-4" /> Finalizar Aula
+                  <span className="ml-2 text-xs opacity-80">
+                    {Object.values(alunoStates).filter(s => s?.presenca != null).length} de {alunosTurma.length} marcados
+                  </span>
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        <div className="hidden md:flex justify-end gap-3">
           <Button
             variant="gradient"
             onClick={finalizar}

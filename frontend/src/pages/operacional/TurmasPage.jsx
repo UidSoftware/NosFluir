@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarDays, Plus, Pencil, Trash2, Eye, Users, UserPlus, UserMinus, ChevronDown, ChevronRight } from 'lucide-react'
+import { CalendarDays, Plus, Pencil, Trash2, Eye, Users, UserPlus, UserMinus, ChevronDown, ChevronRight, Dumbbell, Zap } from 'lucide-react'
 import { useCreate, useUpdate, useDelete, fetchAll } from '@/hooks/useApi'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -177,10 +177,16 @@ function GerenciarAlunosModal({ turma, onClose }) {
 }
 
 const GRUPOS = [
-  { key: 'pilates',   label: 'Mat Pilates', icon: '🧘' },
-  { key: 'funcional', label: 'Funcional',   icon: '💪' },
+  { key: 'pilates',   label: 'Mat Pilates', icon: 'pilates' },
+  { key: 'funcional', label: 'Funcional',   icon: 'funcional' },
   { key: null,        label: 'Sem modalidade', icon: null },
 ]
+
+function ModalidadeIcon({ tipo }) {
+  if (tipo === 'pilates')   return <Dumbbell className="w-4 h-4 text-fluir-purple inline" />
+  if (tipo === 'funcional') return <Zap className="w-4 h-4 text-fluir-cyan inline" />
+  return null
+}
 
 function TurmaGrupoCard({ grupo, turmas, onEdit, onAlunos, onDelete, onNova }) {
   const [expandido, setExpandido] = useState(true)
@@ -196,7 +202,7 @@ function TurmaGrupoCard({ grupo, turmas, onEdit, onAlunos, onDelete, onNova }) {
           <div className="flex items-center gap-2">
             <ChevronIcon className="w-4 h-4 text-muted-foreground" />
             <span className="font-semibold text-sm">
-              {grupo.icon ? `${grupo.icon} ` : ''}{grupo.label}
+              {grupo.icon ? <><ModalidadeIcon tipo={grupo.icon} />{' '}</> : ''}{grupo.label}
             </span>
             <span className="text-xs text-muted-foreground">({turmas.length})</span>
           </div>

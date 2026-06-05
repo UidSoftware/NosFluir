@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Loader2 } from 'lucide-react'
 import { useList } from '@/hooks/useApi'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SearchFilter } from '@/components/shared/SearchFilter'
@@ -19,8 +19,23 @@ const KEY      = 'livro-caixa'
 export default function LivroCaixaPage() {
   const [tipoFilter, setTipoFilter] = useState('all')
   const [activeFilters, setActiveFilters] = useState({})
+  const hoje = new Date()
+  const [mesFiltro, setMesFiltro] = useState(String(hoje.getMonth() + 1))
+  const [anoFiltro, setAnoFiltro] = useState(String(hoje.getFullYear()))
 
-  const { data, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
+  const { data: rawData, isLoading, page, setPage, totalPages, count, setFilters } = useList(KEY, ENDPOINT)
+
+  const NOMES_MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  const ANOS_OPCOES = Array.from({ length: 4 }, (_, i) => String(new Date().getFullYear() - 3 + i))
+
+  const data = useMemo(() => {
+    if (!rawData) return rawData
+    return rawData.filter(item => {
+      if (!item.lica_data_lancamento) return true
+      const [ano, mes] = item.lica_data_lancamento.split('-').map(Number)
+      return ano === parseInt(anoFiltro) && mes === parseInt(mesFiltro)
+    })
+  }, [rawData, mesFiltro, anoFiltro])
 
   const { data: totais } = useQuery({
     queryKey: ['livro-caixa-totais', activeFilters],
@@ -117,6 +132,24 @@ export default function LivroCaixaPage() {
 
       <Card>
         <CardContent className="p-5 space-y-4">
+          {/* Filtro de período */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-xs text-muted-foreground">Período:</span>
+            <Select value={mesFiltro} onValueChange={setMesFiltro}>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {NOMES_MESES.map((m, i) => (
+                  <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={anoFiltro} onValueChange={setAnoFiltro}>
+              <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ANOS_OPCOES.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <SearchFilter placeholder="Buscar por histórico..." onSearch={handleSearch}>
             <Select value={tipoFilter} onValueChange={handleTipoChange}>
               <SelectTrigger className="w-32"><SelectValue placeholder="Todos" /></SelectTrigger>

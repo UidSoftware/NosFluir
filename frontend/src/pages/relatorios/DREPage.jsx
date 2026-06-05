@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { FileDown } from 'lucide-react'
+import { FileDown, Loader2 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/primitives'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import api from '@/services/api'
@@ -37,7 +37,7 @@ export default function DREPage() {
   const [ano,  setAno]  = useState(String(hoje.getFullYear()))
   const [query,setQuery]= useState({ mes: hoje.getMonth() + 1, ano: hoje.getFullYear() })
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['relatorio-dre', query.mes, query.ano],
     queryFn: () => api.get('/relatorios/dre/', { params: { mes: query.mes, ano: query.ano } }).then(r => r.data),
   })
@@ -64,23 +64,33 @@ export default function DREPage() {
       {/* Filtros */}
       <Card>
         <CardContent className="p-4 flex flex-wrap gap-3 items-end">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap items-end">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Mês</p>
-              <select
-                className="rounded border border-border bg-background text-sm px-2 py-1.5"
-                value={mes}
-                onChange={e => setMes(e.target.value)}
-              >
-                {MESES.map((m, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>)}
-              </select>
+              <Select value={mes} onValueChange={setMes}>
+                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MESES.map((m, i) => (
+                    <SelectItem key={i} value={String(i + 1).padStart(2, '0')}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">Ano</p>
-              <Input type="number" value={ano} onChange={e => setAno(e.target.value)} className="w-24" />
+              <Select value={ano} onValueChange={setAno}>
+                <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - 3 + i).map(y => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <Button onClick={aplicar}>Gerar DRE</Button>
+          <Button onClick={aplicar} disabled={isFetching} className="gap-1.5">
+            {isFetching ? <><Loader2 className="w-4 h-4 animate-spin" /> Gerando...</> : 'Gerar DRE'}
+          </Button>
           {data && (
             <Button variant="outline" onClick={baixarPdf} className="gap-1.5">
               <FileDown className="w-4 h-4" /> Exportar PDF

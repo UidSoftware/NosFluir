@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/useToast'
 import { formatDateTime, cn } from '@/lib/utils'
 import api from '@/services/api'
+import { SlotCalendar as SlotCalendarShared } from '@/components/shared/SlotCalendar'
 
 // ── Aba genérica (Horários / Turmas) ───────────────────────────────────────
 function TabContent({ endpoint, keyName, columns, emptyMessage }) {
@@ -99,82 +100,6 @@ function gerarSemanas(n) {
   return out
 }
 
-function SlotCalendar({ slots, slotIdSel, dataAtual, onSelect }) {
-  const [diaFoco, setDiaFoco] = useState(null)
-  const byDia = {}
-  slots.forEach(s => { if (!byDia[s.slot_dia_semana]) byDia[s.slot_dia_semana] = []; byDia[s.slot_dia_semana].push(s) })
-  const semanas = gerarSemanas(4)
-  const hojeStr = isoLocalAg(new Date())
-  const slotsFoco = diaFoco ? (byDia[DOW_DIA_AG[new Date(diaFoco + 'T00:00').getDay()]] || []) : []
-  const meses = [...new Set(semanas.flat().map(c => c.dt.getMonth()))].map(m => MES_PT_AG[m]).join(' / ')
-
-  return (
-    <div className="space-y-3">
-      <div className="rounded-lg border border-border overflow-hidden">
-        <div className="bg-fluir-dark-2/60 px-3 py-1.5 text-xs text-muted-foreground font-medium">{meses}</div>
-        <div className="grid grid-cols-5 border-b border-border/50">
-          {['Seg','Ter','Qua','Qui','Sex'].map(d => (
-            <div key={d} className="text-center text-xs text-muted-foreground py-1.5 font-medium">{d}</div>
-          ))}
-        </div>
-        {semanas.map((sem, wi) => (
-          <div key={wi} className="grid grid-cols-5 border-t border-border/30">
-            {sem.map(({ iso, dt, dia }) => {
-              const temSlot = (byDia[dia] || []).length > 0
-              const isPast  = iso < hojeStr
-              const isFoco  = diaFoco === iso
-              const temSel  = dataAtual === iso
-              return (
-                <button key={iso} type="button" disabled={!temSlot || isPast}
-                  onClick={() => setDiaFoco(isFoco ? null : iso)}
-                  className={cn(
-                    'relative py-2 text-center text-sm transition-colors',
-                    isPast    ? 'text-muted-foreground/20 cursor-not-allowed' :
-                    !temSlot  ? 'text-muted-foreground/30 cursor-not-allowed' :
-                    isFoco    ? 'bg-fluir-purple text-white font-semibold' :
-                    temSel    ? 'bg-fluir-purple/20 text-fluir-purple font-semibold' :
-                    'text-foreground hover:bg-fluir-purple/15 cursor-pointer font-medium',
-                  )}>
-                  {dt.getDate()}
-                  {temSlot && !isPast && !isFoco && (
-                    <span className={cn('absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full', temSel ? 'bg-fluir-purple' : 'bg-fluir-purple/50')} />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        ))}
-      </div>
-      {diaFoco && (
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">
-            {new Date(diaFoco + 'T00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {slotsFoco.map(slot => {
-              const isSel = String(slot.slot_id) === String(slotIdSel) && dataAtual === diaFoco
-              return (
-                <button key={slot.slot_id} type="button" onClick={() => onSelect(slot, diaFoco)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all',
-                    isSel ? 'bg-fluir-purple text-white border-fluir-purple'
-                          : 'border-border hover:border-fluir-purple/50 hover:bg-fluir-purple/10',
-                  )}>
-                  <span className="font-medium tabular-nums">{slot.slot_hora?.slice(0,5)}</span>
-                  <span className={cn('text-xs px-1.5 py-0.5 rounded border', MOD_CLS_AG[slot.slot_modalidade])}>
-                    {MOD_LABELS_AG[slot.slot_modalidade]}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{slot.vagas_disponiveis} vaga{slot.vagas_disponiveis > 1 ? 's' : ''}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-      {slots.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum horário ativo — use a <strong>Grade de Horários</strong> para configurar.</p>}
-    </div>
-  )
-}
 
 function NovoAgendamentoExpForm({ onClose }) {
   const { register, handleSubmit, setValue, watch } = useForm({
@@ -226,11 +151,11 @@ function NovoAgendamentoExpForm({ onClose }) {
         <p className="text-xs font-medium text-muted-foreground mb-2">
           {loadingSlots ? 'Carregando horários...' : 'Selecione um dia disponível *'}
         </p>
-        {!loadingSlots && <SlotCalendar slots={slots} slotIdSel={slotId} dataAtual={dataAg} onSelect={handleSlotSelect} />}
+        {!loadingSlots && <SlotCalendarShared slots={slots} slotIdSelecionado={slotId} dataAtual={dataAg} onSelect={handleSlotSelect} emptyMessage="Nenhum horário ativo — use a Grade de Horários para configurar." />}
         {slotSel && dataAg && (
           <p className="text-xs text-emerald-400 mt-2">
             ✓ {new Date(dataAg + 'T00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}
-            {' '}às {slotSel.slot_hora?.slice(0,5)} — {MOD_LABELS_AG[slotSel.slot_modalidade]}
+            {' '}às {slotSel.slot_hora?.slice(0,5)} — {{pilates: 'Mat Pilates', funcional: 'Funcional', ambos: 'Ambos'}[slotSel.slot_modalidade]}
           </p>
         )}
       </div>

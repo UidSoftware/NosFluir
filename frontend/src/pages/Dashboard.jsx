@@ -50,7 +50,7 @@ function SectionHeader({ title, subtitle, icon: Icon, iconBg, iconColor }) {
   )
 }
 
-function StatCard({ title, value, sub, icon: Icon, color = 'purple', isLoading }) {
+function StatCard({ title, value, sub, icon: Icon, color = 'purple', isLoading, to }) {
   const colors = {
     purple: 'bg-fluir-purple/10 text-fluir-purple',
     cyan:   'bg-fluir-cyan/10 text-fluir-cyan',
@@ -58,8 +58,8 @@ function StatCard({ title, value, sub, icon: Icon, color = 'purple', isLoading }
     red:    'bg-red-500/10 text-red-400',
     amber:  'bg-amber-500/10 text-amber-400',
   }
-  return (
-    <Card>
+  const card = (
+    <Card className={to ? 'cursor-pointer hover:ring-1 ring-fluir-purple/40 transition-all' : ''}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -79,6 +79,8 @@ function StatCard({ title, value, sub, icon: Icon, color = 'purple', isLoading }
       </CardContent>
     </Card>
   )
+  if (to) return <Link to={to}>{card}</Link>
+  return card
 }
 
 function ListaVazia({ msg }) {
@@ -241,6 +243,7 @@ function SecaoFinanceiro() {
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <StatCard
           title="Saldo Total"
+          to="/financas/contas"
           value={formatCurrency(saldoTotal)}
           sub={`${contas?.length ?? 0} conta(s)`}
           icon={Wallet}
@@ -249,6 +252,7 @@ function SecaoFinanceiro() {
         />
         <StatCard
           title="A Pagar Pendente"
+          to="/financas/contas-pagar"
           value={formatCurrency(totalPagar)}
           sub={`${pagarData?.count ?? 0} conta(s)`}
           icon={TrendingDown}
@@ -257,6 +261,7 @@ function SecaoFinanceiro() {
         />
         <StatCard
           title="A Receber Pendente"
+          to="/financas/contas-receber"
           value={formatCurrency(totalReceber)}
           sub={`${receberData?.count ?? 0} conta(s)`}
           icon={TrendingUp}
@@ -265,6 +270,7 @@ function SecaoFinanceiro() {
         />
         <StatCard
           title="Resultado do Mês"
+          to="/financas/livro-caixa"
           value={formatCurrency(resultadoMes)}
           sub={resultadoMes >= 0 ? '↑ Positivo' : '↓ Negativo'}
           icon={Activity}
@@ -273,6 +279,7 @@ function SecaoFinanceiro() {
         />
         <StatCard
           title="Folha do Mês"
+          to="/financas/folha-pagamento"
           value={formatCurrency(totalFolha)}
           sub={`${folhaData?.count ?? 0} funcionário(s)`}
           icon={Briefcase}
@@ -281,6 +288,7 @@ function SecaoFinanceiro() {
         />
         <StatCard
           title="Folha Pendente"
+          to="/financas/folha-pagamento"
           value={formatCurrency(totalFolhaPendente)}
           sub={`${folhaPendente.length} pagamento(s) em aberto`}
           icon={AlertTriangle}
@@ -465,6 +473,7 @@ function SecaoAlunos() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           title="Alunos Ativos"
+          to="/operacional/alunos"
           value={ativos?.count ?? '—'}
           icon={Users}
           color="purple"
@@ -472,6 +481,7 @@ function SecaoAlunos() {
         />
         <StatCard
           title="Alunos Inativos"
+          to="/operacional/alunos"
           value={inativos?.count ?? '—'}
           icon={UserX}
           color="amber"
@@ -479,6 +489,7 @@ function SecaoAlunos() {
         />
         <StatCard
           title="Planos Vencendo"
+          to="/operacional/alunos"
           value={planosVencendo?.count ?? '—'}
           sub="nos próximos 30 dias"
           icon={AlertTriangle}
@@ -487,6 +498,7 @@ function SecaoAlunos() {
         />
         <StatCard
           title="Matrículas em Turmas"
+          to="/operacional/turmas"
           value={loadMatriculas ? '—' : (matriculas?.length ?? 0)}
           sub={`${turmasList.length} turma(s)`}
           icon={Calendar}
@@ -495,6 +507,7 @@ function SecaoAlunos() {
         />
         <StatCard
           title="Aniversariantes do Mês"
+          to="/operacional/alunos"
           value={aniversariantes?.count ?? '—'}
           sub={new Date().toLocaleString('pt-BR', { month: 'long' })}
           icon={Gift}
@@ -613,6 +626,7 @@ function SecaoTecnico() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           title="Turmas Ativas"
+          to="/operacional/turmas"
           value={turmas?.count ?? '—'}
           icon={Calendar}
           color="purple"
@@ -620,6 +634,7 @@ function SecaoTecnico() {
         />
         <StatCard
           title="Aulas Hoje"
+          to="/tecnico/aulas"
           value={loadAulas ? '—' : (aulasHoje?.length ?? 0)}
           sub={aulasHoje?.length ? `${totalPresentes} presença(s)` : 'nenhuma programada'}
           icon={Activity}
@@ -628,6 +643,7 @@ function SecaoTecnico() {
         />
         <StatCard
           title="Créditos Disponíveis"
+          to="/tecnico/aulas"
           value={creditos?.count ?? '—'}
           sub="reposições"
           icon={RefreshCw}
@@ -636,6 +652,7 @@ function SecaoTecnico() {
         />
         <StatCard
           title="Funcionários"
+          to="/operacional/funcionarios"
           value={funcionarios?.count ?? '—'}
           icon={Briefcase}
           color="amber"
@@ -723,7 +740,7 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-base font-semibold">
+          <h1 className="text-base font-semibold font-display">
             {saudacao}, {primeiroNome}!
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5 capitalize">{dataFormatada}</p>

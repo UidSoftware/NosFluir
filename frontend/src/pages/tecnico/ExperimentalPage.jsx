@@ -20,7 +20,7 @@ import { SlotCalendar } from '@/components/shared/SlotCalendar'
 const KEY_AGE  = 'agendamento-experimental'
 const KEY_AEXP = 'aula-experimental'
 
-const MODALIDADE_LABELS = { pilates: 'Mat Pilates', funcional: 'Funcional', ambos: 'Ambos' }
+const MODALIDADE_LABELS = { pilates: '🧘 Mat Pilates', funcional: '💪 Funcional', ambos: '🔀 Ambos' }
 const STATUS_CONFIG = {
   pendente:   { label: 'Pendente',   cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
   confirmado: { label: 'Confirmado', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
@@ -122,9 +122,9 @@ function NovoAgendamentoForm({ onClose }) {
             <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar...</SelectItem>
-              <SelectItem value="pilates">Mat Pilates</SelectItem>
-              <SelectItem value="funcional">Funcional</SelectItem>
-              <SelectItem value="ambos">Ambos</SelectItem>
+              <SelectItem value="pilates">🧘 Mat Pilates</SelectItem>
+              <SelectItem value="funcional">💪 Funcional</SelectItem>
+              <SelectItem value="ambos">🔀 Ambos</SelectItem>
             </SelectContent>
           </Select>
         </FormField>
@@ -262,9 +262,9 @@ function AulaExperimentalForm({ agendamento, aulaExistente, onClose }) {
               <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__" className="text-muted-foreground italic">Selecionar...</SelectItem>
-                <SelectItem value="pilates">Mat Pilates</SelectItem>
-                <SelectItem value="funcional">Funcional</SelectItem>
-                <SelectItem value="ambos">Ambos</SelectItem>
+                <SelectItem value="pilates">🧘 Mat Pilates</SelectItem>
+                <SelectItem value="funcional">💪 Funcional</SelectItem>
+                <SelectItem value="ambos">🔀 Ambos</SelectItem>
               </SelectContent>
             </Select>
           </FormField>
@@ -494,9 +494,9 @@ export default function ExperimentalPage() {
               <SelectTrigger className="w-full md:w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas modalidades</SelectItem>
-                <SelectItem value="pilates">Mat Pilates</SelectItem>
-                <SelectItem value="funcional">Funcional</SelectItem>
-                <SelectItem value="ambos">Ambos</SelectItem>
+                <SelectItem value="pilates">🧘 Mat Pilates</SelectItem>
+                <SelectItem value="funcional">💪 Funcional</SelectItem>
+                <SelectItem value="ambos">🔀 Ambos</SelectItem>
               </SelectContent>
             </Select>
             <Input type="date" className="w-full md:w-44"

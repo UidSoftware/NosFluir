@@ -701,7 +701,7 @@ export default function AlunosPage() {
                     >
                       {a.alu_nome}
                       {!a.alu_ativo && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 font-normal">Inativo</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 font-normal">🔴 Inativo</span>
                       )}
                     </button>
                     <div className="flex items-center gap-0.5 shrink-0">

@@ -37,8 +37,8 @@ const KEY           = 'fichas-treino'
 const EXER_ENDPOINT = '/fichas-treino-exercicios/'
 
 const MODALIDADES = [
-  { value: 'pilates',   label: 'Mat Pilates' },
-  { value: 'funcional', label: 'Funcional' },
+  { value: 'pilates',   label: '🧘 Mat Pilates' },
+  { value: 'funcional', label: '💪 Funcional' },
 ]
 
 const MODALIDADE_VARIANT = { pilates: 'cyan', funcional: 'success' }
@@ -444,7 +444,7 @@ function FichaGrupoCard({ grupo, fichaDetalhe, onSelect, onEdit, onDelete, onNov
                   className="text-sm font-medium text-left flex-1"
                   onClick={() => onSelect(r)}
                 >
-                  <Dumbbell className="w-3 h-3 inline mr-1.5 text-muted-foreground" />
+                  <span aria-hidden="true" className="mr-1.5">📋</span>
                   {r.fitr_nome}
                 </button>
                 <div className="flex gap-0.5 shrink-0">

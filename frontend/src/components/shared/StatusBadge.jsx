@@ -30,7 +30,7 @@ export function BooleanBadge({ value, trueLabel = 'Sim', falseLabel = 'Não' }) 
           : 'bg-zinc-500/15 text-zinc-400 border-zinc-500/20'
       )}
     >
-      {value ? trueLabel : falseLabel}
+      {value ? '🟢 ' + trueLabel : '🔴 ' + falseLabel}
     </span>
   )
 }

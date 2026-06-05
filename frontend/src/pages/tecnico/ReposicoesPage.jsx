@@ -68,7 +68,7 @@ function ModalJustificar({ falta, onClose, onSuccess }) {
             {falta.tur_nome} · {formatDate(falta.aul_data)}
             {falta.aul_modalidade && (
               <Badge className="ml-2" variant={falta.aul_modalidade === 'pilates' ? 'secondary' : 'default'}>
-                {falta.aul_modalidade === 'pilates' ? 'Pilates' : 'Funcional'}
+                {falta.aul_modalidade === 'pilates' ? '🧘 Pilates' : '💪 Funcional'}
               </Badge>
             )}
           </p>
@@ -182,7 +182,7 @@ function FaltasSemJustificativa() {
                         ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
                         : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
                     }`}>
-                      {r.aul_modalidade === 'pilates' ? 'Pilates' : 'Funcional'}
+                      {r.aul_modalidade === 'pilates' ? '🧘 Pilates' : '💪 Funcional'}
                     </span>
                   )}
                 </div>

@@ -80,7 +80,7 @@ function SecaoContas() {
     { header: 'Nome',         render: r => r.cont_nome },
     { header: 'Tipo',         render: r => <Badge variant={TIPO_CONTA_VARIANT[r.cont_tipo] ?? 'secondary'}>{TIPO_CONTA_LABEL[r.cont_tipo] ?? r.cont_tipo}</Badge> },
     { header: 'Saldo Inicial',render: r => `R$ ${parseFloat(r.cont_saldo_inicial).toFixed(2).replace('.', ',')}` },
-    { header: 'Status',       render: r => r.cont_ativo ? <Badge variant="success">Ativa</Badge> : <Badge variant="secondary">Inativa</Badge> },
+    { header: 'Status',       render: r => r.cont_ativo ? <Badge variant="success">🟢 Ativa</Badge> : <Badge variant="secondary">🔴 Inativa</Badge> },
     {
       header: 'Ações',
       render: r => (
@@ -197,7 +197,7 @@ function SecaoPlanoContas() {
     { header: 'Código', render: r => <span className="font-mono">{r.plc_codigo}</span> },
     { header: 'Nome',   render: r => r.plc_nome },
     { header: 'Tipo',   render: r => <Badge variant={PLC_VARIANT[r.plc_tipo] ?? 'secondary'} className="text-xs">{r.plc_tipo_display}</Badge> },
-    { header: 'Status', render: r => r.plc_ativo ? <Badge variant="success">Ativo</Badge> : <Badge variant="secondary">Inativo</Badge> },
+    { header: 'Status', render: r => r.plc_ativo ? <Badge variant="success">🟢 Ativo</Badge> : <Badge variant="secondary">🔴 Inativo</Badge> },
     {
       header: 'Ações',
       render: r => (

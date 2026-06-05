@@ -287,8 +287,8 @@ const GRUPOS = [
 ]
 
 function ModalidadeIcon({ tipo }) {
-  if (tipo === 'pilates')   return <Dumbbell className="w-4 h-4 text-fluir-purple inline" />
-  if (tipo === 'funcional') return <Zap className="w-4 h-4 text-fluir-cyan inline" />
+  if (tipo === 'pilates')   return <span aria-label="Pilates" className="text-sm">🧘</span>
+  if (tipo === 'funcional') return <span aria-label="Funcional" className="text-sm">💪</span>
   return null
 }
 

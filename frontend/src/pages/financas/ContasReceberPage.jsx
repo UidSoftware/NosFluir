@@ -516,6 +516,158 @@ function ContaReceberForm({ rec, onClose }) {
   )
 }
 
+
+// ── Dialog Gerar Mensalidades da Turma ───────────────────────────────────────
+
+function GerarMensalidadesTurmaDialog({ open, onClose, onSuccess }) {
+  const queryClient = useQueryClient()
+  const anoAtual = new Date().getFullYear()
+  const mesAtual = new Date().getMonth() + 1
+
+  const [turmaSel,  setTurmaSel]  = useState('')
+  const [mesSel,    setMesSel]    = useState(String(mesAtual))
+  const [anoSel,    setAnoSel]    = useState(String(anoAtual))
+  const [plcSel,    setPlcSel]    = useState('')
+  const [valor,     setValor]     = useState('')
+  const [dataVenc,  setDataVenc]  = useState('')
+  const [progresso, setProgresso] = useState(null)
+
+  const { data: turmas } = useQuery({
+    queryKey: ['turmas-select'],
+    queryFn: () => fetchAll('/turmas/'),
+    enabled: open,
+  })
+  const { data: planosContas } = useQuery({
+    queryKey: ['plano-contas-receita'],
+    queryFn: () => fetchAll('/plano-contas/', { plc_tipo: 'receita', plc_ativo: true }),
+    enabled: open,
+  })
+
+  const MESES = [
+    { value: '1', label: 'Janeiro' }, { value: '2', label: 'Fevereiro' },
+    { value: '3', label: 'Marco' }, { value: '4', label: 'Abril' },
+    { value: '5', label: 'Maio' }, { value: '6', label: 'Junho' },
+    { value: '7', label: 'Julho' }, { value: '8', label: 'Agosto' },
+    { value: '9', label: 'Setembro' }, { value: '10', label: 'Outubro' },
+    { value: '11', label: 'Novembro' }, { value: '12', label: 'Dezembro' },
+  ]
+  const ANOS = [String(anoAtual - 1), String(anoAtual), String(anoAtual + 1)]
+
+  const turmaObj = turmas?.find(t => String(t.tur_id) === turmaSel)
+
+  const handleGerar = async () => {
+    if (!turmaSel) { toast({ title: 'Selecione uma turma.', variant: 'destructive' }); return }
+    if (!valor) { toast({ title: 'Informe o valor.', variant: 'destructive' }); return }
+    if (!dataVenc) { toast({ title: 'Informe a data de vencimento.', variant: 'destructive' }); return }
+
+    try {
+      const resp = await api.get('/turma-alunos/', { params: { tur: turmaSel, ativo: true } })
+      const alunos = resp.data.results ?? resp.data
+      if (!alunos.length) {
+        toast({ title: 'Nenhum aluno ativo nesta turma.', variant: 'destructive' })
+        return
+      }
+      setProgresso({ atual: 0, total: alunos.length })
+      const turNome = turmaObj?.tur_nome ?? 'Turma'
+      const mesLabelStr = MESES.find(m => m.value === mesSel)?.label ?? mesSel
+      for (let i = 0; i < alunos.length; i++) {
+        const al = alunos[i]
+        await api.post('/contas-receber/', {
+          alu: al.alu,
+          rec_tipo: 'mensalidade',
+          rec_valor_total: parseFloat(valor),
+          rec_valor_unitario: parseFloat(valor),
+          rec_quantidade: 1,
+          rec_desconto: 0,
+          rec_data_vencimento: dataVenc,
+          rec_data_emissao: new Date().toISOString().split('T')[0],
+          plano_contas: plcSel ? parseInt(plcSel) : null,
+          rec_descricao: 'Mensalidade ' + turNome + ' - ' + mesLabelStr + '/' + anoSel,
+          rec_status: 'pendente',
+        })
+        setProgresso({ atual: i + 1, total: alunos.length })
+      }
+      queryClient.invalidateQueries({ queryKey: ['contas-receber'] })
+      toast({ title: alunos.length + ' mensalidade(s) gerada(s) com sucesso!', variant: 'success' })
+      onSuccess?.()
+      onClose()
+    } catch (err) {
+      toast({ title: 'Erro ao gerar mensalidades.', variant: 'destructive' })
+    } finally {
+      setProgresso(null)
+    }
+  }
+
+  const handleClose = () => { if (!progresso) onClose() }
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v) handleClose() }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Gerar Mensalidades da Turma</DialogTitle></DialogHeader>
+        <div className="space-y-4 py-2">
+          <FormField label="Turma *">
+            <Select value={turmaSel} onValueChange={setTurmaSel} disabled={!!progresso}>
+              <SelectTrigger><SelectValue placeholder="Selecionar turma..." /></SelectTrigger>
+              <SelectContent>
+                {turmas?.map(t => <SelectItem key={t.tur_id} value={String(t.tur_id)}>{t.tur_nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </FormField>
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Mes">
+              <Select value={mesSel} onValueChange={setMesSel} disabled={!!progresso}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MESES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField label="Ano">
+              <Select value={anoSel} onValueChange={setAnoSel} disabled={!!progresso}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ANOS.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </FormField>
+          </div>
+          <FormField label="Plano de Contas">
+            <Select value={plcSel} onValueChange={setPlcSel} disabled={!!progresso}>
+              <SelectTrigger><SelectValue placeholder="Selecionar (opcional)" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="" className="text-muted-foreground italic">Nao informar</SelectItem>
+                {planosContas?.map(p => <SelectItem key={p.plc_id} value={String(p.plc_id)}>{p.plc_codigo} — {p.plc_nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </FormField>
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Valor (R$) *">
+              <Input type="number" step="0.01" value={valor} onChange={e => setValor(e.target.value)} placeholder="0.00" disabled={!!progresso} />
+            </FormField>
+            <FormField label="Vencimento *">
+              <Input type="date" value={dataVenc} onChange={e => setDataVenc(e.target.value)} disabled={!!progresso} />
+            </FormField>
+          </div>
+          {progresso && (
+            <div className="rounded-md bg-fluir-dark-3/60 border border-border/40 px-4 py-3 text-sm">
+              <p className="text-fluir-cyan font-medium">Criando {progresso.atual} de {progresso.total}...</p>
+              <div className="mt-2 h-1.5 bg-fluir-dark-3 rounded-full overflow-hidden">
+                <div className="h-full bg-fluir-purple transition-all duration-300" style={{ width: (progresso.atual / progresso.total * 100) + '%' }} />
+              </div>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={handleClose} disabled={!!progresso}>Cancelar</Button>
+          <Button onClick={handleGerar} disabled={!!progresso}>
+            {progresso ? ('Gerando ' + progresso.atual + '/' + progresso.total + '...') : 'Gerar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ── Linha da tabela mensal ────────────────────────────────────────────────────
 
 function LinhaRec({ r, onEditar, onExcluir, onPagar }) {
@@ -589,6 +741,7 @@ export default function ContasReceberPage() {
   const [deleteId,     setDeleteId]    = useState(null)
   const [mesesAbertos, setMesesAbertos]= useState({})
   const [modalMens,    setModalMens]   = useState(false)
+  const [modalTurma,   setModalTurma]  = useState(false)
   const [dryRunResult, setDryRunResult]= useState(null)
 
   const { gte, lte } = calcPeriodo(periodo)
@@ -652,6 +805,9 @@ export default function ContasReceberPage() {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => dryRun.mutate()} disabled={dryRun.isPending} className="gap-1.5">
               <Zap className="w-4 h-4" />{dryRun.isPending ? 'Verificando...' : 'Gerar Mensalidades'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setModalTurma(true)} className="gap-1.5">
+              <CheckCircle2 className="w-4 h-4" />Gerar por Turma
             </Button>
             <Button onClick={() => setModalForm('novo')}><Plus className="w-4 h-4" />Nova Conta</Button>
           </div>
@@ -760,6 +916,13 @@ export default function ContasReceberPage() {
           {modalPagar && <PagamentoModal rec={modalPagar} onClose={() => setModalPagar(null)} />}
         </DialogContent>
       </Dialog>
+
+      {/* Modal: Gerar Mensalidades por Turma */}
+      <GerarMensalidadesTurmaDialog
+        open={modalTurma}
+        onClose={() => setModalTurma(false)}
+        onSuccess={() => refetch()}
+      />
 
       {/* Confirm delete */}
       <ConfirmDialog

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
-import { Activity, Play, Square, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp, ClipboardList, GripVertical, ClipboardCheck, Dumbbell, Zap } from 'lucide-react'
+import { Activity, Play, Square, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp, ChevronRight, ClipboardList, GripVertical, ClipboardCheck, Dumbbell, Zap } from "lucide-react"
 import { useQuery } from '@tanstack/react-query'
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors,

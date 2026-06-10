@@ -1148,6 +1148,28 @@ Todos os filtros agora usam `grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wra
 
 ## Histórico de execuções
 
+### [2026-06-09] — Hotfix: Application Error ao registrar FC dos alunos
+
+**Tarefas executadas:**
+- fix(tecnico): import faltante de `ChevronRight` (lucide-react) em `MinistrarAulaPage.jsx`
+
+**Causa raiz:**
+- O botão colapsável "Medições (PA / FC)" (commit `ae30725`, fase P2-21) usa `<ChevronRight />` no estado fechado do acordeão, mas o ícone não foi adicionado ao import de `lucide-react`
+- Ao marcar qualquer aluno como "presente" em Ministrar Aula, o React tentava renderizar um componente `undefined` e quebrava → tela "Application Error" (error boundary do React Router)
+
+**Arquivos alterados:**
+- `frontend/src/pages/tecnico/MinistrarAulaPage.jsx` — adiciona `ChevronRight` ao import
+
+**Commits:**
+- `b8893b9` — fix(tecnico): adiciona import faltante de ChevronRight em MinistrarAulaPage
+
+**Deploy:**
+- Data: 2026-06-09 (horário BRT)
+- `make frontend-build` executado na VPS — `frontend/dist` atualizado (bind mount, sem rebuild de container)
+- Status: corrigido em produção
+
+---
+
 ### [2026-06-01] — serv_valor_base opcional + fix signals DateField
 
 **Tarefas executadas:**

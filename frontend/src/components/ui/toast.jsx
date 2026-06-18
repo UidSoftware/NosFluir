@@ -12,6 +12,7 @@ const ToastViewport = React.forwardRef(({ className, ...props }, ref) => (
       'fixed bottom-4 right-4 z-[100] flex max-h-screen w-full max-w-sm flex-col gap-2',
       className
     )}
+    style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     {...props}
   />
 ))

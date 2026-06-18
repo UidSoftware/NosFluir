@@ -4,13 +4,12 @@ import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Button } from '@/components/ui/button'
 import { Input, FormField } from '@/components/ui/primitives'
-import { Toaster } from '@/components/ui/toast'
-import { toast } from '@/hooks/useToast'
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
+  const [erro, setErro]         = useState('')
 
   const { login, isLoading } = useAuthStore()
   const navigate  = useNavigate()
@@ -19,15 +18,16 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setErro('')
     if (!email || !password) {
-      toast({ title: 'Preencha e-mail e senha.', variant: 'destructive' })
+      setErro('Preencha e-mail e senha.')
       return
     }
     const result = await login(email, password)
     if (result.success) {
       navigate(from, { replace: true })
     } else {
-      toast({ title: 'Acesso negado', description: result.error, variant: 'destructive' })
+      setErro(result.error || 'E-mail ou senha incorretos.')
     }
   }
 
@@ -112,6 +112,25 @@ export default function LoginPage() {
                 </span>
               )}
             </Button>
+
+            {erro && (
+              <div
+                role="alert"
+                style={{
+                  marginTop: 10,
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  background: 'rgba(239,68,68,0.10)',
+                  border: '1px solid rgba(239,68,68,0.30)',
+                  color: '#fca5a5',
+                  fontSize: 13,
+                  textAlign: 'center',
+                  lineHeight: 1.4,
+                }}
+              >
+                {erro}
+              </div>
+            )}
           </form>
         </div>
 
@@ -120,7 +139,6 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <Toaster />
     </div>
   )
 }

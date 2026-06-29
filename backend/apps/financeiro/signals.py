@@ -2,7 +2,7 @@ import calendar
 from datetime import date as _date
 from decimal import Decimal, ROUND_DOWN
 
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -16,16 +16,23 @@ def _add_months(dt, months):
     day = min(dt.day, calendar.monthrange(year, month)[1])
     return _date(year, month, day)
 
+
+def _ultimo_saldo_conta(conta):
+    ultimo = (
+        LivroCaixa.objects
+        .filter(conta=conta)
+        .select_for_update()
+        .order_by('-lica_id')
+        .first()
+    )
+    return ultimo.lica_saldo_atual if ultimo else Decimal('0.00')
+
+
 from .models import ContasPagar, ContasReceber, LivroCaixa, Pedido
 
 
 @receiver(post_save, sender=ContasPagar)
 def lancar_contas_pagar(sender, instance, **kwargs):
-    """
-    Cria lançamento de SAÍDA no Livro Caixa quando uma Conta a Pagar é marcada como 'pago'.
-    RN003 — verifica existência antes de criar para evitar duplicatas.
-    Usa select_for_update() para evitar race condition no cálculo de saldo.
-    """
     if instance.pag_status != 'pago':
         return
 
@@ -34,8 +41,8 @@ def lancar_contas_pagar(sender, instance, **kwargs):
         return
 
     with transaction.atomic():
-        # Lock do último registro para serializar acessos concorrentes
-        ultimo = LivroCaixa.objects.select_for_update().order_by('-lica_id').first()
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT pg_advisory_xact_lock(%s)', [instance.conta_id])
 
         if LivroCaixa.objects.filter(
             lica_origem_tipo='contas_pagar',
@@ -43,7 +50,7 @@ def lancar_contas_pagar(sender, instance, **kwargs):
         ).exists():
             return
 
-        saldo_anterior = ultimo.lica_saldo_atual if ultimo else Decimal('0.00')
+        saldo_anterior = _ultimo_saldo_conta(instance.conta)
 
         LivroCaixa.objects.create(
             lica_tipo_lancamento='saida',
@@ -64,17 +71,12 @@ def lancar_contas_pagar(sender, instance, **kwargs):
 
 @receiver(post_save, sender=ContasReceber)
 def lancar_contas_receber(sender, instance, **kwargs):
-    """
-    Cria lançamento de ENTRADA no Livro Caixa quando uma Conta a Receber é marcada como 'recebido'.
-    RN004 — verifica existência antes de criar para evitar duplicatas.
-    Usa select_for_update() para evitar race condition no cálculo de saldo.
-    """
     if instance.rec_status != 'recebido':
         return
 
     with transaction.atomic():
-        # Lock do último registro para serializar acessos concorrentes
-        ultimo = LivroCaixa.objects.select_for_update().order_by('-lica_id').first()
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT pg_advisory_xact_lock(%s)', [instance.conta_id])
 
         if LivroCaixa.objects.filter(
             lica_origem_tipo='contas_receber',
@@ -82,7 +84,7 @@ def lancar_contas_receber(sender, instance, **kwargs):
         ).exists():
             return
 
-        saldo_anterior = ultimo.lica_saldo_atual if ultimo else Decimal('0.00')
+        saldo_anterior = _ultimo_saldo_conta(instance.conta)
 
         LivroCaixa.objects.create(
             lica_tipo_lancamento='entrada',
@@ -103,12 +105,6 @@ def lancar_contas_receber(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Pedido)
 def processar_pedido(sender, instance, **kwargs):
-    """
-    Ao confirmar pagamento (status='pago'):
-    - Produtos: reduz estoque
-    - Pagamento à vista: cria lançamento no LivroCaixa
-    - Pagamento futuro: cria ContasReceber
-    """
     if instance.ped_status != 'pago':
         return
 
@@ -125,8 +121,10 @@ def processar_pedido(sender, instance, **kwargs):
                 )
 
         if not instance.ped_pagamento_futuro:
-            ultimo = LivroCaixa.objects.select_for_update().order_by('-lica_id').first()
-            saldo_ant = ultimo.lica_saldo_atual if ultimo else Decimal('0.00')
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT pg_advisory_xact_lock(%s)', [instance.conta_id])
+
+            saldo_ant = _ultimo_saldo_conta(instance.conta)
             from .models import PlanoContas
             plano_venda = PlanoContas.objects.filter(pk=5).first()
             LivroCaixa.objects.create(

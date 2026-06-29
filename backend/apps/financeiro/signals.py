@@ -35,6 +35,8 @@ from .models import ContasPagar, ContasReceber, LivroCaixa, Pedido
 def lancar_contas_pagar(sender, instance, **kwargs):
     if instance.pag_status != 'pago':
         return
+    if not instance.conta_id:
+        return
 
     # Pró-labore não gera lançamento automático — registrado manualmente
     if instance.cpa_tipo == 'prolabore':
@@ -72,6 +74,8 @@ def lancar_contas_pagar(sender, instance, **kwargs):
 @receiver(post_save, sender=ContasReceber)
 def lancar_contas_receber(sender, instance, **kwargs):
     if instance.rec_status != 'recebido':
+        return
+    if not instance.conta_id:
         return
 
     with transaction.atomic():
@@ -121,6 +125,8 @@ def processar_pedido(sender, instance, **kwargs):
                 )
 
         if not instance.ped_pagamento_futuro:
+            if not instance.conta_id:
+                return
             with connection.cursor() as cursor:
                 cursor.execute('SELECT pg_advisory_xact_lock(%s)', [instance.conta_id])
 

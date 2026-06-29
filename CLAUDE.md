@@ -1,6 +1,6 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 29/05/2026 | Versão: 17.0
+> Última atualização: 27/06/2026 | Versão: 18.0
 
 ---
 
@@ -1402,3 +1402,77 @@ gh secret set VPS_SSH_KEY --repo UidSoftware/NosFluir < /root/.ssh/nosfluir_ci_n
 **Bora codar! Good luck, Claude Code!**
 
 > SISTEMA EM PRODUCAO — atualizar este arquivo a cada mudança relevante.
+
+---
+
+## Sessão 29/06/2026 — Correções e Levantamentos
+
+### Bugs corrigidos
+
+**1. Signal LivroCaixa — saldo chain por conta (crítico)**
+O signal usava `select_for_update().order_by('-lica_id').first()` global — pegava o último LC de qualquer conta. Com Conta Corrente e Poupança simultâneas, o saldo anterior poderia vir da conta errada. Corrigido para `pg_advisory_xact_lock(conta.cont_id)` + `.filter(conta=conta)`, mesmo padrão do SystemD.
+
+**2. Guard conta_id nulo no signal**
+`pg_advisory_xact_lock(None)` crashava se ContasPagar/ContasReceber fossem salvas sem conta. Adicionado `if not instance.conta_id: return` nos três signals. Pagamento sem conta é salvo mas não gera LC — comportamento correto.
+
+**3. Dashboard — 4 bugs corrigidos**
+- `ContaSerializer.get_saldo_atual` somava entradas-saídas excluindo soft-deletes da cadeia → saldo errado (R$2.054 ao invés de R$3.644). Fix: usar `ultimo_lc.lica_saldo_atual`.
+- `PageNumberPagination` ignorava `page_size` da query → dashboard recebia 20 de 29 ContasReceber → total errado (R$3.180 ao invés de R$4.735). Fix: `FlexiblePagination` com `page_size_query_param='page_size'` e `max_page_size=1000`.
+- Resultado do Mês e Gráfico usavam `lica_data_lancamento` (data de cadastro) ao invés de `lcx_competencia` (competência real) → gráfico mostrava só junho mesmo tendo lançamentos de meses anteriores. Fix: tudo agora usa `lcx_competencia`.
+
+**4. gerar_mensalidades — mensalidades sem conta**
+O comando não passava `conta` nem `plano_contas` no `create()` → mensalidades de julho de Adélia e Uyara nasceram sem conta → LC não seria gerado ao marcar recebido. Fix: herda conta do último recebimento da aluna; fallback = Conta Corrente Mercado Pago. `plano_contas` fixado em Mensalidades (1.1.1).
+
+---
+
+### Padrões do módulo financeiro
+
+```
+✅ pg_advisory_xact_lock(conta.cont_id) dentro de transaction.atomic() nos signals
+✅ Saldo sempre pelo último LC da cadeia (lica_saldo_atual do último por conta) — NUNCA soma entradas-saídas
+✅ Guard if not instance.conta_id: return — sem conta não gera LC
+✅ FlexiblePagination (config/pagination.py) — respeita page_size até 1000
+✅ Dashboard usa lcx_competencia para agrupar/filtrar LC — NUNCA lica_data_lancamento
+✅ gerar_mensalidades herda conta da aluna; fallback Conta Corrente MP
+```
+
+---
+
+### Contas bancárias
+
+| Conta | Banco | Uso |
+|-------|-------|-----|
+| Conta Corrente Mercado Pago | Mercado Pago | Principal — todas as mensalidades |
+| Poupança Mercado Pago | Mercado Pago | Reserva |
+| Caixa Físico | — | Pagamentos em dinheiro |
+
+---
+
+### Clientes — perfil operacional
+
+**Giulia Fagionato e Tássia Magnaboso** — donas do Studio Fluir, Uberlândia/MG.
+- Usam o sistema principalmente via **celular e tablet**
+- Tendem a esquecer de selecionar conta bancária nos formulários — por isso o sistema deve pré-selecionar Conta Corrente MP sempre que possível
+- Extrato bancário do Mercado Pago é em **PDF** (não CSV)
+- Não têm acesso ao Google Cloud Console — integração de nuvem via **Dropbox** (mais simples)
+
+---
+
+### Próximo passo planejado — Conciliação Bancária via Dropbox
+
+**Status:** aguardando reunião com Giulia e Tássia para alinhar fluxo
+
+**Plano:**
+1. Giulia/Tássia baixam extrato PDF do Mercado Pago pelo app → salvam em pasta do Dropbox
+2. VPS faz polling da pasta via **Dropbox API** (não pasta local — elas usam mobile)
+3. Parser lê o PDF do MP → extrai transações
+4. Engine de conciliação compara com ContasReceber/LivroCaixa do período
+5. Página de conciliação no sistema mostra divergências → operadora confirma lançamentos
+
+**Dependências para implementar:**
+- Acesso Dropbox da Giulia/Tássia — criar pasta compartilhada
+- Gerar Access Token no Dropbox Developer Portal
+- Mapear formato exato do PDF de extrato do Mercado Pago (baixar um exemplo)
+
+**Nota:** Google Drive descartado — exige Google Cloud Console (pago/burocrático). Dropbox API é gratuita e simples.
+

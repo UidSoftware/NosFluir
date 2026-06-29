@@ -14,11 +14,10 @@ class ContaSerializer(serializers.ModelSerializer):
     saldo_atual = serializers.SerializerMethodField()
 
     def get_saldo_atual(self, obj):
-        from django.db.models import Sum
-        qs = LivroCaixa.objects.filter(conta=obj, deleted_at__isnull=True)
-        entradas = qs.filter(lica_tipo_lancamento='entrada').aggregate(v=Sum('lica_valor'))['v'] or Decimal('0')
-        saidas   = qs.filter(lica_tipo_lancamento='saida').aggregate(v=Sum('lica_valor'))['v'] or Decimal('0')
-        return float(obj.cont_saldo_inicial + entradas - saidas)
+        ultimo = LivroCaixa.objects.filter(conta=obj).order_by('-lica_id').first()
+        if ultimo:
+            return float(ultimo.lica_saldo_atual)
+        return float(obj.cont_saldo_inicial)
 
     class Meta:
         model = Conta

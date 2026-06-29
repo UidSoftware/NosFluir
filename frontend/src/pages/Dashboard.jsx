@@ -203,8 +203,8 @@ function SecaoFinanceiro() {
 
   let entradasMes = 0, saidasMes = 0
   lcxData?.forEach(item => {
-    if (!item.lica_data_lancamento) return
-    const [y, m] = item.lica_data_lancamento.split('-').map(Number)
+    if (!item.lcx_competencia) return
+    const [y, m] = item.lcx_competencia.split('-').map(Number)
     if (y === anoAtual && m === mesAtual) {
       const val = parseFloat(item.lica_valor || 0)
       if (item.lica_tipo_lancamento === 'entrada') entradasMes += val
@@ -215,8 +215,8 @@ function SecaoFinanceiro() {
 
   const agrupado = {}
   lcxData?.forEach(item => {
-    if (!item.lica_data_lancamento) return
-    const [y, m] = item.lica_data_lancamento.split('-')
+    if (!item.lcx_competencia) return
+    const [y, m] = item.lcx_competencia.split('-')
     const label = `${MESES[parseInt(m) - 1]}/${y.slice(2)}`
     if (!agrupado[label]) agrupado[label] = { _y: y, _m: m, mes: label, entradas: 0, saidas: 0 }
     const val = parseFloat(item.lica_valor || 0)

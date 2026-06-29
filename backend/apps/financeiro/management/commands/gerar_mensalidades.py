@@ -4,7 +4,7 @@ from datetime import date
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from apps.financeiro.models import AlunoPlano, ContasReceber
+from apps.financeiro.models import AlunoPlano, ContasReceber, PlanoContas
 
 MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
          'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
@@ -56,6 +56,13 @@ def executar(mes, ano, dry_run=False):
         valor = ap.plano.plan_valor_plano
 
         if not dry_run:
+            ultimo_rec = (
+                ContasReceber.objects
+                .filter(alu=ap.aluno, conta__isnull=False)
+                .order_by('-rec_data_vencimento')
+                .first()
+            )
+            plano_mensalidade = PlanoContas.objects.filter(plc_nome='Mensalidades').first()
             ContasReceber.objects.create(
                 alu=ap.aluno,
                 aplano=ap,
@@ -69,6 +76,8 @@ def executar(mes, ano, dry_run=False):
                 rec_desconto=0,
                 rec_valor_total=valor,
                 rec_status='pendente',
+                conta=ultimo_rec.conta if ultimo_rec else None,
+                plano_contas=plano_mensalidade,
             )
 
         criadas += 1

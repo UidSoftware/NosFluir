@@ -33,6 +33,7 @@ LOCAL_APPS = [
     'apps.financeiro',
     'apps.operacional',
     'apps.tecnico',
+    'apps.artefatos',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -134,6 +135,8 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
 }
+
+ARTEFATOS_API_TOKEN = config('ARTEFATOS_API_TOKEN', default='')
 
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='').split(',')
 CORS_ALLOW_CREDENTIALS = True

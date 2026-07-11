@@ -61,6 +61,7 @@ import UsuariosPage           from '@/pages/configuracao/UsuariosPage'
 import ProfissoesPage         from '@/pages/configuracao/ProfissoesPage'
 import AparelhosPage          from '@/pages/configuracao/AparelhosPage'
 import AcessoriosPage         from '@/pages/configuracao/AcessoriosPage'
+import ArtefatosPage          from '@/pages/configuracao/ArtefatosPage'
 
 export const router = createBrowserRouter(
   [
@@ -161,6 +162,16 @@ export const router = createBrowserRouter(
                 { path: '/configuracao/profissoes', element: <ProfissoesPage /> },
                 { path: '/configuracao/aparelhos',  element: <AparelhosPage /> },
                 { path: '/configuracao/acessorios', element: <AcessoriosPage /> },
+              ],
+            },
+
+            // ── Artefatos (só superuser — documentação técnica da Uid, não do
+            // negócio do cliente; array vazio cai no fallback is_superuser de
+            // PerfilRoute, sem incluir o grupo de negócio Administrador) ────
+            {
+              element: <PerfilRoute perfisPermitidos={[]} />,
+              children: [
+                { path: '/configuracao/artefatos', element: <ArtefatosPage /> },
               ],
             },
           ],

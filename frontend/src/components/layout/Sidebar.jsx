@@ -106,6 +106,7 @@ const MENU = [
     children: [
       { label: '🔐 Usuários',   path: '/configuracao/usuarios'   },
       { label: '📋 Profissões', path: '/configuracao/profissoes' },
+      { label: '🗂️ Artefatos', path: '/configuracao/artefatos', superuserOnly: true },
     ],
   },
 ]
@@ -257,7 +258,9 @@ export function Sidebar({ collapsed, onToggle }) {
 
               {!collapsed && open && (
                 <div className="mt-0.5 ml-3 pl-3 border-l border-border space-y-0.5">
-                  {item.children.map(child => (
+                  {item.children
+                    .filter(child => !child.superuserOnly || user?.is_superuser)
+                    .map(child => (
                     <NavLink
                       key={child.path}
                       to={child.path}

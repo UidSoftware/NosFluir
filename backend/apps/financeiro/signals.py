@@ -17,6 +17,17 @@ def _add_months(dt, months):
     return _date(year, month, day)
 
 
+def _lock_conta(conta):
+    """pg_advisory_xact_lock é exclusivo do PostgreSQL — os testes do CI rodam
+    em SQLite (settings_test.py) para não depender de Postgres no runner.
+    Fora do Postgres o lock é no-op: os testes rodam em processo único, sem
+    concorrência real pra proteger."""
+    if connection.vendor != 'postgresql':
+        return
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT pg_advisory_xact_lock(%s)', [conta.pk])
+
+
 def _ultimo_saldo_conta(conta):
     ultimo = (
         LivroCaixa.objects
@@ -28,23 +39,46 @@ def _ultimo_saldo_conta(conta):
     return ultimo.lica_saldo_atual if ultimo else Decimal('0.00')
 
 
-from .models import ContasPagar, ContasReceber, LivroCaixa, Pedido
+from .models import Conta, ContasPagar, ContasReceber, LivroCaixa, Pedido
+
+
+def _conta_fallback():
+    """Conta usada quando o registro não tem conta vinculada (opção "Não
+    informar" no frontend) — mesmo critério do gerar_mensalidades: conta
+    ativa cujo nome contém 'Corrente'. Sem isso o lançamento no LivroCaixa
+    era pulado silenciosamente (guard contra pg_advisory_xact_lock(None))."""
+    return Conta.objects.filter(cont_nome__icontains='Corrente', cont_ativo=True).first()
+
+
+def _resolver_conta(instance, campo='conta'):
+    """Retorna a conta a usar (a do instance, ou o fallback) e garante que o
+    registro de origem fique com ela gravada — via update() direto na tabela
+    pra não disparar o post_save de novo (evita recursão)."""
+    conta = getattr(instance, campo)
+    if conta:
+        return conta
+    conta = _conta_fallback()
+    if conta:
+        instance.__class__.objects.filter(pk=instance.pk).update(**{campo: conta})
+        setattr(instance, campo, conta)
+    return conta
 
 
 @receiver(post_save, sender=ContasPagar)
 def lancar_contas_pagar(sender, instance, **kwargs):
     if instance.pag_status != 'pago':
         return
-    if not instance.conta_id:
-        return
 
     # Pró-labore não gera lançamento automático — registrado manualmente
     if instance.cpa_tipo == 'prolabore':
         return
 
+    conta = _resolver_conta(instance, 'conta')
+    if not conta:
+        return
+
     with transaction.atomic():
-        with connection.cursor() as cursor:
-            cursor.execute('SELECT pg_advisory_xact_lock(%s)', [instance.conta_id])
+        _lock_conta(conta)
 
         if LivroCaixa.objects.filter(
             lica_origem_tipo='contas_pagar',
@@ -52,7 +86,7 @@ def lancar_contas_pagar(sender, instance, **kwargs):
         ).exists():
             return
 
-        saldo_anterior = _ultimo_saldo_conta(instance.conta)
+        saldo_anterior = _ultimo_saldo_conta(conta)
 
         LivroCaixa.objects.create(
             lica_tipo_lancamento='saida',
@@ -64,7 +98,7 @@ def lancar_contas_pagar(sender, instance, **kwargs):
             lica_saldo_anterior=saldo_anterior,
             lica_saldo_atual=saldo_anterior - instance.pag_valor_total,
             lica_forma_pagamento=instance.pag_forma_pagamento,
-            conta=instance.conta,
+            conta=conta,
             plano_contas=instance.plano_contas,
             lcx_competencia=instance.pag_data_vencimento if instance.pag_data_vencimento else None,
             created_by=instance.updated_by or instance.created_by,
@@ -75,12 +109,13 @@ def lancar_contas_pagar(sender, instance, **kwargs):
 def lancar_contas_receber(sender, instance, **kwargs):
     if instance.rec_status != 'recebido':
         return
-    if not instance.conta_id:
+
+    conta = _resolver_conta(instance, 'conta')
+    if not conta:
         return
 
     with transaction.atomic():
-        with connection.cursor() as cursor:
-            cursor.execute('SELECT pg_advisory_xact_lock(%s)', [instance.conta_id])
+        _lock_conta(conta)
 
         if LivroCaixa.objects.filter(
             lica_origem_tipo='contas_receber',
@@ -88,7 +123,7 @@ def lancar_contas_receber(sender, instance, **kwargs):
         ).exists():
             return
 
-        saldo_anterior = _ultimo_saldo_conta(instance.conta)
+        saldo_anterior = _ultimo_saldo_conta(conta)
 
         LivroCaixa.objects.create(
             lica_tipo_lancamento='entrada',
@@ -100,7 +135,7 @@ def lancar_contas_receber(sender, instance, **kwargs):
             lica_saldo_anterior=saldo_anterior,
             lica_saldo_atual=saldo_anterior + instance.rec_valor_total,
             lica_forma_pagamento=instance.rec_forma_recebimento,
-            conta=instance.conta,
+            conta=conta,
             plano_contas=instance.plano_contas,
             lcx_competencia=instance.rec_data_vencimento if instance.rec_data_vencimento else None,
             created_by=instance.updated_by or instance.created_by,
@@ -125,12 +160,12 @@ def processar_pedido(sender, instance, **kwargs):
                 )
 
         if not instance.ped_pagamento_futuro:
-            if not instance.conta_id:
+            conta = _resolver_conta(instance, 'conta')
+            if not conta:
                 return
-            with connection.cursor() as cursor:
-                cursor.execute('SELECT pg_advisory_xact_lock(%s)', [instance.conta_id])
+            _lock_conta(conta)
 
-            saldo_ant = _ultimo_saldo_conta(instance.conta)
+            saldo_ant = _ultimo_saldo_conta(conta)
             from .models import PlanoContas
             plano_venda = PlanoContas.objects.filter(pk=5).first()
             LivroCaixa.objects.create(
@@ -142,7 +177,7 @@ def processar_pedido(sender, instance, **kwargs):
                 lica_origem_id=instance.ped_id,
                 lica_saldo_anterior=saldo_ant,
                 lica_saldo_atual=saldo_ant + instance.ped_total,
-                conta=instance.conta,
+                conta=conta,
                 plano_contas=plano_venda,
                 lica_forma_pagamento=instance.ped_forma_pagamento,
                 lcx_competencia=instance.ped_data,

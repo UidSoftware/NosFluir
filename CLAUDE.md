@@ -1518,11 +1518,16 @@ O comando não passava `conta` nem `plano_contas` no `create()` → mensalidades
 
 ---
 
-### Próximo passo planejado — Conciliação Bancária via Dropbox
+### Próximo passo planejado — Conciliação Bancária via Dropbox — **CANCELADO**
 
-**Status:** aguardando reunião com Giulia e Tássia para alinhar fluxo
+> **Status: CANCELADO em 09/08/2026 — sistema encerrado.** A reunião com
+> Giulia e Tássia para alinhar o fluxo nunca chegou a ser agendada porque
+> o Studio Fluir fechou antes disso — não foi falha de acompanhamento,
+> a necessidade deixou de existir. Plano abaixo preservado só como
+> referência de modelagem para um futuro studio de Pilates, não é mais
+> uma pendência ativa deste sistema.
 
-**Plano:**
+**Plano (histórico, não implementar aqui):**
 1. Giulia/Tássia baixam extrato PDF do Mercado Pago pelo app → salvam em pasta do Dropbox
 2. VPS faz polling da pasta via **Dropbox API** (não pasta local — elas usam mobile)
 3. Parser lê o PDF do MP → extrai transações

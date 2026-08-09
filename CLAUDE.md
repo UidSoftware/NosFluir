@@ -1,20 +1,45 @@
 # CLAUDE.md — Sistema Nos Studio Fluir
 > Leia este arquivo SEMPRE antes de qualquer ação.
-> Última atualização: 27/06/2026 | Versão: 18.0
+> Última atualização: 09/08/2026 | Versão: 19.0
+
+---
+
+## 🔴 SISTEMA ENCERRADO — LEIA ANTES DE QUALQUER AÇÃO
+
+> **Status:** ENCERRADO em 09/08/2026
+> **Motivo:** Contrato com Studio Fluir (Giulia Fagionato e Tássia Magnaboso) encerrado.
+> **O sistema NÃO está mais em produção ativa.** Não faça deploys, não altere dados de produção.
+
+### Preservação para futuros projetos
+
+Este repositório é preservado como **base de código para futuros studios de Pilates**.
+O sistema `NosFluir` representa o estado da arte da Uid Software para gestão de studios:
+- Módulo financeiro completo (ContasPagar, ContasReceber, LivroCaixa, DRE, Fluxo de Caixa)
+- Módulo técnico completo (fichas de treino, ciclos, PSE, evolução de carga)
+- Sistema de créditos de reposição
+- Aula experimental com anamnese e testes físicos
+- PWA mobile-first com BottomBar e cards responsivos
+- CI/CD GitHub Actions configurado
+- 117 testes automatizados passando
+
+**Ao criar um novo projeto para outro studio de Pilates:**
+1. Usar este repositório como template/referência de modelagem
+2. Adaptar regras de negócio específicas do novo cliente
+3. Manter a estrutura de apps: `core`, `usuarios`, `financeiro`, `operacional`, `tecnico`
+4. Preservar o padrão `BaseModel` + `AuditMixin` + soft delete
 
 ---
 
 ## 📋 Visão Geral
 
 **Nome:** Nos Studio Fluir
-**Cliente:** Studio Fluir — Giulia Fagionato e Tássia Magnaboso
+**Cliente:** Studio Fluir — Giulia Fagionato e Tássia Magnaboso *(contrato encerrado)*
 **Localização:** Uberlândia - MG
-**Domínio:** nostudiofluir.com.br
+**Domínio:** nostudiofluir.com.br *(pode estar inativo)*
 **Repositório:** https://github.com/UidSoftware/NosFluir
 **Desenvolvido por:** Uid Software
 
-**O sistema é OFICIAL e está em uso pelas clientes.**
-Não é mais MVP — qualquer alteração impacta produção diretamente.
+**⛔ O contrato foi encerrado em 09/08/2026. Sistema preservado apenas como referência de código.**
 
 ---
 
@@ -539,9 +564,9 @@ git pull origin main && docker compose restart nginx
 - [x] Componentes compartilhados: header.html + footer.html via fetch
 - [x] Identidade visual com fontes e fotos reais (Giulia + Tássia)
 - [x] Formulário de agendamento → POST /api/agendamentos-horario/ (sem auth)
-- [ ] Google Maps (aguardando cliente)
-- [ ] Endereço, e-mail, horário reais (aguardando cliente)
-- [ ] Links reais das redes sociais (aguardando cliente)
+- [~] Google Maps — **CANCELADO** — sistema encerrado em 09/08/2026
+- [~] Endereço, e-mail, horário reais — **CANCELADO** — sistema encerrado
+- [~] Links reais das redes sociais — **CANCELADO** — sistema encerrado
 
 ### Fase 4 — Sistema de Reposições ✅ COMPLETO E EM PRODUÇÃO (06/04/2026)
 - [x] Model CreditoReposicao com status, expiração automática (+30 dias), FIFO
@@ -549,8 +574,8 @@ git pull origin main && docker compose restart nginx
 - [x] Signal `marcar_credito_usado` — marca crédito ao registrar reposição
 - [x] Endpoints: `/api/creditos/`, `/api/creditos/aluno/{id}/` (paginado)
 - [x] Frontend: página Reposições, validação de crédito em MinistrarAulaPage
-- [ ] Uso cruzado Pilates ↔ Funcional (pendente reunião)
-- [ ] cenario3 (+48h) — pendente reunião com clientes
+- [~] Uso cruzado Pilates ↔ Funcional — **CANCELADO** — sistema encerrado em 09/08/2026
+- [~] cenario3 (+48h) — **CANCELADO** — sistema encerrado
 
 ### Fase 5 — Telas e Funcionalidades Restantes ✅ COMPLETO E EM PRODUÇÃO (06/04/2026)
 - [x] Turma refatorada: professor removido da Turma, adicionado na Aula (FK `func` nullable)
@@ -702,8 +727,8 @@ git pull origin main && docker compose restart nginx
 - [x] `MinistrarAulaPage`: cria `AvisoFalta` no finalizar se não havia aviso prévio
 - [x] `AlunosPage`: seção "Avisos e Créditos" no detalhe do aluno (histórico + créditos disponíveis)
 - [x] Migrations 0007 (operacional) e 0027 (tecnico) aplicadas em produção
-- [ ] Cenário 3 (aviso >48h): pendente decisão com clientes — não gera crédito por ora
-- [ ] Uso cruzado Pilates ↔ Funcional: pendente
+- [~] Cenário 3 (aviso >48h): **CANCELADO** — sistema encerrado em 09/08/2026
+- [~] Uso cruzado Pilates ↔ Funcional: **CANCELADO** — sistema encerrado
 
 ### Fase 8 — Foto de Perfil com Cloudinary ✅ COMPLETO E EM PRODUÇÃO (24/04/2026)
 - [x] Campo `foto_url` no model User + migration `0002_foto_avatar_user_foto_url`
@@ -814,9 +839,9 @@ git pull origin main && docker compose restart nginx
 - [x] **ReposicoesPage:** filtro "Sem Justificativa" alterna listagem de créditos → listagem de faltas
 - [x] **Modal justificativa retroativa:** seleciona tipo (justificada/atestado) + datetime do aviso + obs → cria `AvisoFalta` (signal gera crédito se elegível) → PATCH `miau_tipo_falta='justificada'`; auditoria via `updated_by`/`updated_at`
 
-#### Seções 3 e 4 — Pendentes
-- [ ] Seção 3: Repetição automática de Contas a Pagar/Receber
-- [ ] Seção 4: Carrinho de pedidos (PedidosPage)
+#### Seções 3 e 4 — CANCELADAS (sistema encerrado em 09/08/2026)
+- [~] Seção 3: Repetição automática de Contas a Pagar/Receber — **CANCELADO**
+- [~] Seção 4: Carrinho de pedidos (PedidosPage) — **CANCELADO** (foi implementado na Fase 11)
 
 #### Pendência técnica — Refatoração de Ciclos (a discutir)
 - `aul_numero_ciclo` calculado por posição individual — pode divergir se aulas pularem posições
@@ -936,11 +961,9 @@ slot, agendamento, func, aluno
   - Saudação personalizada (Bom dia/Boa tarde/Boa noite + primeiro nome)
 - [x] **Fix BottomBar mobile** — botão Relatórios apontava para `/relatorios` (rota inexistente → fallback dashboard); corrigido para `/relatorios/frequencia`
 
-#### Em aberto — LivroCaixa ID=1 / ContasPagar ID=1 sem conta/plano_contas
-- [ ] `LivroCaixa ID=1` ("Pagamento: Aluguel", R$ 600, 23/04/2026) — `conta=None`, `plano_contas=None` (criado pré-Fase 10)
-- [ ] `ContasPagar ID=1` ("Aluguel", R$ 600, pago, venc 25/04/2026) — idem
-- **Ação:** confirmar com clientes qual conta foi usada → hard-delete LivroCaixa ID=1 + `update()` no ContasPagar + recriar LivroCaixa com campos corretos
-- **Ver:** `Instrucoes_Claude_Code_Fase14.md` → seção "Em Aberto" para passos detalhados
+#### Em aberto — LivroCaixa ID=1 / ContasPagar ID=1 sem conta/plano_contas — CANCELADO
+- [~] `LivroCaixa ID=1` ("Pagamento: Aluguel", R$ 600, 23/04/2026) — `conta=None`, `plano_contas=None` — **CANCELADO** — sistema encerrado em 09/08/2026; dado histórico de produção, não será corrigido
+- [~] `ContasPagar ID=1` ("Aluguel", R$ 600, pago, venc 25/04/2026) — idem — **CANCELADO**
 
 ### Fase 14.1 — Correções de Dados e UX Financeiro ✅ EM PRODUÇÃO (14/05/2026)
 
@@ -1077,11 +1100,11 @@ Todos os filtros agora usam `grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wra
 - Card mobile padrão: `key={r.PK_nomeado}` — nunca `r.id` genérico
 - Deploy com `./deploy.sh prod` sempre que mudar páginas frontend — rebuild parcial não gera novo hash de bundle
 
-### Pendências técnicas restantes:
-- [ ] Uso cruzado de crédito (Pilates ↔ Funcional) não implementado no backend
-- [ ] Crédito expirado — sem job automático para atualizar status
-- [ ] Agendamentos do site exigem Aluno pré-existente — design a revisar com clientes
-- [ ] LivroCaixa ID=1 / ContasPagar ID=1 — corrigir conta/plano_contas (aguardando confirmação das clientes)
+### Pendências técnicas restantes — CANCELADAS (sistema encerrado em 09/08/2026):
+- [~] Uso cruzado de crédito (Pilates ↔ Funcional) — **CANCELADO** — sistema encerrado antes da decisão das clientes
+- [~] Crédito expirado — job automático para atualizar status — **CANCELADO** — sistema encerrado
+- [~] Agendamentos do site exigem Aluno pré-existente — **CANCELADO** — design nunca revisado com clientes
+- [~] LivroCaixa ID=1 / ContasPagar ID=1 sem conta/plano_contas — **CANCELADO** — dado de produção; sistema encerrado
 
 ---
 
@@ -1147,6 +1170,43 @@ Todos os filtros agora usam `grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wra
 ---
 
 ## Histórico de execuções
+
+### [2026-08-09] — ENCERRAMENTO DO SISTEMA — Studio Fluir finalizada como cliente
+
+**Tarefas executadas:**
+- Contrato com Studio Fluir (Giulia Fagionato e Tássia Magnaboso) encerrado
+- CLAUDE.md atualizado com status de encerramento (v19.0)
+- Todas as pendências abertas marcadas como CANCELADAS (won't implement)
+- Repositório preservado como base de código para futuros studios de Pilates
+
+**Pendências canceladas (won't implement — sistema encerrado):**
+- Uso cruzado de crédito (Pilates ↔ Funcional)
+- Job automático de expiração de créditos
+- Cenário 3 de aviso de falta (>48h)
+- Google Maps e dados reais do site institucional
+- LivroCaixa ID=1 / ContasPagar ID=1 sem conta/plano_contas
+
+**Estado final do sistema:**
+- 117 testes automatizados passando
+- CI/CD GitHub Actions configurado e funcionando
+- Deploy na VPS: porta 8001 (`nostudiofluir.com.br`)
+- Último deploy de funcionalidade: 2026-06-09 (ChevronRight fix)
+
+**Arquivos alterados:**
+- `CLAUDE.md` — versão 19.0 com encerramento registrado
+
+**Commits:**
+- a registrar após este ciclo
+
+**Deploy:**
+- Não aplicável — nenhuma alteração de código, apenas documentação
+- Sistema preservado no ar até decisão de infraestrutura
+
+**Sentinel:**
+- N/A — somente atualização de documentação
+- Resultado: APROVADO (mudança documental, sem impacto em código)
+
+---
 
 ### [2026-06-09] — Hotfix: Application Error ao registrar FC dos alunos
 
